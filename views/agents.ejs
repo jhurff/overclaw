@@ -125,7 +125,7 @@
                 const agents = await agentsResponse.json();
 
                 if (agents.error) {
-                    agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching agents: ${agents.error}</p>`;
+                    agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching agents: ${agents.error}</p><p>Details: ${agents.details || 'N/A'}</p><p>Stdout (partial): ${agents.stdout || 'N/A'}</p>`;
                     return;
                 }
 
@@ -134,7 +134,7 @@
                 const sessions = await sessionsResponse.json();
 
                 if (sessions.error) {
-                    agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching sessions: ${sessions.error}</p>`;
+                    agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching sessions: ${sessions.error}</p><p>Details: ${sessions.details || 'N/A'}</p><p>Stdout (partial): ${sessions.stdout || 'N/A'}</p>`;
                     return;
                 }
 
