@@ -8,12 +8,19 @@
 </head>
 <body>
     <header class="oc-header">
-        <div class="logo"><h1>OverClaw Gateway Dashboard</h1></div>
-        <div><!-- User info or other header elements can go here --></div>
+        <div class="logo">
+            <h1 class="main-title">OVERCLAW</h1>
+            <span class="tagline">AGENT DASHBOARD</span>
+        </div>
+        <div class="header-controls">
+            <button id="sidebar-toggle" class="control-button">☰</button>
+            <!-- Placeholder for Theme/Mode Operator -->
+            <button id="theme-toggle" class="control-button">☀️</button>
+        </div>
     </header>
 
     <div class="oc-main-content">
-        <aside class="oc-sidebar">
+        <aside class="oc-sidebar" id="oc-sidebar">
             <nav>
                 <ul>
                     <li><a href="/" class="active">Dashboard</a></li>
@@ -45,5 +52,28 @@
             </div>
         </main>
     </div>
+
+    <script>
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('oc-sidebar');
+        const mainContent = document.querySelector('.oc-main-content');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            // Optionally adjust main content margin if needed based on design
+            // if (sidebar.classList.contains('collapsed')) {
+            //     mainContent.style.marginLeft = '0';
+            // } else {
+            //     mainContent.style.marginLeft = sidebar.offsetWidth + 'px';
+            // }
+        });
+
+        // Basic theme toggle placeholder
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', () => {
+            alert('Theme toggle functionality coming soon!');
+            // Implement actual theme switching logic here
+        });
+    </script>
 </body>
 </html>

@@ -4,12 +4,13 @@
     --oc-text-dark: #212529; /* Darker text for readability */
     --oc-text-muted: #6c757d; /* Muted text for descriptions */
     --oc-border-color: #e9ecef; /* Lighter border color */
-    --oc-header-bg: #343a40; /* Dark header background */
+    --oc-header-bg: #212529; /* Black header background */
     --oc-header-text: #ffffff; /* White text for dark header */
     --oc-sidebar-bg: #f1f3f5; /* Lighter sidebar background */
     --oc-card-bg: #ffffff; /* White card background */
     --oc-font-sans: 'DM Sans', system-ui, sans-serif;
     --oc-font-display: 'Outfit', system-ui, sans-serif;
+    --oc-transition-duration: 0.3s; /* For smooth transitions */
 }
 
 body {
@@ -20,13 +21,13 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    font-size: 0.95rem; /* Slightly smaller base font */
+    font-size: 0.95rem;
 }
 
 h1, h2, h3, h4, h5, h6 {
     font-family: var(--oc-font-display);
-    font-weight: 600; /* Medium-bold for headings */
-    color: var(--oc-text-dark); /* Headings use dark text by default */
+    font-weight: 600;
+    color: var(--oc-text-dark);
     line-height: 1.2;
 }
 
@@ -37,31 +38,79 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: var(--oc-header-text);
 }
 
-.oc-header .logo h1 {
+.oc-header .logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.oc-header .logo .main-title {
     margin: 0;
-    font-size: 1.5rem;
-    color: var(--oc-header-text);
+    font-size: 1.8rem;
     font-weight: 700;
+    color: var(--oc-header-text);
+    letter-spacing: -0.05em; /* Mimic condensed font */
+}
+
+.oc-header .logo .tagline {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7); /* Slightly muted for tagline */
+    margin-top: 0.2rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.oc-header .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.oc-header .control-button {
+    background: none;
+    border: none;
+    color: var(--oc-header-text);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: background-color var(--oc-transition-duration) ease;
+}
+
+.oc-header .control-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Main Layout */
 .oc-main-content {
     display: flex;
     flex: 1;
+    transition: margin-left var(--oc-transition-duration) ease; /* For sidebar toggle */
 }
 
 /* Sidebar */
 .oc-sidebar {
-    width: 200px; /* Slightly narrower sidebar */
+    width: 200px;
     background-color: var(--oc-sidebar-bg);
     border-right: 1px solid var(--oc-border-color);
     padding: 1rem 0;
     display: flex;
     flex-direction: column;
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+    transition: width var(--oc-transition-duration) ease;
+    flex-shrink: 0; /* Prevent shrinking when main content grows */
+}
+
+.oc-sidebar.collapsed {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+    border-right: none;
 }
 
 .oc-sidebar nav ul {
@@ -82,22 +131,22 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .oc-sidebar nav ul li a:hover {
-    background-color: #e2e6ea; /* Lighter hover */
+    background-color: #e2e6ea;
     color: var(--oc-primary-purple);
 }
 
 .oc-sidebar nav ul li a.active {
-    background-color: rgba(133, 11, 163, 0.1); /* Purple background for active */
+    background-color: rgba(133, 11, 163, 0.1);
     color: var(--oc-primary-purple);
-    border-left: 4px solid var(--oc-primary-purple); /* Left border for active */
-    padding-left: 1.35rem; /* Adjust padding for border */
+    border-left: 4px solid var(--oc-primary-purple);
+    padding-left: 1.35rem;
     font-weight: 600;
 }
 
 /* Dashboard Content */
 .oc-dashboard-area {
     flex: 1;
-    padding: 1.5rem; /* Slightly less padding */
+    padding: 1.5rem;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
@@ -106,14 +155,14 @@ h1, h2, h3, h4, h5, h6 {
 .oc-card {
     background-color: var(--oc-card-bg);
     border: 1px solid var(--oc-border-color);
-    border-radius: 0.35rem; /* Slightly smaller border-radius */
+    border-radius: 0.35rem;
     padding: 1.25rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow for cards */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .oc-card h2 {
     margin-top: 0;
-    font-size: 1.2rem; /* Smaller card title */
+    font-size: 1.2rem;
     color: var(--oc-text-dark);
 }
 
@@ -132,7 +181,7 @@ a:hover {
     text-decoration: underline;
 }
 
-/* Utility classes (mimicking OpenClaw's minimal classes) */
+/* Utility classes */
 .text-primary-purple {
     color: var(--oc-primary-purple);
 }
