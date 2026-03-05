@@ -1,0 +1,26 @@
+{
+  "name": "overclaw",
+  "version": "1.0.0",
+  "description": "OverClaw: An OpenClaw Oversight Webapp - Real-time monitoring and validation of OpenClaw agents, configurations, and deliverables.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js --dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "openclaw",
+    "oversight",
+    "monitoring",
+    "agents",
+    "configuration"
+  ],
+  "author": "Jimmy Hurff",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ejs": "^3.1.9"
+  },
+  "devDependencies": {}
+}
