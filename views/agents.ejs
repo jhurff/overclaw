@@ -123,7 +123,7 @@
                 console.log('Fetching /api/agents...');
                 const agentsResponse = await fetch('/api/agents');
                 const agents = await agentsResponse.json();
-                console.log('Agents data:', agents);
+                console.log('Agents data (from /api/agents):', agents);
 
                 if (agents.error) {
                     agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching agents: ${agents.error}</p><p>Details: ${agents.details || 'N/A'}</p><p>Stdout (partial): ${agents.stdout || 'N/A'}</p>`;
@@ -133,7 +133,7 @@
                 console.log('Fetching /api/sessions-detail...');
                 const sessionsResponse = await fetch('/api/sessions-detail');
                 const sessionsData = await sessionsResponse.json();
-                console.log('Sessions raw data:', sessionsData);
+                console.log('Sessions raw data (from /api/sessions-detail):', sessionsData);
 
                 if (sessionsData.error) {
                     agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching sessions: ${sessionsData.error}</p><p>Details: ${sessionsData.details || 'N/A'}</p><p>Stdout (partial): ${sessionsData.stdout || 'N/A'}</p>`;
@@ -144,8 +144,11 @@
                 console.log('All sessions available for processing:', allSessions);
 
                 const combinedData = agents.map(agent => {
-                    const agentSessions = allSessions.filter(session => session.agentId === agent.id);
-                    console.log(`Sessions for agent ${agent.name} (${agent.id}):`, agentSessions);
+                    const agentSessions = allSessions.filter(session => {
+                        console.log(`Comparing agent.id: ${agent.id} with session.agentId: ${session.agentId} for session key: ${session.key}`);
+                        return session.agentId === agent.id;
+                    });
+                    console.log(`Filtered sessions for agent ${agent.name} (${agent.id}):`, agentSessions);
                     
                     // Sort sessions by updatedAtMs in descending order (most recent first)
                     agentSessions.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
@@ -159,9 +162,11 @@
                     // Determine active sessions (e.g., updated within the last 5 minutes)
                     const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
                     const now = Date.now();
-                    const activeSessions = agentSessions.filter(s => 
-                        (now - s.updatedAtMs) < ACTIVE_THRESHOLD_MS
-                    ); 
+                    const activeSessions = agentSessions.filter(s => {
+                        const isActive = (now - s.updatedAtMs) < ACTIVE_THRESHOLD_MS;
+                        console.log(`Session key: ${s.key}, updatedAtMs: ${s.updatedAtMs}, now: ${now}, ageMs: ${now - s.updatedAtMs}, threshold: ${ACTIVE_THRESHOLD_MS}. Is active? ${isActive}`);
+                        return isActive;
+                    }); 
                     const activeSessionsCount = activeSessions.length;
                     console.log(`Agent ${agent.name}: Active sessions (${ACTIVE_THRESHOLD_MS / 60000} min threshold):`, activeSessions);
 
@@ -170,6 +175,7 @@
                     let currentTask = 'N/A';
                     if (mostRelevantSession) {
                         console.log(`Agent ${agent.name}: Most relevant session for task:`, mostRelevantSession);
+                        // Prioritize 'message' field if it contains a clear task description
                         if (mostRelevantSession.message && typeof mostRelevantSession.message === 'string' && mostRelevantSession.message.length > 0) {
                             currentTask = mostRelevantSession.message; 
                         } else if (mostRelevantSession.lastMessage?.message && typeof mostRelevantSession.lastMessage.message === 'string' && mostRelevantSession.lastMessage.message.length > 0) {
@@ -180,10 +186,10 @@
                                 currentTask = `Cron Job: ${keyParts[3] || 'Unknown'}`;
                             } else if (keyParts.includes('subagent')) {
                                 currentTask = `Subagent: ${keyParts[2] || 'Unknown'}`;
-                            } else if (keyParts.includes('discord')) {
-                                currentTask = `Discord Chat (ID: ${keyParts[keyParts.length - 1]})`;
-                            } else if (keyParts.includes('main')) {
-                                currentTask = `Main Session Chat (ID: ${keyParts[keyParts.length - 1]})`;
+                            } else if (keyParts.includes('discord') || keyParts.includes('main')) {
+                                currentTask = `Chat Session: ${keyParts[keyParts.length - 1]}`;
+                            } else {
+                                currentTask = `Session: ${mostRelevantSession.key}`;
                             }
                         }
                     }
