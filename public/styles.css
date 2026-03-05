@@ -198,7 +198,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .oc-card.full-width {
-    grid-column: 1 / -1; /* Make card span full width in grid */
+    grid-column: 1 / -1;
 }
 
 .oc-card h2 {
@@ -247,17 +247,17 @@ a:hover {
 }
 
 .oc-agent-table th {
-    background-color: #e9ecef; /* Slightly darker header */
+    background-color: #e9ecef;
     font-weight: 600;
     color: var(--oc-text-dark);
 }
 
 .oc-agent-table tbody tr:nth-child(even) {
-    background-color: #f6f8fa; /* Zebra striping */
+    background-color: #f6f8fa;
 }
 
 .oc-agent-table tbody tr:hover {
-    background-color: #e2e6ea; /* Light hover for rows */
+    background-color: #e2e6ea;
 }
 
 .oc-agent-table code {
@@ -265,4 +265,70 @@ a:hover {
     padding: 0.2em 0.4em;
     border-radius: 0.25em;
     font-size: 0.85em;
+}
+
+/* Config Viewer Specific Styles */
+.oc-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--oc-border-color);
+    border-radius: 0.25rem;
+    background-color: var(--oc-card-bg);
+    color: var(--oc-text-dark);
+    font-size: 0.9rem;
+}
+
+.oc-button-secondary {
+    background-color: #e9ecef;
+    color: var(--oc-text-dark);
+    border: 1px solid var(--oc-border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.oc-button-secondary:hover {
+    background-color: #dee2e6;
+}
+
+.oc-list-group {
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+    border: 1px solid var(--oc-border-color);
+    border-radius: 0.35rem;
+    background-color: var(--oc-card-bg);
+}
+
+.oc-list-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--oc-border-color);
+    font-size: 0.9rem;
+}
+
+.oc-list-item:last-child {
+    border-bottom: none;
+}
+
+.oc-list-item.oc-link {
+    cursor: pointer;
+    color: var(--oc-primary-purple);
+}
+
+.oc-list-item.oc-link:hover {
+    background-color: rgba(133, 11, 163, 0.05);
+    text-decoration: underline;
+}
+
+.oc-code-block {
+    background-color: #212529; /* Dark background for code */
+    color: #f8f9fa; /* Light text for code */
+    padding: 1rem;
+    border-radius: 0.35rem;
+    overflow-x: auto; /* Enable horizontal scrolling for long lines */
+    font-family: 'Fira Code', 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
