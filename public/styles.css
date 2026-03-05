@@ -1,47 +1,49 @@
 :root {
-    --oc-primary-blue: #007bff;
-    --oc-background-light: #f8f9fa;
-    --oc-text-dark: #212529;
-    --oc-text-muted: #6c757d;
-    --oc-border-color: #dee2e6;
-    --oc-header-bg: #ffffff;
-    --oc-sidebar-bg: #ffffff;
-    --oc-card-bg: #ffffff;
+    --oc-primary-purple: #850BA3; /* OverClaw's primary purple */
+    --oc-background-light: #f8f9fa; /* Light, clean background */
+    --oc-text-dark: #212529; /* Darker text for readability */
+    --oc-text-muted: #6c757d; /* Muted text for descriptions */
+    --oc-border-color: #e9ecef; /* Lighter border color */
+    --oc-header-bg: #343a40; /* Dark header background */
+    --oc-header-text: #ffffff; /* White text for dark header */
+    --oc-sidebar-bg: #f1f3f5; /* Lighter sidebar background */
+    --oc-card-bg: #ffffff; /* White card background */
+    --oc-font-sans: 'DM Sans', system-ui, sans-serif;
+    --oc-font-display: 'Outfit', system-ui, sans-serif;
 }
 
 body {
-    font-family: 'DM Sans', sans-serif; /* Inspired by OpenClaw/Weedstock */
+    font-family: var(--oc-font-sans);
     margin: 0;
     background-color: var(--oc-background-light);
     color: var(--oc-text-dark);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    font-size: 0.95rem; /* Slightly smaller base font */
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif; /* Bold display font */
-    font-weight: 700;
-    color: var(--oc-primary-blue);
+    font-family: var(--oc-font-display);
+    font-weight: 600; /* Medium-bold for headings */
+    color: var(--oc-text-dark); /* Headings use dark text by default */
+    line-height: 1.2;
 }
 
 /* Header */
 .oc-header {
     background-color: var(--oc-header-bg);
-    border-bottom: 1px solid var(--oc-border-color);
-    padding: 1rem 2rem;
+    padding: 0.75rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow */
 }
 
-.oc-header h1 {
+.oc-header .logo h1 {
     margin: 0;
-    font-size: 1.8rem;
-}
-
-.oc-header .logo {
-    color: var(--oc-primary-blue);
+    font-size: 1.5rem;
+    color: var(--oc-header-text);
     font-weight: 700;
 }
 
@@ -53,12 +55,13 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Sidebar */
 .oc-sidebar {
-    width: 250px;
+    width: 200px; /* Slightly narrower sidebar */
     background-color: var(--oc-sidebar-bg);
     border-right: 1px solid var(--oc-border-color);
-    padding: 1.5rem 0;
+    padding: 1rem 0;
     display: flex;
     flex-direction: column;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05); /* Subtle shadow */
 }
 
 .oc-sidebar nav ul {
@@ -70,46 +73,70 @@ h1, h2, h3, h4, h5, h6 {
 .oc-sidebar nav ul li a {
     display: flex;
     align-items: center;
-    padding: 0.75rem 2rem;
+    padding: 0.6rem 1.5rem;
     color: var(--oc-text-dark);
     text-decoration: none;
     font-weight: 500;
-    transition: background-color 0.2s ease;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .oc-sidebar nav ul li a:hover {
-    background-color: #e9ecef; /* Light hover */
-    color: var(--oc-primary-blue);
+    background-color: #e2e6ea; /* Lighter hover */
+    color: var(--oc-primary-purple);
 }
 
 .oc-sidebar nav ul li a.active {
-    background-color: rgba(0, 123, 255, 0.1); /* Light blue background for active */
-    color: var(--oc-primary-blue);
-    border-right: 3px solid var(--oc-primary-blue);
+    background-color: rgba(133, 11, 163, 0.1); /* Purple background for active */
+    color: var(--oc-primary-purple);
+    border-left: 4px solid var(--oc-primary-purple); /* Left border for active */
+    padding-left: 1.35rem; /* Adjust padding for border */
+    font-weight: 600;
 }
 
 /* Dashboard Content */
 .oc-dashboard-area {
     flex: 1;
-    padding: 2rem;
+    padding: 1.5rem; /* Slightly less padding */
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
 }
 
 .oc-card {
     background-color: var(--oc-card-bg);
     border: 1px solid var(--oc-border-color);
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.35rem; /* Slightly smaller border-radius */
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* Subtle shadow for cards */
 }
 
 .oc-card h2 {
     margin-top: 0;
-    font-size: 1.4rem;
+    font-size: 1.2rem; /* Smaller card title */
+    color: var(--oc-text-dark);
 }
 
 .oc-card p {
     color: var(--oc-text-muted);
+    font-size: 0.85rem;
+}
+
+/* General text and links */
+a {
+    color: var(--oc-primary-purple);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Utility classes (mimicking OpenClaw's minimal classes) */
+.text-primary-purple {
+    color: var(--oc-primary-purple);
+}
+
+.bg-primary-purple-light {
+    background-color: rgba(133, 11, 163, 0.05);
 }
