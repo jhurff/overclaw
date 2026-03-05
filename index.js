@@ -3,7 +3,7 @@ const path = require('path');
 const { exec } = require('child_process');
 
 const app = express();
-const port = 3000;
+const port = 10000;
 
 // Set EJS as the templating engine
 app.set('view engine', 'ejs');
