@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const { exec } = require('child_process'); // Import child_process
+const { exec } = require('child_process');
 
 const app = express();
 const port = 3000;
@@ -22,14 +22,17 @@ app.get('/api/agents', (req, res) => {
   exec('openclaw agents list --json', (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
-      return res.status(500).json({ error: 'Failed to fetch agents', details: stderr });
+      console.error(`stderr: ${stderr}`); // Log stderr for debugging
+      console.log(`stdout: ${stdout}`); // Log stdout even on error to see partial output
+      return res.status(500).json({ error: 'Failed to fetch agents', details: stderr, stdout: stdout });
     }
     try {
       const agents = JSON.parse(stdout);
       res.json(agents);
     } catch (parseError) {
       console.error(`JSON parse error: ${parseError}`);
-      res.status(500).json({ error: 'Failed to parse agents data', details: parseError.message });
+      console.error(`Original stdout for parse error: ${stdout}`); // Log original stdout if parse fails
+      res.status(500).json({ error: 'Failed to parse agents data', details: parseError.message, stdout: stdout });
     }
   });
 });
