@@ -122,7 +122,7 @@
             if (parts.length > 1 && parts[0] === 'agent') {
                 return parts[1]; // e.g., 'main', 'sheeba-m', 'buster-mcthunderstick'
             }
-            return null; // Or handle unknown keys as needed
+            return null; 
         }
 
         // --- Fetch Agent and Session Data ---
@@ -149,13 +149,17 @@
                     return;
                 }
 
-                const allSessions = sessionsData.sessions || [];
-                console.log('All sessions available for processing:', allSessions);
+                // Normalize sessions to always have updatedAtMs
+                const allSessions = (sessionsData.sessions || []).map(s => ({
+                    ...s,
+                    updatedAtMs: s.updatedAtMs || (s.updatedAt ? new Date(s.updatedAt).getTime() : undefined)
+                }));
+                console.log('All sessions available for processing (normalized updatedAtMs):', allSessions);
 
                 const combinedData = agents.map(agent => {
                     const agentSessions = allSessions.filter(session => {
                         const extractedAgentId = getAgentIdFromSessionKey(session.key);
-                        console.log(`Comparing agent.id: ${agent.id} with extractedAgentId: ${extractedAgentId} for session key: ${session.key}`);
+                        console.log(`Comparing agent.id: ${agent.id} with extractedAgentId: ${extractedAgentId} for session key: ${session.key} (raw session.agentId: ${session.agentId})`);
                         return extractedAgentId === agent.id;
                     });
                     console.log(`Filtered sessions for agent ${agent.name} (${agent.id}):`, agentSessions);
@@ -165,16 +169,17 @@
 
                     // Determine last activity
                     const lastActivityMs = agentSessions.length > 0 
-                        ? Math.max(...agentSessions.map(s => s.updatedAtMs))
-                        : null;
+                        ? Math.max(...agentSessions.filter(s => s.updatedAtMs !== undefined).map(s => s.updatedAtMs))
+                        : null; // Filter out undefined updatedAtMs
                     const lastActivity = lastActivityMs ? new Date(lastActivityMs).toLocaleString() : 'N/A';
 
                     // Determine active sessions (e.g., updated within the last 5 minutes)
                     const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
                     const now = Date.now();
                     const activeSessions = agentSessions.filter(s => {
-                        const isActive = (now - s.updatedAtMs) < ACTIVE_THRESHOLD_MS;
-                        console.log(`Session key: ${s.key}, updatedAtMs: ${s.updatedAtMs}, now: ${now}, ageMs: ${now - s.updatedAtMs}, threshold: ${ACTIVE_THRESHOLD_MS}. Is active? ${isActive}`);
+                        const ageMs = now - (s.updatedAtMs || 0); // Use 0 if updatedAtMs is still undefined
+                        const isActive = (s.updatedAtMs !== undefined) && (ageMs < ACTIVE_THRESHOLD_MS); // Ensure updatedAtMs exists
+                        console.log(`Session key: ${s.key}, updatedAtMs: ${s.updatedAtMs}, now: ${now}, ageMs: ${ageMs}, threshold: ${ACTIVE_THRESHOLD_MS}. Is active? ${isActive}`);
                         return isActive;
                     }); 
                     const activeSessionsCount = activeSessions.length;
@@ -185,7 +190,6 @@
                     let currentTask = 'N/A';
                     if (mostRelevantSession) {
                         console.log(`Agent ${agent.name}: Most relevant session for task:`, mostRelevantSession);
-                        // Prioritize 'message' field if it contains a clear task description
                         if (mostRelevantSession.message && typeof mostRelevantSession.message === 'string' && mostRelevantSession.message.length > 0) {
                             currentTask = mostRelevantSession.message; 
                         } else if (mostRelevantSession.lastMessage?.message && typeof mostRelevantSession.lastMessage.message === 'string' && mostRelevantSession.lastMessage.message.length > 0) {
