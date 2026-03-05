@@ -133,7 +133,7 @@
                 console.log('Fetching /api/sessions-detail...');
                 const sessionsResponse = await fetch('/api/sessions-detail');
                 const sessionsData = await sessionsResponse.json();
-                console.log('Sessions data:', sessionsData);
+                console.log('Sessions raw data:', sessionsData);
 
                 if (sessionsData.error) {
                     agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching sessions: ${sessionsData.error}</p><p>Details: ${sessionsData.details || 'N/A'}</p><p>Stdout (partial): ${sessionsData.stdout || 'N/A'}</p>`;
@@ -141,9 +141,11 @@
                 }
 
                 const allSessions = sessionsData.sessions || [];
+                console.log('All sessions available for processing:', allSessions);
 
                 const combinedData = agents.map(agent => {
                     const agentSessions = allSessions.filter(session => session.agentId === agent.id);
+                    console.log(`Sessions for agent ${agent.name} (${agent.id}):`, agentSessions);
                     
                     // Sort sessions by updatedAtMs in descending order (most recent first)
                     agentSessions.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
@@ -154,28 +156,34 @@
                         : null;
                     const lastActivity = lastActivityMs ? new Date(lastActivityMs).toLocaleString() : 'N/A';
 
-                    // Determine active sessions (e.g., updated within the last 10 minutes)
-                    const ACTIVE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+                    // Determine active sessions (e.g., updated within the last 5 minutes)
+                    const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
                     const now = Date.now();
-                    const activeSessionsCount = agentSessions.filter(s => 
+                    const activeSessions = agentSessions.filter(s => 
                         (now - s.updatedAtMs) < ACTIVE_THRESHOLD_MS
-                    ).length;
+                    ); 
+                    const activeSessionsCount = activeSessions.length;
+                    console.log(`Agent ${agent.name}: Active sessions (${ACTIVE_THRESHOLD_MS / 60000} min threshold):`, activeSessions);
 
-                    // Determine current task/last message from the most recent session
-                    const mostRecentSession = agentSessions.length > 0 ? agentSessions[0] : null;
+                    // Determine current task/last message from the most recent active session, then overall most recent
+                    const mostRelevantSession = activeSessions.length > 0 ? activeSessions[0] : (agentSessions.length > 0 ? agentSessions[0] : null);
                     let currentTask = 'N/A';
-                    if (mostRecentSession) {
-                        if (mostRecentSession.message && mostRecentSession.message.length > 0) {
-                            currentTask = mostRecentSession.message; // Full message content
-                        } else if (mostRecentSession.lastMessage?.message && mostRecentSession.lastMessage.message.length > 0) {
-                            currentTask = mostRecentSession.lastMessage.message; // Last message content
-                        } else if (mostRecentSession.key) {
-                            // Try to infer from key if it's a cron or subagent
-                            const keyParts = mostRecentSession.key.split(':');
+                    if (mostRelevantSession) {
+                        console.log(`Agent ${agent.name}: Most relevant session for task:`, mostRelevantSession);
+                        if (mostRelevantSession.message && typeof mostRelevantSession.message === 'string' && mostRelevantSession.message.length > 0) {
+                            currentTask = mostRelevantSession.message; 
+                        } else if (mostRelevantSession.lastMessage?.message && typeof mostRelevantSession.lastMessage.message === 'string' && mostRelevantSession.lastMessage.message.length > 0) {
+                            currentTask = mostRelevantSession.lastMessage.message; 
+                        } else if (mostRelevantSession.key) {
+                            const keyParts = mostRelevantSession.key.split(':');
                             if (keyParts.includes('cron')) {
                                 currentTask = `Cron Job: ${keyParts[3] || 'Unknown'}`;
                             } else if (keyParts.includes('subagent')) {
                                 currentTask = `Subagent: ${keyParts[2] || 'Unknown'}`;
+                            } else if (keyParts.includes('discord')) {
+                                currentTask = `Discord Chat (ID: ${keyParts[keyParts.length - 1]})`;
+                            } else if (keyParts.includes('main')) {
+                                currentTask = `Main Session Chat (ID: ${keyParts[keyParts.length - 1]})`;
                             }
                         }
                     }
@@ -194,6 +202,7 @@
                     return;
                 }
 
+                // Create Table
                 const table = document.createElement('table');
                 table.className = 'oc-agent-table'; // Add a class for table styling
                 table.innerHTML = `
