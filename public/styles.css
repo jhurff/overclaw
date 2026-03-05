@@ -1,13 +1,115 @@
+:root {
+    --oc-primary-blue: #007bff;
+    --oc-background-light: #f8f9fa;
+    --oc-text-dark: #212529;
+    --oc-text-muted: #6c757d;
+    --oc-border-color: #dee2e6;
+    --oc-header-bg: #ffffff;
+    --oc-sidebar-bg: #ffffff;
+    --oc-card-bg: #ffffff;
+}
+
 body {
     font-family: 'DM Sans', sans-serif; /* Inspired by OpenClaw/Weedstock */
-    margin: 2em;
-    background-color: #f8f9fa; /* Light, clean background */
-    color: #212529; /* Darker text for readability */
+    margin: 0;
+    background-color: var(--oc-background-light);
+    color: var(--oc-text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
-h1 {
-    color: #007bff; /* OverClaw's primary blue */
+
+h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif; /* Bold display font */
     font-weight: 700;
+    color: var(--oc-primary-blue);
 }
-/* You can add more styles here to match OpenClaw's look and feel */
-/* For example, button styles, card backgrounds, etc. */
+
+/* Header */
+.oc-header {
+    background-color: var(--oc-header-bg);
+    border-bottom: 1px solid var(--oc-border-color);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.oc-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.oc-header .logo {
+    color: var(--oc-primary-blue);
+    font-weight: 700;
+}
+
+/* Main Layout */
+.oc-main-content {
+    display: flex;
+    flex: 1;
+}
+
+/* Sidebar */
+.oc-sidebar {
+    width: 250px;
+    background-color: var(--oc-sidebar-bg);
+    border-right: 1px solid var(--oc-border-color);
+    padding: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.oc-sidebar nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.oc-sidebar nav ul li a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 2rem;
+    color: var(--oc-text-dark);
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.oc-sidebar nav ul li a:hover {
+    background-color: #e9ecef; /* Light hover */
+    color: var(--oc-primary-blue);
+}
+
+.oc-sidebar nav ul li a.active {
+    background-color: rgba(0, 123, 255, 0.1); /* Light blue background for active */
+    color: var(--oc-primary-blue);
+    border-right: 3px solid var(--oc-primary-blue);
+}
+
+/* Dashboard Content */
+.oc-dashboard-area {
+    flex: 1;
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.oc-card {
+    background-color: var(--oc-card-bg);
+    border: 1px solid var(--oc-border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.oc-card h2 {
+    margin-top: 0;
+    font-size: 1.4rem;
+}
+
+.oc-card p {
+    color: var(--oc-text-muted);
+}

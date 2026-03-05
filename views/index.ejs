@@ -7,8 +7,43 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1><%= title %></h1>
-    <p><%= message %></p>
-    <p>This is the OverClaw dashboard. Content will be dynamically loaded here.</p>
+    <header class="oc-header">
+        <div class="logo"><h1>OverClaw</h1></div>
+        <div><!-- User info or other header elements can go here --></div>
+    </header>
+
+    <div class="oc-main-content">
+        <aside class="oc-sidebar">
+            <nav>
+                <ul>
+                    <li><a href="/" class="active">Dashboard</a></li>
+                    <li><a href="/agents">Agents</a></li>
+                    <li><a href="/projects">Projects</a></li>
+                    <li><a href="/reports">Reports</a></li>
+                    <li><a href="/logs">Logs</a></li>
+                    <li><a href="/config">Configuration</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="oc-dashboard-area">
+            <div class="oc-card">
+                <h2>Agent Status Overview</h2>
+                <p>Monitor the health and activity of all configured agents.</p>
+            </div>
+            <div class="oc-card">
+                <h2>Recent Project Updates</h2>
+                <p>View the latest progress and changes across active projects.</p>
+            </div>
+            <div class="oc-card">
+                <h2>Latest Reports</h2>
+                <p>Access recently generated reports and documents.</p>
+            </div>
+            <div class="oc-card">
+                <h2>System Health</h2>
+                <p>Quick glance at gateway and agent system health metrics.</p>
+            </div>
+        </main>
+    </div>
 </body>
 </html>
