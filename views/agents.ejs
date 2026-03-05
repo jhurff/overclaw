@@ -116,6 +116,15 @@
             }
         });
 
+        // Helper function to extract agent ID from session key
+        function getAgentIdFromSessionKey(sessionKey) {
+            const parts = sessionKey.split(':');
+            if (parts.length > 1 && parts[0] === 'agent') {
+                return parts[1]; // e.g., 'main', 'sheeba-m', 'buster-mcthunderstick'
+            }
+            return null; // Or handle unknown keys as needed
+        }
+
         // --- Fetch Agent and Session Data ---
         async function fetchAgentDetails() {
             const agentsDetailListDiv = document.getElementById('agents-detail-list');
@@ -145,8 +154,9 @@
 
                 const combinedData = agents.map(agent => {
                     const agentSessions = allSessions.filter(session => {
-                        console.log(`Comparing agent.id: ${agent.id} with session.agentId: ${session.agentId} for session key: ${session.key}`);
-                        return session.agentId === agent.id;
+                        const extractedAgentId = getAgentIdFromSessionKey(session.key);
+                        console.log(`Comparing agent.id: ${agent.id} with extractedAgentId: ${extractedAgentId} for session key: ${session.key}`);
+                        return extractedAgentId === agent.id;
                     });
                     console.log(`Filtered sessions for agent ${agent.name} (${agent.id}):`, agentSessions);
                     
