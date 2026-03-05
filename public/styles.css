@@ -1,9 +1,13 @@
 body {
-    font-family: sans-serif;
+    font-family: 'DM Sans', sans-serif; /* Inspired by OpenClaw/Weedstock */
     margin: 2em;
-    background-color: #f0f2f5;
-    color: #333;
+    background-color: #f8f9fa; /* Light, clean background */
+    color: #212529; /* Darker text for readability */
 }
 h1 {
-    color: #0056b3;
+    color: #007bff; /* OverClaw's primary blue */
+    font-family: 'Outfit', sans-serif; /* Bold display font */
+    font-weight: 700;
 }
+/* You can add more styles here to match OpenClaw's look and feel */
+/* For example, button styles, card backgrounds, etc. */
