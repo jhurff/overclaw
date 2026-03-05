@@ -148,16 +148,38 @@
                     // Sort sessions by updatedAtMs in descending order (most recent first)
                     agentSessions.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
 
+                    // Determine last activity
                     const lastActivityMs = agentSessions.length > 0 
                         ? Math.max(...agentSessions.map(s => s.updatedAtMs))
                         : null;
                     const lastActivity = lastActivityMs ? new Date(lastActivityMs).toLocaleString() : 'N/A';
 
-                    const activeSessions = agentSessions.filter(s => s.active); // Filter for explicitly active sessions
-                    const activeSessionsCount = activeSessions.length;
+                    // Determine active sessions (e.g., updated within the last 10 minutes)
+                    const ACTIVE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+                    const now = Date.now();
+                    const activeSessionsCount = agentSessions.filter(s => 
+                        (now - s.updatedAtMs) < ACTIVE_THRESHOLD_MS
+                    ).length;
 
-                    const currentTaskSession = activeSessions.length > 0 ? activeSessions[0] : (agentSessions.length > 0 ? agentSessions[0] : null); // Prefer active, then most recent
-                    const currentTask = currentTaskSession?.message || currentTaskSession?.lastMessage?.message || 'No active task';
+                    // Determine current task/last message from the most recent session
+                    const mostRecentSession = agentSessions.length > 0 ? agentSessions[0] : null;
+                    let currentTask = 'N/A';
+                    if (mostRecentSession) {
+                        if (mostRecentSession.message && mostRecentSession.message.length > 0) {
+                            currentTask = mostRecentSession.message; // Full message content
+                        } else if (mostRecentSession.lastMessage?.message && mostRecentSession.lastMessage.message.length > 0) {
+                            currentTask = mostRecentSession.lastMessage.message; // Last message content
+                        } else if (mostRecentSession.key) {
+                            // Try to infer from key if it's a cron or subagent
+                            const keyParts = mostRecentSession.key.split(':');
+                            if (keyParts.includes('cron')) {
+                                currentTask = `Cron Job: ${keyParts[3] || 'Unknown'}`;
+                            } else if (keyParts.includes('subagent')) {
+                                currentTask = `Subagent: ${keyParts[2] || 'Unknown'}`;
+                            }
+                        }
+                    }
+                    currentTask = currentTask.length > 100 ? currentTask.substring(0, 97) + '...' : currentTask; // Truncate long tasks
                     
                     return {
                         ...agent,
@@ -172,7 +194,6 @@
                     return;
                 }
 
-                // Create Table
                 const table = document.createElement('table');
                 table.className = 'oc-agent-table'; // Add a class for table styling
                 table.innerHTML = `
