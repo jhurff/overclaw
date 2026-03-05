@@ -116,13 +116,13 @@ h1, h2, h3, h4, h5, h6 {
     width: 200px;
     background-color: var(--oc-sidebar-bg);
     border-right: 1px solid var(--oc-border-color);
-    padding: 0; /* Remove top/bottom padding */
+    padding: 0;
     display: flex;
     flex-direction: column;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
     transition: width var(--oc-transition-duration) ease;
     flex-shrink: 0;
-    padding-top: 1rem; /* Add specific padding at top */
+    padding-top: 1rem;
 }
 
 .oc-sidebar.collapsed {
@@ -141,17 +141,17 @@ h1, h2, h3, h4, h5, h6 {
 .oc-sidebar nav ul li a {
     display: flex;
     align-items: center;
-    padding: 0.7rem 1.5rem; /* Adjusted padding */
+    padding: 0.7rem 1.5rem;
     color: var(--oc-text-dark);
     text-decoration: none;
     font-weight: 500;
-    font-size: 0.85rem; /* Smaller font size for nav links */
+    font-size: 0.85rem;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .oc-sidebar nav ul li a .icon {
-    margin-right: 0.75rem; /* Space for icon */
-    width: 16px; /* Icon size */
+    margin-right: 0.75rem;
+    width: 16px;
     height: 16px;
     display: inline-flex;
     align-items: center;
@@ -159,12 +159,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .oc-sidebar nav ul li a:hover {
-    background-color: rgba(133, 11, 163, 0.08); /* Lighter purple hover */
+    background-color: rgba(133, 11, 163, 0.08);
     color: var(--oc-primary-purple);
 }
 
 .oc-sidebar nav ul li a.active {
-    background-color: rgba(133, 11, 163, 0.15); /* More prominent purple background for active */
+    background-color: rgba(133, 11, 163, 0.15);
     color: var(--oc-primary-purple);
     font-weight: 600;
 }
@@ -197,6 +197,10 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+.oc-card.full-width {
+    grid-column: 1 / -1; /* Make card span full width in grid */
+}
+
 .oc-card h2 {
     margin-top: 0;
     font-size: 1.2rem;
@@ -225,4 +229,40 @@ a:hover {
 
 .bg-primary-purple-light {
     background-color: rgba(133, 11, 163, 0.05);
+}
+
+/* Agent Table Styling */
+.oc-agent-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.oc-agent-table th,
+.oc-agent-table td {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--oc-border-color);
+    text-align: left;
+}
+
+.oc-agent-table th {
+    background-color: #e9ecef; /* Slightly darker header */
+    font-weight: 600;
+    color: var(--oc-text-dark);
+}
+
+.oc-agent-table tbody tr:nth-child(even) {
+    background-color: #f6f8fa; /* Zebra striping */
+}
+
+.oc-agent-table tbody tr:hover {
+    background-color: #e2e6ea; /* Light hover for rows */
+}
+
+.oc-agent-table code {
+    background-color: #e9ecef;
+    padding: 0.2em 0.4em;
+    border-radius: 0.25em;
+    font-size: 0.85em;
 }

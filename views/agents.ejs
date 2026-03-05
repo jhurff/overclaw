@@ -120,7 +120,6 @@
         async function fetchAgentDetails() {
             const agentsDetailListDiv = document.getElementById('agents-detail-list');
             try {
-                // Fetch agents list for names and IDs
                 console.log('Fetching /api/agents...');
                 const agentsResponse = await fetch('/api/agents');
                 const agents = await agentsResponse.json();
@@ -131,10 +130,9 @@
                     return;
                 }
 
-                // Fetch session details for status and last activity
                 console.log('Fetching /api/sessions-detail...');
                 const sessionsResponse = await fetch('/api/sessions-detail');
-                const sessionsData = await sessionsResponse.json(); // Renamed to sessionsData to avoid conflict
+                const sessionsData = await sessionsResponse.json();
                 console.log('Sessions data:', sessionsData);
 
                 if (sessionsData.error) {
@@ -142,29 +140,30 @@
                     return;
                 }
 
-                const sessions = sessionsData.sessions || []; // Ensure sessions is an array
+                const allSessions = sessionsData.sessions || [];
 
-                // Combine agent and session data
                 const combinedData = agents.map(agent => {
-                    const agentSessions = sessions.filter(session => session.agentId === agent.id);
-                    const lastActivity = agentSessions.length > 0 
-                        ? new Date(Math.max(...agentSessions.map(s => s.updatedAtMs))).toLocaleString() 
-                        : 'N/A';
-                    const activeSessionsCount = agentSessions.filter(s => s.active).length;
-                    const lastMessage = agentSessions.length > 0 
-                        ? (agentSessions[0].lastMessage?.message || 'No recent message') 
-                        : 'N/A';
-                    const currentTask = agentSessions.length > 0 
-                        ? (agentSessions[0].message || 'No active task') // Assuming 'message' field in session object for current task
-                        : 'N/A';
+                    const agentSessions = allSessions.filter(session => session.agentId === agent.id);
+                    
+                    // Sort sessions by updatedAtMs in descending order (most recent first)
+                    agentSessions.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
 
+                    const lastActivityMs = agentSessions.length > 0 
+                        ? Math.max(...agentSessions.map(s => s.updatedAtMs))
+                        : null;
+                    const lastActivity = lastActivityMs ? new Date(lastActivityMs).toLocaleString() : 'N/A';
+
+                    const activeSessions = agentSessions.filter(s => s.active); // Filter for explicitly active sessions
+                    const activeSessionsCount = activeSessions.length;
+
+                    const currentTaskSession = activeSessions.length > 0 ? activeSessions[0] : (agentSessions.length > 0 ? agentSessions[0] : null); // Prefer active, then most recent
+                    const currentTask = currentTaskSession?.message || currentTaskSession?.lastMessage?.message || 'No active task';
+                    
                     return {
                         ...agent,
                         lastActivity,
                         activeSessionsCount,
-                        lastMessage,
                         currentTask,
-                        // Add more details from sessions if needed, e.g., current task from message history
                     };
                 });
 
@@ -173,24 +172,37 @@
                     return;
                 }
 
-                const ul = document.createElement('ul');
-                ul.style.listStyle = 'none';
-                ul.style.paddingLeft = '0';
+                // Create Table
+                const table = document.createElement('table');
+                table.className = 'oc-agent-table'; // Add a class for table styling
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Agent Name</th>
+                            <th>ID</th>
+                            <th>Active Sessions</th>
+                            <th>Last Activity</th>
+                            <th>Current Task</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                `;
+                const tbody = table.querySelector('tbody');
+
                 combinedData.forEach(agent => {
-                    const li = document.createElement('li');
-                    li.className = 'oc-card-item'; // Add a class for styling
-                    li.innerHTML = `
-                        <h3><span class="icon">🤖</span> ${agent.name} (ID: <code>${agent.id}</code>)</h3>
-                        <p><strong>Active Sessions:</strong> ${agent.activeSessionsCount}</p>
-                        <p><strong>Last Activity:</strong> ${agent.lastActivity}</p>
-                        <p><strong>Current Task:</strong> ${agent.currentTask}</p>
-                        <p><strong>Last Message:</strong> ${agent.lastMessage}</p>
-                        <!-- Add more details here -->
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td><span class="icon">🤖</span> ${agent.name}</td>
+                        <td><code>${agent.id}</code></td>
+                        <td>${agent.activeSessionsCount}</td>
+                        <td>${agent.lastActivity}</td>
+                        <td>${agent.currentTask}</td>
                     `;
-                    ul.appendChild(li);
                 });
-                agentsDetailListDiv.innerHTML = '';
-                agentsDetailListDiv.appendChild(ul);
+
+                agentsDetailListDiv.innerHTML = ''; // Clear loading message
+                agentsDetailListDiv.appendChild(table);
 
             } catch (error) {
                 console.error('Error fetching agent details:', error);
