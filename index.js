@@ -37,6 +37,41 @@ app.get('/config', (req, res) => {
   res.render('config', { title: 'OverClaw Agent Configuration Viewer' });
 });
 
+// Sessions Viewer screen route
+app.get('/sessions', (req, res) => {
+  res.render('sessions', { title: 'OverClaw Sessions Viewer' });
+});
+
+// Cron Jobs screen route
+app.get('/cron-jobs', (req, res) => {
+  res.render('cron-jobs', { title: 'OverClaw Cron Jobs' });
+});
+
+// Skills screen route
+app.get('/skills', (req, res) => {
+  res.render('skills', { title: 'OverClaw Skills' });
+});
+
+// Nodes screen route
+app.get('/nodes', (req, res) => {
+  res.render('nodes', { title: 'OverClaw Nodes' });
+});
+
+// Logs screen route
+app.get('/logs', (req, res) => {
+  res.render('logs', { title: 'OverClaw Logs' });
+});
+
+// Debug screen route
+app.get('/debug', (req, res) => {
+  res.render('debug', { title: 'OverClaw Debug' });
+});
+
+// Docs screen route
+app.get('/docs', (req, res) => {
+  res.render('docs', { title: 'OverClaw Documentation' });
+});
+
 // API endpoint to list OpenClaw agents (summary for dashboard card)
 app.get('/api/agents', (req, res) => {
   exec('openclaw agents list --json', (error, stdout, stderr) => {
@@ -51,8 +86,8 @@ app.get('/api/agents', (req, res) => {
       res.json(agents.map(agent => ({
         id: agent.id, 
         name: agent.name,
-        workspace: agent.workspace, // Include workspace for file path construction
-        agentDir: agent.agentDir // Include agentDir for file path construction
+        workspace: agent.workspace,
+        agentDir: agent.agentDir
       })));
     } catch (parseError) {
       console.error(`JSON parse error for /api/agents: ${parseError}`);
@@ -62,7 +97,7 @@ app.get('/api/agents', (req, res) => {
   });
 });
 
-// API endpoint to get detailed OpenClaw sessions (for agents screen)
+// API endpoint to get detailed OpenClaw sessions
 app.get('/api/sessions-detail', (req, res) => {
   exec('openclaw sessions --json --all-agents', (error, stdout, stderr) => { 
     if (error) {
@@ -82,11 +117,30 @@ app.get('/api/sessions-detail', (req, res) => {
   });
 });
 
+// API endpoint to list OpenClaw cron jobs
+app.get('/api/cron-jobs', (req, res) => {
+  exec('openclaw cron list --json', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error for /api/cron-jobs: ${error}`);
+      console.error(`stderr: ${stderr}`);
+      console.log(`stdout: ${stdout}`);
+      return res.status(500).json({ error: 'Failed to fetch cron jobs', details: stderr, stdout: stdout });
+    }
+    try {
+      const cronData = JSON.parse(stdout);
+      res.json(cronData);
+    } catch (parseError) {
+      console.error(`JSON parse error for /api/cron-jobs: ${parseError}`);
+      console.error(`Original stdout for /api/cron-jobs parse error: ${stdout}`);
+      res.status(500).json({ error: 'Failed to parse cron jobs data', details: parseError.message, stdout: stdout });
+    }
+  });
+});
+
 // Whitelisted Git repositories for history viewing
 const WHITELISTED_GIT_REPOS = [
   path.join(process.env.HOME, 'projects', 'overclaw'),
   path.join(process.env.HOME, 'weedstock_project'),
-  // Add other Git-managed project paths here as needed for auditing
 ];
 
 // Security function to validate file paths
@@ -101,7 +155,6 @@ const ALLOWED_CONFIG_FILES_MAIN_WORKSPACE = [
 
 const ALLOWED_DATA_MEMORY_FILES = [
     'projects_log.md',
-    // Add other generic memory files stored in ~/.openclaw/data/memory/
 ];
 
 const ALLOWED_SUBAGENT_CORE_CONFIG_FILES = [
@@ -194,16 +247,15 @@ function getFullPath(agentId, filePath, agentDetails) {
     let fullPath;
     if (agentId === 'main') {
         if (filePath === 'openclaw.json') {
-            fullPath = path.join(process.env.HOME, '.openclaw', filePath); // openclaw.json is at ~/.openclaw/
+            fullPath = path.join(process.env.HOME, '.openclaw', filePath);
         } else if (filePath.startsWith('memory/')) {
-            // Differentiate between workspace memory (e.g., memory/YYYY-MM-DD.md) and data/memory (e.g., projects_log.md, usage reports)
             if (ALLOWED_DATA_MEMORY_FILES.includes(filePath) || filePath.match(OPENCLAW_USAGE_REPORT_PATTERN)) {
               fullPath = path.join(DATA_MEMORY_BASE_PATH, filePath);
             } else {
-              fullPath = path.join(WORKSPACE_BASE_PATH, filePath); // Workspace memory files
+              fullPath = path.join(WORKSPACE_BASE_PATH, filePath);
             }
         } else {
-            fullPath = path.join(WORKSPACE_BASE_PATH, filePath); // Other workspace files
+            fullPath = path.join(WORKSPACE_BASE_PATH, filePath);
         }
     } else { // For subagents
         // Core config files in agent's own agentDir
@@ -212,7 +264,6 @@ function getFullPath(agentId, filePath, agentDetails) {
         }
         // Memory files in ~/.openclaw/data/memory/AGENT_ID/
         else if (filePath.startsWith(`memory/${agentId}/`)) {
-            // Reconstruct path for subagent-specific memory files
             fullPath = path.join(DATA_MEMORY_BASE_PATH, agentId, filePath.substring(`memory/${agentId}/`.length));
         }
     }
@@ -224,7 +275,6 @@ async function getGitRepoPathForFile(fullFilePath) {
   for (const repoPath of WHITELISTED_GIT_REPOS) {
     if (fullFilePath.startsWith(repoPath)) {
       try {
-        // Verify it's actually a git repo (contains .git directory)
         await fs.access(path.join(repoPath, '.git'));
         return repoPath;
       } catch (e) {
@@ -238,7 +288,6 @@ async function getGitRepoPathForFile(fullFilePath) {
 // API endpoint to list discoverable config files for an agent
 app.get('/api/agent-config-files/:agentId', async (req, res) => {
   const { agentId } = req.params;
-  // Fetch agent details to get their workspace/agentDir if needed for more dynamic discovery
   const agentInfoResponse = await fetch(`http://localhost:${port}/api/agents`); 
   const agents = await agentInfoResponse.json();
   const agent = agents.find(a => a.id === agentId);
@@ -249,7 +298,6 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
 
   const discoverableFiles = [];
   
-  // Add hardcoded common config files for main agent
   if (agentId === 'main') {
       ALLOWED_CONFIG_FILES_MAIN_WORKSPACE.forEach(file => {
           discoverableFiles.push({
@@ -257,10 +305,9 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
               path: file,
               type: 'config',
               agentId: agent.id,
-              isVersionControlled: false // Determined dynamically below
+              isVersionControlled: false
           });
       });
-      // Add openclaw.json explicitly
       discoverableFiles.push({
           name: 'openclaw.json',
           path: 'openclaw.json',
@@ -269,16 +316,14 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
           isVersionControlled: false 
       });
 
-      // Add Model Settings as a special entry
       discoverableFiles.push({
         name: 'Model Settings',
-        path: '__model_settings__', // Special identifier
+        path: '__model_settings__',
         type: 'setting',
         agentId: agent.id,
         isVersionControlled: false
       });
 
-      // Add projects_log.md for main agent (it's in ~/.openclaw/data/memory/)
       discoverableFiles.push({
         name: 'projects_log.md',
         path: 'projects_log.md',
@@ -286,14 +331,14 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
         agentId: agent.id,
         isVersionControlled: false
       });
-  } else { // For subagents, add their core config files and special memory files
+  } else {
       ALLOWED_SUBAGENT_CORE_CONFIG_FILES.forEach(file => {
           discoverableFiles.push({
               name: file,
               path: file,
               type: 'config',
               agentId: agent.id,
-              isVersionControlled: false // Determined dynamically below
+              isVersionControlled: false
           });
       });
   }
@@ -315,7 +360,7 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
             }
         }
     } catch (e) {
-        // console.error(`Error reading main agent workspace memory dir: ${e}`); // Expected if dir doesn't exist
+        // Expected if dir doesn't exist
     }
   }
 
@@ -336,17 +381,15 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
             }
         }
     } catch (e) {
-        // console.error(`Error reading main agent data memory dir for reports: ${e}`); // Expected if dir doesn't exist
+        // Expected if dir doesn't exist
     }
   }
   
-  // Dynamically find memory files for specific subagents in their data/memory folder
-  // These are located in ~/.openclaw/data/memory/AGENT_ID/...
+  // Dynamically find memory files for specific subagents
   const subagentDataMemoryPath = path.join(process.env.HOME, '.openclaw', 'data', 'memory', agentId);
   try {
       const files = await fs.readdir(subagentDataMemoryPath);
       for (const file of files) {
-          // Only allow MEMORY.md and daily memory files for subagents for now
           if (file === 'MEMORY.md' || file.match(/^\d{4}-\d{2}-\d{2}\.md$/)) {
               discoverableFiles.push({
                   name: file,
@@ -358,12 +401,11 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
           }
       }
   } catch (e) {
-      // console.log(`No specific memory dir for subagent ${agentId}: ${e.message}`); // Expected for many agents
+      // Expected for many agents
   }
 
-  // Now, dynamically determine if a discovered file is version controlled
+  // Dynamically determine if a discovered file is version controlled
   for (const file of discoverableFiles) {
-      // Only check version control for actual files, not special settings entries
       if (file.type !== 'setting') {
         const fullFilePath = getFullPath(agentId, file.path, agent);
         if (fullFilePath) {
@@ -384,13 +426,11 @@ app.get('/api/file-content', async (req, res) => {
     return res.status(400).json({ error: 'Missing agentId or filePath' });
   }
 
-  // Fetch agent details to pass to security and path resolution functions
   const agentInfoResponse = await fetch(`http://localhost:${port}/api/agents`); 
   const agents = await agentInfoResponse.json();
   const agent = agents.find(a => a.id === agentId);
 
-  // *** SECURITY CRITICAL: Validate file path strictly ***
-  if (!await isValidAgentConfigFile(agentId, filePath, agent)) { // Pass agent details for validation
+  if (!await isValidAgentConfigFile(agentId, filePath, agent)) {
     return res.status(403).json({ error: 'Unauthorized file access attempt' });
   }
 
@@ -416,32 +456,26 @@ app.get('/api/file-history', async (req, res) => {
     return res.status(400).json({ error: 'Missing agentId or filePath' });
   }
 
-  // Fetch agent details to pass to security and path resolution functions
   const agentInfoResponse = await fetch(`http://localhost:${port}/api/agents`); 
   const agents = await agentInfoResponse.json();
   const agent = agents.find(a => a.id === agentId);
 
-  // 1. Security check: Ensure it's a file we allow viewing content for
-  if (!await isValidAgentConfigFile(agentId, filePath, agent)) { // Pass agent details for validation
+  if (!await isValidAgentConfigFile(agentId, filePath, agent)) {
       return res.status(403).json({ error: 'Unauthorized file history access attempt' });
   }
 
-  // 2. Get the full absolute path of the file
   const fullFilePath = getFullPath(agentId, filePath, agent);
   if (!fullFilePath) {
       return res.status(500).json({ error: 'Could not determine full path for file history.' });
   }
 
-  // 3. Determine if the file is within a whitelisted Git repository
   const repoPath = await getGitRepoPathForFile(fullFilePath);
   if (!repoPath) {
     return res.status(404).json({ error: 'File not found in a whitelisted Git repository.', fullFilePath });
   }
 
-  // 4. Get the file path relative to the Git repository root
   const relativeFilePath = path.relative(repoPath, fullFilePath);
 
-  // 5. Execute git log command
   exec(`git log --pretty=format:'%h|%an|%ad|%s' --date=short -- "${relativeFilePath}"`, { cwd: repoPath }, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error for git log on ${relativeFilePath} in ${repoPath}: ${error}`);
@@ -461,7 +495,7 @@ app.get('/api/file-history', async (req, res) => {
   });
 });
 
-// NEW API endpoint to get Model Configuration for a specific agent
+// API endpoint to get Model Configuration for a specific agent
 app.get('/api/agent-model-settings/:agentId', async (req, res) => {
   const { agentId } = req.params;
 
@@ -476,12 +510,11 @@ app.get('/api/agent-model-settings/:agentId', async (req, res) => {
     let modelOrder = [];
     let agentFound = false;
 
-    // Find the specific agent's configuration
     if (openclawConfig.agents?.list) {
       const agentConfig = openclawConfig.agents.list.find(a => a.id === agentId);
       if (agentConfig) {
         agentFound = true;
-        agentSpecificModel = agentConfig.model || globalDefaultModel; // Fallback to global default
+        agentSpecificModel = agentConfig.model || globalDefaultModel;
         modelOrder = agentConfig.modelOrder || [];
       }
     }
@@ -526,7 +559,6 @@ app.get('/debug-agents-data', async (req, res) => {
     const sessionsData = JSON.parse(sessionsRaw);
     log('Server-side DEBUG: Sessions raw data (from /api/sessions-detail):', sessionsData);
 
-    // Normalize sessions to always have updatedAtMs
     const allSessions = (sessionsData.sessions || []).map(s => ({
         ...s,
         updatedAtMs: s.updatedAtMs || (s.updatedAt ? new Date(s.updatedAt).getTime() : undefined)
@@ -536,37 +568,28 @@ app.get('/debug-agents-data', async (req, res) => {
     const combinedData = agents.map(agent => {
       const agentSessions = allSessions.filter(session => {
           const extractedAgentId = getAgentIdFromSessionKey(session.key);
-          log(`Server-side DEBUG: Comparing agent.id: ${agent.id} with extractedAgentId: ${extractedAgentId} for session key: ${session.key} (raw session.agentId: ${session.agentId})`);
           return extractedAgentId === agent.id;
       });
-      log(`Server-side DEBUG: Filtered sessions for agent ${agent.name} (${agent.id}):`, agentSessions);
       
-      // Sort sessions by updatedAtMs in descending order (most recent first)
-      agentSessions.sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0)); // Handle undefined updatedAtMs during sort
+      agentSessions.sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0));
 
-      // Determine last activity
       const lastActivityMs = agentSessions.length > 0 
           ? Math.max(...agentSessions.filter(s => s.updatedAtMs !== undefined).map(s => s.updatedAtMs))
           : null; 
       const lastActivity = lastActivityMs ? new Date(lastActivityMs).toLocaleString() : 'N/A';
 
-      // Determine active sessions (e.g., updated within the last 5 minutes)
-      const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+      const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000;
       const now = Date.now();
       const activeSessions = agentSessions.filter(s => {
           const ageMs = now - (s.updatedAtMs || 0); 
           const isActive = (s.updatedAtMs !== undefined) && (ageMs < ACTIVE_THRESHOLD_MS); 
-          log(`Server-side DEBUG: Session key: ${s.key}, updatedAtMs: ${s.updatedAtMs}, now: ${now}, ageMs: ${ageMs}, threshold: ${ACTIVE_THRESHOLD_MS}. Is active? ${isActive}`);
           return isActive;
       }); 
       const activeSessionsCount = activeSessions.length;
-      log(`Server-side DEBUG: Agent ${agent.name}: Active sessions (${ACTIVE_THRESHOLD_MS / 60000} min threshold):`, activeSessions);
 
-      // Determine current task/last message from the most recent active session, then overall most recent
       const mostRelevantSession = activeSessions.length > 0 ? activeSessions[0] : (agentSessions.length > 0 ? agentSessions[0] : null);
       let currentTask = 'N/A';
       if (mostRelevantSession) {
-          log(`Server-side DEBUG: Agent ${agent.name}: Most relevant session for task:`, mostRelevantSession);
           if (mostRelevantSession.message && typeof mostRelevantSession.message === 'string' && mostRelevantSession.message.length > 0) {
               currentTask = mostRelevantSession.message; 
           } else if (mostRelevantSession.lastMessage?.message && typeof mostRelevantSession.lastMessage.message === 'string' && mostRelevantSession.lastMessage.message.length > 0) {
@@ -576,13 +599,12 @@ app.get('/debug-agents-data', async (req, res) => {
               if (keyParts.includes('cron')) {
                   currentTask = `Cron Job: ${keyParts[3] || 'Unknown'}`;
               }
-              // Only assign if currentTask is still N/A or if a more specific task is found.
               if (currentTask === 'N/A') {
                   currentTask = `Chat Session: ${keyParts[keyParts.length - 1]}`;
               }
           }
       }
-      currentTask = currentTask.length > 100 ? currentTask.substring(0, 97) + '...' : currentTask; // Truncate long tasks
+      currentTask = currentTask.length > 100 ? currentTask.substring(0, 97) + '...' : currentTask;
       
       return {
         ...agent,

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="oc-header">
+        <div class="logo">
+            <h1 class="main-title">OVERCLAW</h1>
+            <span class="tagline">AGENT DASHBOARD</span>
+        </div>
+        <div class="header-controls">
+            <button id="sidebar-toggle" class="control-button">☰</button>
+            <button id="theme-toggle" class="control-button">☀️</button>
+        </div>
+    </header>
+
+    <div class="oc-main-content">
+        <aside class="oc-sidebar" id="oc-sidebar">
+            <nav>
+                <div class="nav-group-title">Control</div>
+                <ul>
+                    <li><a href="/"><span class="icon">🏠</span>Dashboard</a></li>
+                    <li><a href="/sessions"><span class="icon">💬</span>Sessions</a></li>
+                    <li><a href="/cron-jobs"><span class="icon">⏰</span>Cron Jobs</a></li>
+                </ul>
+                <div class="nav-group-title">Agent</div>
+                <ul>
+                    <li><a href="/agents"><span class="icon">🤖</span>Agents</a></li>
+                    <li><a href="/skills" class="active"><span class="icon">🧠</span>Skills</a></li>
+                    <li><a href="/nodes"><span class="icon">🖥️</span>Nodes</a></li>
+                </ul>
+                <div class="nav-group-title">Settings</div>
+                <ul>
+                    <li><a href="/config"><span class="icon">⚙️</span>Config</a></li>
+                    <li><a href="/logs"><span class="icon">📜</span>Logs</a></li>
+                    <li><a href="/debug"><span class="icon">🐛</span>Debug</a></li>
+                </ul>
+                <div class="nav-group-title">Resources</div>
+                <ul>
+                    <li><a href="/docs"><span class="icon">📚</span>Docs</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="oc-dashboard-area">
+            <div class="oc-card full-width">
+                <h2>OpenClaw Skills</h2>
+                <p>Skills management coming soon. Skills provide specialized tools and capabilities to OpenClaw agents.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('oc-sidebar');
+
+        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if (sidebarCollapsed) sidebar.classList.add('collapsed');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebarCollapsed = !sidebarCollapsed;
+            sidebarCollapsed ? sidebar.classList.add('collapsed') : sidebar.classList.remove('collapsed');
+            localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
+        });
+
+        const themeToggle = document.getElementById('theme-toggle');
+        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
+        let currentTheme = localStorage.getItem('overclaw-theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
+        document.body.classList.add(currentTheme + '-mode');
+        themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+
+        themeToggle.addEventListener('click', () => {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.classList.toggle('light-mode', currentTheme === 'light');
+            document.body.classList.toggle('dark-mode', currentTheme === 'dark');
+            localStorage.setItem('overclaw-theme', currentTheme);
+            themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+        });
+    </script>
+</body>
+</html>
