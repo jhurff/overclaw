@@ -226,7 +226,10 @@
                     const fileNameSpan = document.createElement('span');
                     fileNameSpan.className = 'oc-link';
                     fileNameSpan.dataset.filePath = file.path;
-                    fileNameSpan.textContent = file.name + (file.type === 'memory' ? ' (Memory)' : (file.type === 'setting' ? ' (Settings)' : ' (Config)'));
+                    fileNameSpan.textContent = file.name + 
+                        (file.type === 'memory' ? ' (Memory)' : 
+                         (file.type === 'setting' ? ' (Settings)' : 
+                          (file.type === 'project' ? ' (Project)' : ' (Config)')));
                     fileNameSpan.style.marginRight = '10px';
                     li.appendChild(fileNameSpan);
 
