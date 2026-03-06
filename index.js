@@ -404,7 +404,7 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
       // Expected for many agents
   }
 
-  // Dynamically determine if a discovered file is version controlled
+  // Now, dynamically determine if a discovered file is version controlled
   for (const file of discoverableFiles) {
       if (file.type !== 'setting') {
         const fullFilePath = getFullPath(agentId, file.path, agent);
@@ -495,7 +495,7 @@ app.get('/api/file-history', async (req, res) => {
   });
 });
 
-// API endpoint to get Model Configuration for a specific agent
+// NEW API endpoint to get Model Configuration for a specific agent
 app.get('/api/agent-model-settings/:agentId', async (req, res) => {
   const { agentId } = req.params;
 
@@ -530,6 +530,49 @@ app.get('/api/agent-model-settings/:agentId', async (req, res) => {
   } catch (error) {
     console.error(`Error fetching model settings for ${agentId}: ${error}`);
     res.status(500).json({ error: 'Failed to fetch model settings', details: error.message });
+  }
+});
+
+// NEW API endpoint to get OverClaw version and upgrade history
+app.get('/api/overclaw-versions', async (req, res) => {
+  const overclawProjectPath = __dirname; // Dynamically get the current script's directory
+  const packageJsonPath = path.join(overclawProjectPath, 'package.json');
+
+  try {
+    // 1. Get current version from package.json
+    const packageJsonContent = await fs.readFile(packageJsonPath, 'utf-8');
+    const packageJson = JSON.parse(packageJsonContent);
+    const currentVersion = packageJson.version || 'Unknown';
+
+    // 2. Get upgrade history from git log
+    // Filter for commits that mention 'version', 'feat', 'fix' or specifically 'upgrade' in package.json
+    const gitLogCommand = `git log --pretty=format:'%h|%an|%ad|%s' --date=short --grep="version" --grep="feat" --grep="fix" -- package.json`;
+    
+    exec(gitLogCommand, { cwd: overclawProjectPath }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error for git log on package.json in ${overclawProjectPath}: ${error}`);
+        return res.status(500).json({ error: 'Failed to fetch OverClaw upgrade history', details: stderr, stdout: stdout });
+      }
+
+      const history = stdout.split('\n').filter(line => line.trim() !== '').map(line => {
+        const parts = line.split('|');
+        return {
+          hash: parts[0],
+          author: parts[1],
+          date: parts[2],
+          subject: parts[3]
+        };
+      });
+
+      res.json({
+        currentVersion,
+        upgradeHistory: history
+      });
+    });
+
+  } catch (error) {
+    console.error(`Error fetching OverClaw versions: ${error}`);
+    res.status(500).json({ error: 'Failed to fetch OverClaw versions', details: error.message });
   }
 });
 
