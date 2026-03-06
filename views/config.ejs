@@ -60,12 +60,22 @@
                         <select id="agent-selector" class="oc-select"></select>
                     </div>
                     <div id="file-list-container" style="display: none;">
-                        <h3>Files for <span id="selected-agent-name"></span>: <button id="back-to-agents" class="oc-button-secondary">Back to Agents</button></h3>
+                        <h3>Files for <span id="selected-agent-name"></span>: 
+                            <button id="back-to-agents" class="oc-button-secondary">Back to Agents</button>
+                        </h3>
                         <ul id="config-file-list" class="oc-list-group"></ul>
                     </div>
                     <div id="file-content-container" style="display: none;">
-                        <h3>Viewing <span id="viewing-file-name"></span> for <span id="viewing-agent-name"></span>: <button id="back-to-file-list" class="oc-button-secondary">Back to Files</button></h3>
+                        <h3>Viewing <span id="viewing-file-name"></span> for <span id="viewing-agent-name"></span>: 
+                            <button id="back-to-file-list" class="oc-button-secondary">Back to Files</button>
+                        </h3>
                         <pre id="file-content" class="oc-code-block"></pre>
+                    </div>
+                    <div id="file-history-container" style="display: none;">
+                        <h3>History for <span id="history-file-name"></span>: 
+                            <button id="back-from-history" class="oc-button-secondary">Back to Files</button>
+                        </h3>
+                        <div id="history-list" class="oc-list-group"></div>
                     </div>
                 </div>
             </div>
@@ -141,15 +151,29 @@
         const viewingFileNameSpan = document.getElementById('viewing-file-name');
         const viewingAgentNameSpan = document.getElementById('viewing-agent-name');
         const backToFileListButton = document.getElementById('back-to-file-list');
+        const fileHistoryContainer = document.getElementById('file-history-container');
+        const historyFileNameSpan = document.getElementById('history-file-name');
+        const historyListDiv = document.getElementById('history-list');
+        const backFromHistoryButton = document.getElementById('back-from-history');
 
         let currentAgents = [];
         let selectedAgentId = null;
+        let currentFiles = []; // To store the fetched files with their metadata
+
+        function showContainer(containerId) {
+            agentSelectContainer.style.display = 'none';
+            fileListContainer.style.display = 'none';
+            fileContentContainer.style.display = 'none';
+            fileHistoryContainer.style.display = 'none';
+
+            document.getElementById(containerId).style.display = 'block';
+        }
 
         async function fetchAndPopulateAgents() {
             try {
                 const response = await fetch('/api/agents');
                 const agents = await response.json();
-                currentAgents = agents; // Store agents for later use
+                currentAgents = agents; 
 
                 agentSelector.innerHTML = '<option value="">-- Select Agent --</option>';
                 agents.forEach(agent => {
@@ -159,9 +183,7 @@
                     agentSelector.appendChild(option);
                 });
 
-                agentSelectContainer.style.display = 'block';
-                fileListContainer.style.display = 'none';
-                fileContentContainer.style.display = 'none';
+                showContainer('agent-select-container');
 
             } catch (error) {
                 console.error('Error fetching agents for config viewer:', error);
@@ -173,6 +195,7 @@
             try {
                 const response = await fetch(`/api/agent-config-files/${agentId}`);
                 const files = await response.json();
+                currentFiles = files; // Store files with metadata including isVersionControlled
 
                 if (files.error) {
                     configFileList.innerHTML = `<li style="color: red;">Error: ${files.error}</li>`;
@@ -187,17 +210,33 @@
 
                 files.forEach(file => {
                     const li = document.createElement('li');
-                    li.className = 'oc-list-item oc-link';
-                    li.dataset.filePath = file.path;
-                    li.textContent = file.name + (file.type === 'memory' ? ' (Memory)' : ' (Config)');
+                    li.className = 'oc-list-item';
+
+                    const fileNameSpan = document.createElement('span');
+                    fileNameSpan.className = 'oc-link';
+                    fileNameSpan.dataset.filePath = file.path;
+                    fileNameSpan.textContent = file.name + (file.type === 'memory' ? ' (Memory)' : ' (Config)');
+                    fileNameSpan.style.marginRight = '10px';
+                    li.appendChild(fileNameSpan);
+
+                    if (file.isVersionControlled) {
+                        const historyButton = document.createElement('button');
+                        historyButton.className = 'oc-button-inline'; // New class for inline buttons
+                        historyButton.textContent = 'View History';
+                        historyButton.dataset.filePath = file.path;
+                        historyButton.addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent li click event
+                            fetchAndDisplayFileHistory(selectedAgentId, file.path);
+                        });
+                        li.appendChild(historyButton);
+                    }
                     configFileList.appendChild(li);
                 });
 
                 const selectedAgent = currentAgents.find(a => a.id === agentId);
                 selectedAgentNameSpan.textContent = selectedAgent ? selectedAgent.name : agentId;
 
-                agentSelectContainer.style.display = 'none';
-                fileListContainer.style.display = 'block';
+                showContainer('file-list-container');
 
             } catch (error) {
                 console.error(`Error fetching files for agent ${agentId}:`, error);
@@ -222,13 +261,49 @@
                 viewingFileNameSpan.textContent = filePath;
                 viewingAgentNameSpan.textContent = currentAgents.find(a => a.id === agentId)?.name || agentId;
 
-                fileListContainer.style.display = 'none';
-                fileContentContainer.style.display = 'block';
+                showContainer('file-content-container');
 
             } catch (error) {
                 console.error(`Error fetching content for ${filePath}:`, error);
                 fileContentPre.textContent = `Failed to load content for ${filePath}.`;
                 fileContentPre.style.color = 'red';
+            }
+        }
+
+        async function fetchAndDisplayFileHistory(agentId, filePath) {
+            try {
+                const response = await fetch(`/api/file-history?agentId=${agentId}&filePath=${filePath}`);
+                const history = await response.json();
+
+                if (history.error) {
+                    historyListDiv.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${history.error}<br>Details: ${history.details || 'N/A'}</div>`;
+                    return;
+                }
+
+                historyFileNameSpan.textContent = filePath;
+                historyListDiv.innerHTML = ''; // Clear previous history
+
+                if (history.length === 0) {
+                    historyListDiv.innerHTML = '<div class="oc-list-item">No Git history found for this file.</div>';
+                    showContainer('file-history-container');
+                    return;
+                }
+
+                history.forEach(commit => {
+                    const div = document.createElement('div');
+                    div.className = 'oc-list-item oc-commit-item';
+                    div.innerHTML = `
+                        <strong>${commit.subject}</strong><br>
+                        <small>Hash: <code>${commit.hash}</code> | Author: ${commit.author} | Date: ${commit.date}</small>
+                    `;
+                    historyListDiv.appendChild(div);
+                });
+
+                showContainer('file-history-container');
+
+            } catch (error) {
+                console.error(`Error fetching history for ${filePath}:`, error);
+                historyListDiv.innerHTML = `<div style="color: red; padding: 1rem;">Failed to load history for ${filePath}.</div>`;
             }
         }
 
@@ -240,17 +315,20 @@
             }
         });
 
+        // Delegated event listener for file content display
         configFileList.addEventListener('click', (event) => {
-            const targetLi = event.target.closest('li.oc-list-item');
-            if (targetLi && targetLi.dataset.filePath && selectedAgentId) {
-                fetchAndDisplayFileContent(selectedAgentId, targetLi.dataset.filePath);
+            const fileNameSpan = event.target.closest('span.oc-link');
+            if (fileNameSpan && fileNameSpan.dataset.filePath && selectedAgentId) {
+                fetchAndDisplayFileContent(selectedAgentId, fileNameSpan.dataset.filePath);
             }
         });
 
         backToAgentsButton.addEventListener('click', fetchAndPopulateAgents);
         backToFileListButton.addEventListener('click', () => {
-            fileListContainer.style.display = 'block';
-            fileContentContainer.style.display = 'none';
+            showContainer('file-list-container');
+        });
+        backFromHistoryButton.addEventListener('click', () => {
+            showContainer('file-list-container');
         });
 
         // Initial load

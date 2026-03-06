@@ -26,6 +26,50 @@
     --oc-header-bg: #141619;
     --oc-sidebar-bg: var(--oc-sidebar-bg-dark);
     --oc-card-bg: var(--oc-card-bg-dark);
+
+    /* Dark mode specific table/list items */
+    .oc-agent-table th {
+        background-color: #343a40;
+        color: var(--oc-text-light);
+    }
+
+    .oc-agent-table tbody tr:nth-child(even) {
+        background-color: #3a4046;
+    }
+
+    .oc-agent-table tbody tr:hover {
+        background-color: #495057;
+    }
+
+    .oc-agent-table code {
+        background-color: #343a40;
+        color: #e9ecef;
+    }
+
+    .oc-button-secondary {
+        background-color: #3a4046;
+        color: var(--oc-text-light);
+        border-color: #495057;
+    }
+
+    .oc-button-secondary:hover {
+        background-color: #495057;
+    }
+
+    .oc-list-group {
+        border-color: #495057;
+        background-color: var(--oc-card-bg);
+    }
+    .oc-list-item {
+        border-color: #495057;
+    }
+    .oc-list-item.oc-link:hover {
+        background-color: rgba(133, 11, 163, 0.2);
+    }
+    .oc-code-block {
+        background-color: #2c313a;
+        color: #e9ecef;
+    }
 }
 
 body {
@@ -293,6 +337,23 @@ a:hover {
     background-color: #dee2e6;
 }
 
+.oc-button-inline {
+    background-color: rgba(133, 11, 163, 0.1);
+    color: var(--oc-primary-purple);
+    border: 1px solid rgba(133, 11, 163, 0.3);
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.2rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    margin-left: 0.5rem; /* Space from file name */
+}
+
+.oc-button-inline:hover {
+    background-color: rgba(133, 11, 163, 0.2);
+    border-color: var(--oc-primary-purple);
+}
+
 .oc-list-group {
     list-style: none;
     padding: 0;
@@ -306,6 +367,8 @@ a:hover {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--oc-border-color);
     font-size: 0.9rem;
+    display: flex; /* For inline buttons */
+    align-items: center; /* For inline buttons */
 }
 
 .oc-list-item:last-child {
@@ -331,4 +394,14 @@ a:hover {
     font-family: 'Fira Code', 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
     font-size: 0.85rem;
     line-height: 1.4;
+}
+
+.oc-commit-item strong {
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.oc-commit-item small {
+    color: var(--oc-text-muted);
+    font-size: 0.75rem;
 }
