@@ -77,6 +77,12 @@
                         </h3>
                         <div id="history-list" class="oc-list-group"></div>
                     </div>
+                    <div id="model-settings-container" style="display: none;">
+                        <h3>Model Settings for <span id="model-settings-agent-name"></span>: 
+                            <button id="back-from-model-settings" class="oc-button-secondary">Back to Files</button>
+                        </h3>
+                        <div id="model-settings-content" class="oc-code-block"></div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -155,6 +161,10 @@
         const historyFileNameSpan = document.getElementById('history-file-name');
         const historyListDiv = document.getElementById('history-list');
         const backFromHistoryButton = document.getElementById('back-from-history');
+        const modelSettingsContainer = document.getElementById('model-settings-container');
+        const modelSettingsAgentNameSpan = document.getElementById('model-settings-agent-name');
+        const modelSettingsContentDiv = document.getElementById('model-settings-content');
+        const backFromModelSettingsButton = document.getElementById('back-from-model-settings');
 
         let currentAgents = [];
         let selectedAgentId = null;
@@ -165,6 +175,7 @@
             fileListContainer.style.display = 'none';
             fileContentContainer.style.display = 'none';
             fileHistoryContainer.style.display = 'none';
+            modelSettingsContainer.style.display = 'none';
 
             document.getElementById(containerId).style.display = 'block';
         }
@@ -215,13 +226,13 @@
                     const fileNameSpan = document.createElement('span');
                     fileNameSpan.className = 'oc-link';
                     fileNameSpan.dataset.filePath = file.path;
-                    fileNameSpan.textContent = file.name + (file.type === 'memory' ? ' (Memory)' : ' (Config)');
+                    fileNameSpan.textContent = file.name + (file.type === 'memory' ? ' (Memory)' : (file.type === 'setting' ? ' (Settings)' : ' (Config)'));
                     fileNameSpan.style.marginRight = '10px';
                     li.appendChild(fileNameSpan);
 
                     if (file.isVersionControlled) {
                         const historyButton = document.createElement('button');
-                        historyButton.className = 'oc-button-inline'; // New class for inline buttons
+                        historyButton.className = 'oc-button-inline'; 
                         historyButton.textContent = 'View History';
                         historyButton.dataset.filePath = file.path;
                         historyButton.addEventListener('click', (e) => {
@@ -245,6 +256,11 @@
         }
 
         async function fetchAndDisplayFileContent(agentId, filePath) {
+            if (filePath === '__model_settings__') {
+                fetchAndDisplayModelSettings(agentId);
+                return;
+            }
+
             try {
                 const response = await fetch(`/api/file-content?agentId=${agentId}&filePath=${filePath}`);
                 const data = await response.json();
@@ -307,6 +323,42 @@
             }
         }
 
+        async function fetchAndDisplayModelSettings(agentId) {
+            try {
+                const response = await fetch(`/api/agent-model-settings/${agentId}`);
+                const settings = await response.json();
+
+                if (settings.error) {
+                    modelSettingsContentDiv.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${settings.error}<br>Details: ${settings.details || 'N/A'}</div>`;
+                    return;
+                }
+
+                let contentHtml = `
+                    <h4>Global Default Model: <code>${settings.globalDefaultModel}</code></h4>
+                    <h4>Agent-Specific Model (${settings.agentId}): <code>${settings.agentSpecificModel}</code></h4>
+                `;
+
+                if (settings.modelOrder && settings.modelOrder.length > 0) {
+                    contentHtml += `<h4>Model Failover Order:</h4><ul>`;
+                    settings.modelOrder.forEach((model, index) => {
+                        contentHtml += `<li>${index + 1}. <code>${model}</code></li>`;
+                    });
+                    contentHtml += `</ul>`;
+                } else {
+                    contentHtml += `<p>No specific model failover order defined for this agent.</p>`;
+                }
+
+                modelSettingsAgentNameSpan.textContent = currentAgents.find(a => a.id === agentId)?.name || agentId;
+                modelSettingsContentDiv.innerHTML = contentHtml;
+
+                showContainer('model-settings-container');
+
+            } catch (error) {
+                console.error(`Error fetching model settings for ${agentId}:`, error);
+                modelSettingsContentDiv.innerHTML = `<div style="color: red; padding: 1rem;">Failed to load model settings for ${agentId}.</div>`;
+            }
+        }
+
         // Event Listeners
         agentSelector.addEventListener('change', (event) => {
             selectedAgentId = event.target.value;
@@ -328,6 +380,9 @@
             showContainer('file-list-container');
         });
         backFromHistoryButton.addEventListener('click', () => {
+            showContainer('file-list-container');
+        });
+        backFromModelSettingsButton.addEventListener('click', () => {
             showContainer('file-list-container');
         });
 
