@@ -54,6 +54,11 @@
                 <h2>OverClaw Debug Tools</h2>
                 <div id="debug-content">
                     <p><strong>Gateway Status:</strong> <span id="gateway-status">Checking...</span></p>
+                    <p><strong>Current OverClaw Version:</strong> <span id="overclaw-version">Loading...</span></p>
+                    <h3 style="margin-top: 1.5rem;">Upgrade History</h3>
+                    <div id="upgrade-history-list" class="oc-list-group">
+                        <p style="padding: 1rem;">Loading upgrade history...</p>
+                    </div>
                     <button id="refresh-debug" class="oc-button-secondary" style="margin-top: 1rem;">Refresh Debug Info</button>
                 </div>
             </div>
@@ -87,7 +92,46 @@
             themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
         });
 
+        async function fetchOverClawVersions() {
+            const overclawVersionSpan = document.getElementById('overclaw-version');
+            const upgradeHistoryListDiv = document.getElementById('upgrade-history-list');
+            try {
+                const response = await fetch('/api/overclaw-versions');
+                const data = await response.json();
+
+                if (data.error) {
+                    overclawVersionSpan.textContent = `Error: ${data.error}`;
+                    upgradeHistoryListDiv.innerHTML = `<p style="color: red; padding: 1rem;">Error loading history: ${data.details || 'N/A'}</p>`;
+                    return;
+                }
+
+                overclawVersionSpan.textContent = data.currentVersion;
+                upgradeHistoryListDiv.innerHTML = ''; // Clear loading message
+
+                if (data.upgradeHistory.length === 0) {
+                    upgradeHistoryListDiv.innerHTML = '<div class="oc-list-item">No upgrade history found.</div>';
+                    return;
+                }
+
+                data.upgradeHistory.forEach(commit => {
+                    const div = document.createElement('div');
+                    div.className = 'oc-list-item oc-commit-item';
+                    div.innerHTML = `
+                        <strong>${commit.subject}</strong><br>
+                        <small>Hash: <code>${commit.hash}</code> | Author: ${commit.author} | Date: ${commit.date}</small>
+                    `;
+                    upgradeHistoryListDiv.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error('Error fetching OverClaw versions:', error);
+                overclawVersionSpan.textContent = 'Error loading version';
+                upgradeHistoryListDiv.innerHTML = '<p style="color: red; padding: 1rem;">Failed to load upgrade history.</p>';
+            }
+        }
+
         async function refreshDebugInfo() {
+            // Refresh gateway status
             try {
                 const response = await fetch('/status');
                 const data = await response.json();
@@ -95,6 +139,8 @@
             } catch (error) {
                 document.getElementById('gateway-status').textContent = '❌ Offline';
             }
+            // Refresh OverClaw versions and history
+            fetchOverClawVersions();
         }
 
         document.getElementById('refresh-debug').addEventListener('click', refreshDebugInfo);
