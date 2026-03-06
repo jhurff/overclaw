@@ -113,6 +113,7 @@
                             <th>Enabled</th>
                             <th>Last Run</th>
                             <th>Status</th>
+                            <th>Last Error / Output</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -121,10 +122,17 @@
 
                 jobs.forEach(job => {
                     const row = tbody.insertRow();
-                    const schedule = job.schedule?.expr || job.schedule?.everyMs || 'Unknown';
+                    const schedule = job.schedule?.expr || (job.schedule?.everyMs ? `${job.schedule.everyMs / 1000 / 60} min` : 'Unknown');
                     const lastRunMs = job.state?.lastRunAtMs;
                     const lastRun = lastRunMs ? new Date(lastRunMs).toLocaleString() : 'Never';
                     const status = job.state?.lastRunStatus || 'Unknown';
+                    
+                    let lastErrorOrOutput = 'N/A';
+                    if (job.state?.lastError) {
+                        lastErrorOrOutput = `<span style="color: red;">${job.state.lastError.substring(0, 100)}...</span>`; // Truncate long errors
+                    } else if (job.payload?.message) {
+                        lastErrorOrOutput = job.payload.message.substring(0, 100) + '...'; // Display task message
+                    }
 
                     row.innerHTML = `
                         <td>${job.name || 'Unnamed'}</td>
@@ -132,6 +140,7 @@
                         <td>${job.enabled ? '✅ Yes' : '❌ No'}</td>
                         <td>${lastRun}</td>
                         <td>${status}</td>
+                        <td>${lastErrorOrOutput}</td>
                     `;
                 });
 
