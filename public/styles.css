@@ -15,6 +15,10 @@
     --oc-font-sans: 'DM Sans', system-ui, sans-serif;
     --oc-font-display: 'Outfit', system-ui, sans-serif;
     --oc-transition-duration: 0.3s; /* For smooth transitions */
+
+    /* Code Block Specific Colors */
+    --oc-code-block-bg: #ffffff; /* Light background for code in light mode */
+    --oc-code-block-text: #212529; /* Dark text for code in light mode */
 }
 
 /* Dark Mode specific variables */
@@ -66,10 +70,10 @@
     .oc-list-item.oc-link:hover {
         background-color: rgba(133, 11, 163, 0.2);
     }
-    .oc-code-block {
-        background-color: #2c313a;
-        color: #e9ecef;
-    }
+
+    /* Dark mode for code block */
+    --oc-code-block-bg: #2c313a;
+    --oc-code-block-text: #e9ecef;
 }
 
 body {
@@ -386,8 +390,8 @@ a:hover {
 }
 
 .oc-code-block {
-    background-color: #212529; /* Dark background for code */
-    color: #f8f9fa; /* Light text for code */
+    background-color: var(--oc-code-block-bg); /* Use theme-aware variable */
+    color: var(--oc-code-block-text); /* Use theme-aware variable */
     padding: 1rem;
     border-radius: 0.35rem;
     overflow-x: auto; /* Enable horizontal scrolling for long lines */
