@@ -104,10 +104,17 @@ const ALLOWED_DATA_MEMORY_FILES = [
     // Add other generic memory files stored in ~/.openclaw/data/memory/
 ];
 
+const ALLOWED_SUBAGENT_CORE_CONFIG_FILES = [
+  'SOUL.md',
+  'USER.md',
+  'AGENTS.md',
+  'TOOLS.md',
+];
+
 // Regex for OpenClaw usage reports (e.g., openclaw_usage_report_YYYY-MM-DD.md)
 const OPENCLAW_USAGE_REPORT_PATTERN = /^openclaw_usage_report_\d{4}-\d{2}-\d{2}\.md$/;
 
-function isValidAgentConfigFile(agentId, requestedFilePath) {
+async function isValidAgentConfigFile(agentId, requestedFilePath, agentDetails) {
     const WORKSPACE_BASE_PATH = path.join(process.env.HOME, '.openclaw', 'workspace');
     const DATA_MEMORY_BASE_PATH = path.join(process.env.HOME, '.openclaw', 'data', 'memory');
 
@@ -139,7 +146,24 @@ function isValidAgentConfigFile(agentId, requestedFilePath) {
         }
     }
 
-    // 3. Check for specific subagent memory files in ~/.openclaw/data/memory/AGENT_ID/...
+    // 3. Check for specific subagent files
+    if (agentDetails && agentDetails.agentDir) {
+      // Core config files for subagents (e.g., SOUL.md in their agentDir)
+      if (ALLOWED_SUBAGENT_CORE_CONFIG_FILES.includes(normalizedPath)) {
+          // Construct the full path to verify it's within the agent's own agentDir
+          const expectedFullPath = path.join(agentDetails.agentDir, normalizedPath);
+          // Check if this file actually exists at the expected path
+          try {
+            await fs.access(expectedFullPath); 
+            return true;
+          } catch (e) {
+            console.warn(`Security alert: Subagent config file ${expectedFullPath} not found or accessible.`);
+            return false;
+          }
+      }
+    }
+    
+    // 4. Check for specific subagent memory files in ~/.openclaw/data/memory/AGENT_ID/...
     if (normalizedPath.startsWith(`memory/${agentId}/`)) {
         const relativeToAgentMemoryDir = normalizedPath.substring(`memory/${agentId}/`.length);
 
@@ -163,7 +187,7 @@ function isValidAgentConfigFile(agentId, requestedFilePath) {
 }
 
 // Function to get the full absolute path based on agentId and relative filePath
-function getFullPath(agentId, filePath) {
+function getFullPath(agentId, filePath, agentDetails) {
     const WORKSPACE_BASE_PATH = path.join(process.env.HOME, '.openclaw', 'workspace');
     const DATA_MEMORY_BASE_PATH = path.join(process.env.HOME, '.openclaw', 'data', 'memory');
 
@@ -181,8 +205,13 @@ function getFullPath(agentId, filePath) {
         } else {
             fullPath = path.join(WORKSPACE_BASE_PATH, filePath); // Other workspace files
         }
-    } else { // For subagents, assume memory files are in ~/.openclaw/data/memory/AGENT_ID/
-        if (filePath.startsWith(`memory/${agentId}/`)) {
+    } else { // For subagents
+        // Core config files in agent's own agentDir
+        if (agentDetails && agentDetails.agentDir && ALLOWED_SUBAGENT_CORE_CONFIG_FILES.includes(filePath)) {
+            fullPath = path.join(agentDetails.agentDir, filePath);
+        }
+        // Memory files in ~/.openclaw/data/memory/AGENT_ID/
+        else if (filePath.startsWith(`memory/${agentId}/`)) {
             // Reconstruct path for subagent-specific memory files
             fullPath = path.join(DATA_MEMORY_BASE_PATH, agentId, filePath.substring(`memory/${agentId}/`.length));
         }
@@ -257,6 +286,16 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
         agentId: agent.id,
         isVersionControlled: false
       });
+  } else { // For subagents, add their core config files and special memory files
+      ALLOWED_SUBAGENT_CORE_CONFIG_FILES.forEach(file => {
+          discoverableFiles.push({
+              name: file,
+              path: file,
+              type: 'config',
+              agentId: agent.id,
+              isVersionControlled: false // Determined dynamically below
+          });
+      });
   }
 
   // Dynamically find daily memory files for main agent in workspace memory
@@ -326,7 +365,7 @@ app.get('/api/agent-config-files/:agentId', async (req, res) => {
   for (const file of discoverableFiles) {
       // Only check version control for actual files, not special settings entries
       if (file.type !== 'setting') {
-        const fullFilePath = getFullPath(agentId, file.path);
+        const fullFilePath = getFullPath(agentId, file.path, agent);
         if (fullFilePath) {
             const repoPath = await getGitRepoPathForFile(fullFilePath);
             file.isVersionControlled = !!repoPath;
@@ -345,12 +384,17 @@ app.get('/api/file-content', async (req, res) => {
     return res.status(400).json({ error: 'Missing agentId or filePath' });
   }
 
+  // Fetch agent details to pass to security and path resolution functions
+  const agentInfoResponse = await fetch(`http://localhost:${port}/api/agents`); 
+  const agents = await agentInfoResponse.json();
+  const agent = agents.find(a => a.id === agentId);
+
   // *** SECURITY CRITICAL: Validate file path strictly ***
-  if (!isValidAgentConfigFile(agentId, filePath)) {
+  if (!await isValidAgentConfigFile(agentId, filePath, agent)) { // Pass agent details for validation
     return res.status(403).json({ error: 'Unauthorized file access attempt' });
   }
 
-  const fullPath = getFullPath(agentId, filePath);
+  const fullPath = getFullPath(agentId, filePath, agent);
   if (!fullPath) {
       return res.status(500).json({ error: 'Could not determine full path for file.' });
   }
@@ -372,13 +416,18 @@ app.get('/api/file-history', async (req, res) => {
     return res.status(400).json({ error: 'Missing agentId or filePath' });
   }
 
+  // Fetch agent details to pass to security and path resolution functions
+  const agentInfoResponse = await fetch(`http://localhost:${port}/api/agents`); 
+  const agents = await agentInfoResponse.json();
+  const agent = agents.find(a => a.id === agentId);
+
   // 1. Security check: Ensure it's a file we allow viewing content for
-  if (!isValidAgentConfigFile(agentId, filePath)) {
+  if (!await isValidAgentConfigFile(agentId, filePath, agent)) { // Pass agent details for validation
       return res.status(403).json({ error: 'Unauthorized file history access attempt' });
   }
 
   // 2. Get the full absolute path of the file
-  const fullFilePath = getFullPath(agentId, filePath);
+  const fullFilePath = getFullPath(agentId, filePath, agent);
   if (!fullFilePath) {
       return res.status(500).json({ error: 'Could not determine full path for file history.' });
   }
