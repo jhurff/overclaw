@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/scripts.js"></script>
+</head>
+<body class="<%= theme %>">
+  <%- include('partials/sidebar') %>
+  <div class="main-content">
+    <h1><%= title %></h1>
+    <p>A chronological log of agent learnings and key decisions, linked to session history.</p>
+    
+    <div id="learnings-list" class="mt-8">
+      <!-- Learnings will be loaded here by JavaScript -->
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const learningsList = document.getElementById('learnings-list');
+      try {
+        const response = await fetch('/api/learnings');
+        const learnings = await response.json();
+
+        if (learnings.length === 0) {
+          learningsList.innerHTML = '<p class="text-ink-500">No learnings recorded yet.</p>';
+          return;
+        }
+
+        learnings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        learnings.forEach(learning => {
+          const learningCard = document.createElement('div');
+          learningCard.className = 'bg-white dark:bg-ink-800 rounded-lg shadow-md p-6 mb-4';
+          learningCard.innerHTML = `
+            <h2 class="text-xl font-semibold text-ink-900 dark:text-ink-100 mb-2">${learning.title}</h2>
+            <p class="text-ink-600 dark:text-ink-300 mb-3">${learning.summary}</p>
+            <div class="flex flex-wrap gap-2 mb-3">
+              ${learning.tags.map(tag => `<span class="bg-weed-100 dark:bg-weed-900 text-weed-800 dark:text-weed-200 text-xs font-medium px-2.5 py-0.5 rounded-full">${tag}</span>`).join('')}
+            </div>
+            <p class="text-xs text-ink-500 dark:text-ink-400">Created: ${new Date(learning.created_at).toLocaleString()}</p>
+            ${learning.derived_from ? `<p class="text-xs text-ink-500 dark:text-ink-400 mt-1">Source: <a href="#" onclick="window.parent.postMessage({ type: 'navigate', payload: '${learning.derived_from.session_key}' }, '*'); return false;" class="text-weed-600 hover:underline">${learning.derived_from.link_text || learning.derived_from.session_key}</a></p>` : ''}
+          `;
+          learningsList.appendChild(learningCard);
+        });
+      } catch (error) {
+        console.error('Error fetching learnings:', error);
+        learningsList.innerHTML = '<p class="text-red-500">Failed to load learnings.</p>';
+      }
+    });
+  </script>
+</body>
+</html>
