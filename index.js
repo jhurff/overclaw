@@ -72,6 +72,11 @@ app.get('/docs', (req, res) => {
   res.render('docs', { title: 'OverClaw Documentation' });
 });
 
+// Activity & Audit Log screen route (for OCUs MVP)
+app.get('/activity', (req, res) => {
+  res.render('activity', { title: 'OverClaw Activity & Audit Log' });
+});
+
 // API endpoint to list OpenClaw agents (summary for dashboard card)
 app.get('/api/agents', (req, res) => {
   exec('openclaw agents list --json', (error, stdout, stderr) => {
@@ -135,6 +140,19 @@ app.get('/api/cron-jobs', (req, res) => {
       res.status(500).json({ error: 'Failed to parse cron jobs data', details: parseError.message, stdout: stdout });
     }
   });
+});
+
+// API endpoint for OCUs to fetch learning entries
+app.get('/api/learnings', async (req, res) => {
+  const learningsDbPath = path.join(process.env.HOME, '.openclaw', 'data', 'memory', 'learnings_db.json');
+  try {
+    const data = await fs.readFile(learningsDbPath, 'utf8');
+    const learnings = JSON.parse(data);
+    res.json(learnings);
+  } catch (error) {
+    console.error(`Error fetching learnings from ${learningsDbPath}: ${error}`);
+    res.status(500).json({ error: 'Failed to fetch learnings', details: error.message });
+  }
 });
 
 // Whitelisted Git repositories for history viewing
