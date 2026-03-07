@@ -2,9 +2,20 @@ const express = require('express');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs').promises; // For async file operations
+const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
 
 const app = express();
 const port = 10000; // Updated port
+
+// Initialize ClawBridge with environment variables
+const openclawGatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
+const openclawApiToken = process.env.OPENCLAW_API_TOKEN;
+
+if (!openclawApiToken) {
+  console.warn('OPENCLAW_API_TOKEN is not set. ClawBridge will not be able to authenticate with OpenClaw Gateway.');
+}
+
+const clawBridge = new ClawBridge(openclawGatewayUrl, openclawApiToken);
 
 // Set EJS as the templating engine
 app.set('view engine', 'ejs');
@@ -78,68 +89,41 @@ app.get('/activity', (req, res) => {
 });
 
 // API endpoint to list OpenClaw agents (summary for dashboard card)
-app.get('/api/agents', (req, res) => {
-  exec('openclaw agents list --json', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error for /api/agents: ${error}`);
-      console.error(`stderr: ${stderr}`);
-      console.log(`stdout: ${stdout}`);
-      return res.status(500).json({ error: 'Failed to fetch agents', details: stderr, stdout: stdout });
-    }
-    try {
-      const agents = JSON.parse(stdout);
-      res.json(agents.map(agent => ({
-        id: agent.id, 
-        name: agent.name,
-        workspace: agent.workspace,
-        agentDir: agent.agentDir
-      })));
-    } catch (parseError) {
-      console.error(`JSON parse error for /api/agents: ${parseError}`);
-      console.error(`Original stdout for /api/agents parse error: ${stdout}`);
-      res.status(500).json({ error: 'Failed to parse agents data', details: parseError.message, stdout: stdout });
-    }
-  });
+app.get('/api/agents', async (req, res) => {
+  try {
+    const agents = await clawBridge.getAgents();
+    res.json(agents.map(agent => ({
+      id: agent.id, 
+      name: agent.name,
+      workspace: agent.workspace,
+      agentDir: agent.agentDir
+    })));
+  } catch (error) {
+    console.error(`Error fetching agents via ClawBridge: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch agents', details: error.message });
+  }
 });
 
 // API endpoint to get detailed OpenClaw sessions
-app.get('/api/sessions-detail', (req, res) => {
-  exec('openclaw sessions --json --all-agents', (error, stdout, stderr) => { 
-    if (error) {
-      console.error(`exec error for /api/sessions-detail: ${error}`);
-      console.error(`stderr: ${stderr}`);
-      console.log(`stdout: ${stdout}`);
-      return res.status(500).json({ error: 'Failed to fetch session details', details: stderr, stdout: stdout });
-    }
-    try {
-      const sessions = JSON.parse(stdout);
-      res.json(sessions);
-    } catch (parseError) {
-      console.error(`JSON parse error for /api/sessions-detail: ${parseError}`);
-      console.error(`Original stdout for /api/sessions-detail parse error: ${stdout}`);
-      res.status(500).json({ error: 'Failed to parse session details', details: parseError.message, stdout: stdout });
-    }
-  });
+app.get('/api/sessions-detail', async (req, res) => {
+  try {
+    const sessions = await clawBridge.getSessions();
+    res.json(sessions);
+  } catch (error) {
+    console.error(`Error fetching sessions via ClawBridge: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch session details', details: error.message });
+  }
 });
 
 // API endpoint to list OpenClaw cron jobs
-app.get('/api/cron-jobs', (req, res) => {
-  exec('openclaw cron list --json', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error for /api/cron-jobs: ${error}`);
-      console.error(`stderr: ${stderr}`);
-      console.log(`stdout: ${stdout}`);
-      return res.status(500).json({ error: 'Failed to fetch cron jobs', details: stderr, stdout: stdout });
-    }
-    try {
-      const cronData = JSON.parse(stdout);
-      res.json(cronData);
-    } catch (parseError) {
-      console.error(`JSON parse error for /api/cron-jobs: ${parseError}`);
-      console.error(`Original stdout for /api/cron-jobs parse error: ${stdout}`);
-      res.status(500).json({ error: 'Failed to parse cron jobs data', details: parseError.message, stdout: stdout });
-    }
-  });
+app.get('/api/cron-jobs', async (req, res) => {
+  try {
+    const cronData = await clawBridge.getCronJobs();
+    res.json(cronData);
+  } catch (error) {
+    console.error(`Error fetching cron jobs via ClawBridge: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch cron jobs', details: error.message });
+  }
 });
 
 // API endpoint for OCUs to fetch learning entries
