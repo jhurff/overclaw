@@ -28,6 +28,8 @@ npm install
 ### Running OverClaw
 
 ```bash
+export OPENCLAW_GATEWAY_URL=<Your OpenClaw Gateway IP>
+export OPENCLAW_API_TOKEN=<Your OpenClaw Token>
 npm start
 ```
 
