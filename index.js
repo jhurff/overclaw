@@ -8,7 +8,7 @@ const app = express();
 const port = 10000; // Updated port
 
 // Initialize ClawBridge with environment variables
-const openclawGatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
+const openclawGatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
 const openclawApiToken = process.env.OPENCLAW_API_TOKEN;
 
 if (!openclawApiToken) {
