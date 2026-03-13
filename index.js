@@ -85,7 +85,7 @@ app.get('/docs', (req, res) => {
 
 // Activity & Audit Log screen route (for OCUs MVP)
 app.get('/activity', (req, res) => {
-  res.render('activity', { title: 'OverClaw Activity & Audit Log' });
+  res.render('activity', { title: 'OverClaw Activity & Audit Log', currentPath: '/activity' });
 });
 
 // API endpoint to list OpenClaw agents (summary for dashboard card)
