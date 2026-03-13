@@ -35,6 +35,15 @@ npm start
 
 The webapp will be available at `http://localhost:3000` (or configured port).
 
+## Data
+
+OverClaw keeps its own state in a **`data/`** directory inside the project (ignored by git). This includes:
+
+- **`data/learnings_db.json`** — Activity & Audit Log (learnings)
+- **`data/overclaw-device-keypair.json`** — ClawBridge device identity for the gateway
+
+Nothing is written to `~/.openclaw`; that directory is only read when displaying OpenClaw config and workspace files.
+
 ## Development
 
 ```bash

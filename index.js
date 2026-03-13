@@ -7,6 +7,9 @@ const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
 const app = express();
 const port = 10000; // Updated port
 
+// OverClaw's own state (learnings, etc.) lives here, not in ~/.openclaw
+const OVERCLAW_DATA_DIR = path.join(__dirname, 'data');
+
 // Initialize ClawBridge with environment variables
 const openclawGatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
 const openclawApiToken = process.env.OPENCLAW_API_TOKEN;
@@ -88,12 +91,21 @@ app.get('/activity', (req, res) => {
   res.render('activity', { title: 'OverClaw Activity & Audit Log', currentPath: '/activity' });
 });
 
+// Normalize gateway response: may be array or { agents: [...] } / { list: [...] }
+function normalizeAgentsList(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (raw && Array.isArray(raw.agents)) return raw.agents;
+  if (raw && Array.isArray(raw.list)) return raw.list;
+  return [];
+}
+
 // API endpoint to list OpenClaw agents (summary for dashboard card)
 app.get('/api/agents', async (req, res) => {
   try {
-    const agents = await clawBridge.getAgents();
+    const raw = await clawBridge.getAgents();
+    const agents = normalizeAgentsList(raw);
     res.json(agents.map(agent => ({
-      id: agent.id, 
+      id: agent.id,
       name: agent.name,
       workspace: agent.workspace,
       agentDir: agent.agentDir
@@ -128,12 +140,21 @@ app.get('/api/cron-jobs', async (req, res) => {
 
 // API endpoint for OCUs to fetch learning entries
 app.get('/api/learnings', async (req, res) => {
-  const learningsDbPath = path.join(process.env.HOME, '.openclaw', 'data', 'memory', 'learnings_db.json');
+  const learningsDbPath = path.join(OVERCLAW_DATA_DIR, 'learnings_db.json');
   try {
     const data = await fs.readFile(learningsDbPath, 'utf8');
     const learnings = JSON.parse(data);
-    res.json(learnings);
+    res.json(Array.isArray(learnings) ? learnings : []);
   } catch (error) {
+    if (error.code === 'ENOENT') {
+      try {
+        await fs.mkdir(OVERCLAW_DATA_DIR, { recursive: true });
+        await fs.writeFile(learningsDbPath, '[]', 'utf8');
+      } catch (e) {
+        console.warn(`Could not create learnings_db.json at ${learningsDbPath}: ${e.message}`);
+      }
+      return res.json([]);
+    }
     console.error(`Error fetching learnings from ${learningsDbPath}: ${error}`);
     res.status(500).json({ error: 'Failed to fetch learnings', details: error.message });
   }
