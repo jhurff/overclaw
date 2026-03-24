@@ -1,0 +1,30 @@
+<aside class="oc-sidebar" id="oc-sidebar">
+    <nav>
+        <div class="nav-group-title">Control</div>
+        <ul>
+            <li><a href="/" class="<%= typeof currentPath !== 'undefined' && currentPath === '/' ? 'active' : '' %>"><span class="icon">🏠</span>Dashboard</a></li>
+            <li><a href="/sessions" class="<%= typeof currentPath !== 'undefined' && currentPath === '/sessions' ? 'active' : '' %>"><span class="icon">💬</span>Sessions</a></li>
+            <li><a href="/cron-jobs" class="<%= typeof currentPath !== 'undefined' && currentPath === '/cron-jobs' ? 'active' : '' %>"><span class="icon">⏰</span>Cron Jobs</a></li>
+        </ul>
+        <div class="nav-group-title">Agent</div>
+        <ul>
+            <li><a href="/agents" class="<%= typeof currentPath !== 'undefined' && currentPath === '/agents' ? 'active' : '' %>"><span class="icon">🤖</span>Agents</a></li>
+            <li><a href="/skills" class="<%= typeof currentPath !== 'undefined' && currentPath === '/skills' ? 'active' : '' %>"><span class="icon">🧠</span>Skills</a></li>
+            <li><a href="/nodes" class="<%= typeof currentPath !== 'undefined' && currentPath === '/nodes' ? 'active' : '' %>"><span class="icon">🖥️</span>Nodes</a></li>
+        </ul>
+        <div class="nav-group-title">Settings</div>
+        <ul>
+            <li><a href="/config" class="<%= typeof currentPath !== 'undefined' && currentPath === '/config' ? 'active' : '' %>"><span class="icon">⚙️</span>Config</a></li>
+            <li><a href="/logs" class="<%= typeof currentPath !== 'undefined' && currentPath === '/logs' ? 'active' : '' %>"><span class="icon">📜</span>Logs</a></li>
+            <li><a href="/debug" class="<%= typeof currentPath !== 'undefined' && currentPath === '/debug' ? 'active' : '' %>"><span class="icon">🐛</span>Debug</a></li>
+        </ul>
+        <div class="nav-group-title">Learnings</div>
+        <ul>
+            <li><a href="/activity" class="<%= typeof currentPath !== 'undefined' && currentPath === '/activity' ? 'active' : '' %>"><span class="icon">📖</span>Activity & Audit Log</a></li>
+        </ul>
+        <div class="nav-group-title">Resources</div>
+        <ul>
+            <li><a href="/docs" class="<%= typeof currentPath !== 'undefined' && currentPath === '/docs' ? 'active' : '' %>"><span class="icon">📚</span>Docs</a></li>
+        </ul>
+    </nav>
+</aside>

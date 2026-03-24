@@ -7,18 +7,42 @@
   <link rel="stylesheet" href="/styles.css">
   <script src="/scripts.js"></script>
 </head>
-<body class="<%= theme %>">
-  <%- include('partials/sidebar') %>
-  <div class="main-content">
-    <h1><%= title %></h1>
-    <p>A chronological log of agent learnings and key decisions, linked to session history.</p>
-    
-    <div id="learnings-list" class="mt-8">
-      <!-- Learnings will be loaded here by JavaScript -->
+<body>
+  <header class="oc-header">
+    <div class="logo">
+      <h1 class="main-title">OVERCLAW</h1>
+      <span class="tagline">AGENT DASHBOARD</span>
     </div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
+  </header>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: typeof currentPath !== 'undefined' ? currentPath : '/activity' }) %>
+    <main class="oc-dashboard-area">
+      <h1><%= title %></h1>
+      <p>A chronological log of agent learnings and key decisions, linked to session history.</p>
+      <div id="learnings-list" class="mt-8">
+        <!-- Learnings will be loaded here by JavaScript -->
+      </div>
+    </main>
   </div>
 
   <script>
+    (function () {
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const sidebar = document.getElementById('oc-sidebar');
+      if (sidebarToggle && sidebar) {
+        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if (sidebarCollapsed) sidebar.classList.add('collapsed');
+        sidebarToggle.addEventListener('click', () => {
+          sidebarCollapsed = !sidebarCollapsed;
+          sidebar.classList.toggle('collapsed', sidebarCollapsed);
+          localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
+        });
+      }
+    })();
     document.addEventListener('DOMContentLoaded', async () => {
       const learningsList = document.getElementById('learnings-list');
       try {
