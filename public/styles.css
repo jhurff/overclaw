@@ -162,6 +162,8 @@ h1, h2, h3, h4, h5, h6 {
 /* Sidebar */
 .oc-sidebar {
     width: 200px;
+    max-height: calc(100vh - 60px); /* header height */
+    overflow-y: auto;
     background-color: var(--oc-sidebar-bg);
     border-right: 1px solid var(--oc-border-color);
     padding: 0;
