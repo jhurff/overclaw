@@ -23,6 +23,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
 // Helper function to extract agent ID from session key (duplicate for server-side use)
 function getAgentIdFromSessionKey(sessionKey) {
@@ -664,6 +665,104 @@ app.get('/debug-agents-data', async (req, res) => {
   } catch (error) {
     log('Server-side DEBUG: Error in /debug-agents-data:', error);
     res.status(500).json({ error: 'Server-side debug failed', details: error.message, logs: debugLogs, originalError: error });
+  }
+});
+
+// Projects Kanban board view
+app.get('/projects/kanban', (req, res) => {
+  res.render('kanban', { title: 'Kanban Project Management' });
+});
+
+// Helper function to read projects data
+async function readProjects() {
+  const data = await fs.readFile(path.join(__dirname, 'data', 'projects.json'), 'utf8');
+  return JSON.parse(data);
+}
+
+// Helper function to write projects data
+async function writeProjects(data) {
+  await fs.writeFile(path.join(__dirname, 'data', 'projects.json'), JSON.stringify(data, null, 2));
+}
+
+// API: Get all projects
+app.get('/api/projects', async (req, res) => {
+  try {
+    const projectsData = await readProjects();
+    res.json(projectsData.projects);
+  } catch (error) {
+    console.error(`Error reading projects: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch projects', details: error.message });
+  }
+});
+
+// API: Get single project by ID
+app.get('/api/projects/:id', async (req, res) => {
+  try {
+    const projectsData = await readProjects();
+    const project = projectsData.projects.find(p => p.id === req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    res.json(project);
+  } catch (error) {
+    console.error(`Error reading project ${req.params.id}: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch project', details: error.message });
+  }
+});
+
+// API: Create new project
+app.post('/api/projects', async (req, res) => {
+  try {
+    const projectsData = await readProjects();
+    const newProject = {
+      id: `proj-${String(projectsData.projects.length + 1).padStart(3, '0')}`,
+      created: new Date().toISOString(),
+      ...req.body,
+      progressNotes: [],
+      impediments: [],
+      blockers: []
+    };
+    projectsData.projects.push(newProject);
+    await writeProjects(projectsData);
+    res.status(201).json(newProject);
+  } catch (error) {
+    console.error(`Error creating project: ${error.message}`);
+    res.status(500).json({ error: 'Failed to create project', details: error.message });
+  }
+});
+
+// API: Update project
+app.put('/api/projects/:id', async (req, res) => {
+  try {
+    const projectsData = await readProjects();
+    const index = projectsData.projects.findIndex(p => p.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    const updatedProject = { ...projectsData.projects[index], ...req.body };
+    projectsData.projects[index] = updatedProject;
+    await writeProjects(projectsData);
+    res.json(updatedProject);
+  } catch (error) {
+    console.error(`Error updating project ${req.params.id}: ${error.message}`);
+    res.status(500).json({ error: 'Failed to update project', details: error.message });
+  }
+});
+
+// API: Delete project
+app.delete('/api/projects/:id', async (req, res) => {
+  try {
+    const projectsData = await readProjects();
+    const index = projectsData.projects.findIndex(p => p.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    projectsData.projects.splice(index, 1);
+    await writeProjects(projectsData);
+    res.status(204).send();
+  } catch (error) {
+    console.error(`Error deleting project ${req.params.id}: ${error.message}`);
+    res.status(500).json({ error: 'Failed to delete project', details: error.message });
   }
 });
 
