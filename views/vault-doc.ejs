@@ -430,7 +430,7 @@
         let raw = preprocessWikiLinks(data.content);
         raw = rewriteMdLinks(raw, filePath);
         container.innerHTML = `<div class="vault-doc-body">${marked.parse(raw)}</div>`;
-        container.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+        if (typeof hljs !== 'undefined') container.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
         attachWikiLinkHandlers();
       } catch(e) {
         container.innerHTML = `<div style="color:#f87171;font-size:.8rem;">${e.message}</div>`;
@@ -483,7 +483,7 @@
         raw = rewriteMdLinks(raw, filePath);
         const html = marked.parse(raw);
         body.innerHTML = idBanner + `<div class="vault-doc-body">${html}</div>`;
-        body.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+        if (typeof hljs !== 'undefined') body.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
         attachWikiLinkHandlers();
 
       } catch (err) {

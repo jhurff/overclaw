@@ -1,79 +1,69 @@
 :root {
-    --oc-primary-purple: #850BA3; /* OverClaw's primary purple */
-    --oc-background-light: #f8f9fa; /* Light, clean background */
-    --oc-background-dark: #212529; /* Dark mode background */
-    --oc-text-dark: #212529; /* Dark text for readability */
-    --oc-text-light: #ffffff; /* Light text for dark backgrounds */
-    --oc-text-muted: #6c757d; /* Muted text for descriptions */
-    --oc-border-color: #e9ecef; /* Lighter border color */
-    --oc-header-bg: #212529; /* Black header background */
-    --oc-header-text: #ffffff; /* White text for dark header */
-    --oc-sidebar-bg: #f1f3f5; /* Lighter sidebar background */
-    --oc-sidebar-bg-dark: #343a40; /* Dark mode sidebar background */
-    --oc-card-bg: #ffffff; /* White card background */
-    --oc-card-bg-dark: #495057; /* Dark mode card background */
-    --oc-font-sans: 'DM Sans', system-ui, sans-serif;
-    --oc-font-display: 'Outfit', system-ui, sans-serif;
-    --oc-transition-duration: 0.3s; /* For smooth transitions */
-
-    /* Code Block Specific Colors */
-    --oc-code-block-bg: #ffffff; /* Light background for code in light mode */
-    --oc-code-block-text: #212529; /* Dark text for code in light mode */
+    --oc-primary-purple: #6366f1;       /* indigo-500 — clear, readable accent */
+    --oc-primary-hover:  #4f46e5;       /* indigo-600 — hover state */
+    --oc-background-light: #f8fafc;     /* slate-50 */
+    --oc-background-dark:  #0d1117;     /* near-black, GitHub-style */
+    --oc-text-dark:   #1e293b;          /* slate-800 */
+    --oc-text-light:  #f1f5f9;          /* slate-100 */
+    --oc-text-muted:  #475569;          /* slate-600 — readable on light */
+    --oc-border-color: #e2e8f0;         /* slate-200 */
+    --oc-header-bg:   #0f172a;          /* slate-900 */
+    --oc-header-text: #f1f5f9;
+    --oc-sidebar-bg:  #f1f5f9;          /* slate-100 */
+    --oc-sidebar-bg-dark: #161b22;      /* GitHub dark sidebar */
+    --oc-card-bg:     #ffffff;
+    --oc-card-bg-dark:#1c2128;          /* GitHub dark card */
+    --oc-font-sans:   'DM Sans', system-ui, sans-serif;
+    --oc-font-display:'Outfit', system-ui, sans-serif;
+    --oc-transition-duration: 0.2s;
+    --oc-code-block-bg:   #f1f5f9;
+    --oc-code-block-text: #1e293b;
 }
 
-/* Dark Mode specific variables */
+/* Dark Mode */
 .dark-mode {
     --oc-background-light: var(--oc-background-dark);
-    --oc-text-dark: var(--oc-text-light);
-    --oc-text-muted: #adb5bd;
-    --oc-border-color: #495057;
-    --oc-header-bg: #141619;
-    --oc-sidebar-bg: var(--oc-sidebar-bg-dark);
-    --oc-card-bg: var(--oc-card-bg-dark);
+    --oc-text-dark:     #e2e8f0;        /* slate-200 — clearly readable */
+    --oc-text-muted:    #94a3b8;        /* slate-400 — readable but secondary */
+    --oc-border-color:  #21262d;        /* dark border */
+    --oc-header-bg:     #010409;
+    --oc-sidebar-bg:    var(--oc-sidebar-bg-dark);
+    --oc-card-bg:       var(--oc-card-bg-dark);
+    --oc-code-block-bg:   #161b22;
+    --oc-code-block-text: #e2e8f0;
 
-    /* Dark mode specific table/list items */
     .oc-agent-table th {
-        background-color: #343a40;
+        background-color: #21262d;
         color: var(--oc-text-light);
     }
-
     .oc-agent-table tbody tr:nth-child(even) {
-        background-color: #3a4046;
+        background-color: #21262d;
     }
-
     .oc-agent-table tbody tr:hover {
-        background-color: #495057;
+        background-color: #2d333b;
     }
-
     .oc-agent-table code {
-        background-color: #343a40;
-        color: #e9ecef;
+        background-color: #21262d;
+        color: #e2e8f0;
     }
-
     .oc-button-secondary {
-        background-color: #3a4046;
+        background-color: #21262d;
         color: var(--oc-text-light);
-        border-color: #495057;
+        border-color: #30363d;
     }
-
     .oc-button-secondary:hover {
-        background-color: #495057;
+        background-color: #2d333b;
     }
-
     .oc-list-group {
-        border-color: #495057;
+        border-color: #21262d;
         background-color: var(--oc-card-bg);
     }
     .oc-list-item {
-        border-color: #495057;
+        border-color: #21262d;
     }
     .oc-list-item.oc-link:hover {
-        background-color: rgba(133, 11, 163, 0.2);
+        background-color: rgba(99,102,241,0.12);
     }
-
-    /* Dark mode for code block */
-    --oc-code-block-bg: #2c313a;
-    --oc-code-block-text: #e9ecef;
 }
 
 body {
@@ -209,14 +199,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .oc-sidebar nav ul li a:hover {
-    background-color: rgba(133, 11, 163, 0.08);
+    background-color: rgba(99,102,241,0.10);
     color: var(--oc-primary-purple);
 }
 
 .oc-sidebar nav ul li a.active {
-    background-color: rgba(133, 11, 163, 0.15);
+    background-color: rgba(99,102,241,0.18);
     color: var(--oc-primary-purple);
     font-weight: 600;
+    border-right: 2px solid var(--oc-primary-purple);
 }
 
 /* Nav Grouping */
@@ -278,7 +269,7 @@ a:hover {
 }
 
 .bg-primary-purple-light {
-    background-color: rgba(133, 11, 163, 0.05);
+    background-color: rgba(99,102,241,0.06);
 }
 
 /* Agent Table Styling */
@@ -344,9 +335,9 @@ a:hover {
 }
 
 .oc-button-inline {
-    background-color: rgba(133, 11, 163, 0.1);
+    background-color: rgba(99,102,241,0.10);
     color: var(--oc-primary-purple);
-    border: 1px solid rgba(133, 11, 163, 0.3);
+    border: 1px solid rgba(99,102,241,0.35);
     padding: 0.3rem 0.6rem;
     border-radius: 0.2rem;
     cursor: pointer;
@@ -356,7 +347,7 @@ a:hover {
 }
 
 .oc-button-inline:hover {
-    background-color: rgba(133, 11, 163, 0.2);
+    background-color: rgba(99,102,241,0.20);
     border-color: var(--oc-primary-purple);
 }
 
@@ -387,7 +378,7 @@ a:hover {
 }
 
 .oc-list-item.oc-link:hover {
-    background-color: rgba(133, 11, 163, 0.05);
+    background-color: rgba(99,102,241,0.06);
     text-decoration: underline;
 }
 
@@ -452,7 +443,7 @@ a:hover {
 }
 
 .btn-primary:hover {
-    background-color: #6c0985;
+    background-color: #4f46e5;
 }
 
 .btn-secondary {
@@ -584,7 +575,7 @@ a:hover {
 }
 
 .agent-badge {
-    background-color: rgba(133, 11, 163, 0.1);
+    background-color: rgba(99,102,241,0.10);
     color: var(--oc-primary-purple);
     padding: 0.2rem 0.5rem;
     border-radius: 0.2rem;
