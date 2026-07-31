@@ -144,9 +144,20 @@ app.get('/api/vault/status', async (req, res) => {
   if (!vaultReader) return vaultUnavailable(res);
   try {
     const status = await vaultReader.isAvailable();
-    res.json(status);
+    res.json({ ...status, lastSyncAt: vaultReader.lastSyncAt, syncInProgress: vaultReader.syncInProgress });
   } catch (err) {
     res.status(500).json({ error: 'Failed to check vault status', details: err.message });
+  }
+});
+
+// POST /api/vault/sync — manual git pull
+app.post('/api/vault/sync', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const result = await vaultReader.sync();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Sync failed', details: err.message });
   }
 });
 
@@ -932,6 +943,25 @@ app.delete('/api/projects/:id', async (req, res) => {
 app.get('/status', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// ---------------------------------------------------------------------------
+// Background vault sync — git pull every 5 minutes
+// ---------------------------------------------------------------------------
+if (vaultReader) {
+  const VAULT_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+  // Initial pull on startup
+  vaultReader.sync().then(r => {
+    if (r.ok && !r.skipped) console.log(`Vault: initial sync complete${r.stdout ? ' — ' + r.stdout : ''}`);
+    else if (!r.ok) console.warn(`Vault: initial sync failed — ${r.error}`);
+  });
+  // Recurring pull
+  setInterval(() => {
+    vaultReader.sync().then(r => {
+      if (!r.ok && !r.skipped) console.warn(`Vault: background sync failed — ${r.error}`);
+    });
+  }, VAULT_SYNC_INTERVAL_MS);
+  console.log(`Vault: auto-sync enabled every ${VAULT_SYNC_INTERVAL_MS / 60000} minutes`);
+}
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {

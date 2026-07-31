@@ -163,7 +163,11 @@
         <p style="color:#6b7280; font-size:0.85rem;">Loading alerts…</p>
       </div>
 
-      <p class="refresh-note" id="refresh-note">Auto-refreshes every 30 seconds.</p>
+      <div style="display:flex; align-items:center; gap:1rem; margin-top:1rem;">
+        <p class="refresh-note" id="refresh-note">Auto-refreshes every 30 seconds.</p>
+        <span id="vault-sync-ts" style="font-size:0.75rem; color:#6b7280;"></span>
+        <button id="sync-btn" onclick="syncVault()" style="font-size:0.75rem; padding:0.2rem 0.6rem; border-radius:4px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer;">↻ Sync vault</button>
+      </div>
     </main>
   </div>
 
@@ -296,8 +300,35 @@
       }
     }
 
+    async function syncVault() {
+      const btn = document.getElementById('sync-btn');
+      const ts  = document.getElementById('vault-sync-ts');
+      btn.disabled = true;
+      btn.textContent = '↻ Syncing…';
+      try {
+        const r = await fetch('/api/vault/sync', { method: 'POST' });
+        const d = await r.json();
+        if (d.ok) {
+          ts.textContent = '· Vault synced ' + new Date().toLocaleTimeString();
+          await loadSummary();
+        } else {
+          ts.textContent = '· Sync failed: ' + (d.error || d.stderr || 'unknown');
+        }
+      } catch(e) {
+        ts.textContent = '· Sync error: ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '↻ Sync vault';
+      }
+    }
+
     loadSummary();
     setInterval(loadSummary, 30000);
+    // Show last sync time on load
+    fetch('/api/vault/status').then(r=>r.json()).then(d=>{
+      if (d.lastSyncAt) document.getElementById('vault-sync-ts').textContent =
+        '· Vault synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
+    }).catch(()=>{});
   </script>
 </body>
 </html>
