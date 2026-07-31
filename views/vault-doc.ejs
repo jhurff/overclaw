@@ -132,6 +132,49 @@
     .vault-doc-body hr { border: none; border-top: 1px solid #374151; margin: 1.5rem 0; }
     .vault-doc-body img { max-width: 100%; border-radius: 4px; }
 
+    /* ── Alert ID banner ── */
+    .alert-id-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: rgba(194,65,12,0.12);
+      border: 1px solid #9a3412;
+      border-radius: 7px;
+      padding: 0.65rem 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .alert-id-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: #9a3412;
+      flex-shrink: 0;
+    }
+    .alert-id-value {
+      font-family: 'DM Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #fb923c;
+      letter-spacing: 0.02em;
+      word-break: break-all;
+      flex: 1;
+    }
+    .alert-id-copy {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #9a3412;
+      background: transparent;
+      color: #fb923c;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .12s;
+    }
+    .alert-id-copy:hover { background: rgba(194,65,12,0.2); }
+    .alert-id-copy.copied { color: #6ee7b7; border-color: #065f46; }
+
     /* ── Directory listing ── */
     .dir-listing {
       display: flex; flex-direction: column; gap: 2px;
@@ -422,19 +465,54 @@
 
         // File — render markdown
         renderBreadcrumb(filePath);
+        const filename = filePath.split('/').pop().replace(/\.md$/, '');
+        document.title = filename + ' — Vault Doc';
+
+        // Alert ID banner for NEEDS-ATTENTION files
+        let idBanner = '';
+        if (filename.toUpperCase().startsWith('NEEDS-ATTENTION')) {
+          const alertId = filename;
+          idBanner = `<div class="alert-id-banner">
+            <span class="alert-id-label">Alert ID</span>
+            <span class="alert-id-value" id="alert-id-text">${alertId}</span>
+            <button class="alert-id-copy" onclick="copyAlertId(this)">Copy</button>
+          </div>`;
+        }
+
         let raw = preprocessWikiLinks(data.content);
         raw = rewriteMdLinks(raw, filePath);
         const html = marked.parse(raw);
-        body.innerHTML = `<div class="vault-doc-body">${html}</div>`;
+        body.innerHTML = idBanner + `<div class="vault-doc-body">${html}</div>`;
         body.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
         attachWikiLinkHandlers();
-        const filename = filePath.split('/').pop().replace(/\.md$/, '');
-        document.title = filename + ' — Vault Doc';
 
       } catch (err) {
         showError(err.message);
         body.innerHTML = '';
       }
+    }
+
+    /* ── Copy alert ID ── */
+    function copyAlertId(btn) {
+      const id = document.getElementById('alert-id-text');
+      if (!id) return;
+      navigator.clipboard.writeText(id.textContent).then(() => {
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      }).catch(() => {
+        // Fallback for non-HTTPS
+        const sel = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(id);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand('copy');
+        sel.removeAllRanges();
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
     }
 
     /* ── Boot ── */
