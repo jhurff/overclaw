@@ -1,5 +1,7 @@
 node_modules/
 data/
+!data/.gitkeep
+!data/projects.example.json
 .env
 .env.local
 *.log

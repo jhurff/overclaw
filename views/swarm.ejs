@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ---- Swarm-specific styles ---- */
+    .swarm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .agent-card {
+      background: var(--card-bg, #1a1f2e);
+      border: 1px solid var(--border, #2d3548);
+      border-radius: 10px;
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .agent-card .agent-nickname {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--heading, #e2e8f0);
+    }
+    .agent-card .agent-meta {
+      font-size: 0.82rem;
+      color: var(--muted, #8892a4);
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge-green  { background: #166534; color: #bbf7d0; }
+    .badge-red    { background: #7f1d1d; color: #fecaca; }
+    .badge-yellow { background: #78350f; color: #fde68a; }
+    .badge-blue   { background: #1e3a5f; color: #93c5fd; }
+    .badge-gray   { background: #374151; color: #d1d5db; }
+
+    .stats-strip {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .stat-pill {
+      background: var(--card-bg, #1a1f2e);
+      border: 1px solid var(--border, #2d3548);
+      border-radius: 8px;
+      padding: 0.7rem 1.2rem;
+      text-align: center;
+      min-width: 100px;
+    }
+    .stat-pill .stat-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--heading, #e2e8f0);
+      line-height: 1;
+    }
+    .stat-pill .stat-label {
+      font-size: 0.72rem;
+      color: var(--muted, #8892a4);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .alerts-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .alert-item {
+      background: #3b1a08;
+      border: 1px solid #c2410c;
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      display: flex;
+      gap: 0.8rem;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+    }
+    .alert-item .alert-machine { font-weight: 600; color: #fb923c; }
+    .alert-item .alert-type    { color: #fdba74; }
+    .alert-item .alert-date    { color: #9ca3af; font-size: 0.77rem; }
+    .section-header {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--heading, #e2e8f0);
+      margin: 1.5rem 0 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .last-hb { font-size: 0.76rem; color: #6b7280; }
+    .vault-unavailable {
+      background: #1c1917;
+      border: 1px solid #78350f;
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      color: #fde68a;
+      font-size: 0.88rem;
+    }
+    .refresh-note { font-size: 0.75rem; color: #6b7280; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <header class="oc-header">
+    <div class="logo">
+      <h1 class="main-title">OVERCLAW</h1>
+      <span class="tagline">AGENT DASHBOARD</span>
+    </div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
+  </header>
+
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/swarm' }) %>
+
+    <main class="oc-dashboard-area">
+      <h1 style="margin-bottom: 0.25rem;">🌐 Swarm Overview</h1>
+      <p style="color: var(--muted, #8892a4); font-size:0.87rem; margin-bottom:1.5rem;">
+        Live view of all swarm agents, tasks, and alerts — powered by the shared vault.
+      </p>
+
+      <!-- Vault unavailable notice (shown when fetch fails) -->
+      <div id="vault-error" class="vault-unavailable" style="display:none;"></div>
+
+      <!-- Task board stats strip -->
+      <div class="section-header">📋 Task Board</div>
+      <div class="stats-strip" id="stats-strip">
+        <div class="stat-pill"><div class="stat-num" id="stat-inbox">—</div><div class="stat-label">Inbox</div></div>
+        <div class="stat-pill"><div class="stat-num" id="stat-inprogress">—</div><div class="stat-label">In Progress</div></div>
+        <div class="stat-pill"><div class="stat-num" id="stat-blocked" style="color:#f87171;">—</div><div class="stat-label">Blocked</div></div>
+        <div class="stat-pill"><div class="stat-num" id="stat-done" style="color:#34d399;">—</div><div class="stat-label">Done</div></div>
+        <a href="/task-board" class="stat-pill" style="text-decoration:none; cursor:pointer; border-color:#4ade80;">
+          <div class="stat-num" style="font-size:1rem; color:#4ade80;">→</div>
+          <div class="stat-label">View Board</div>
+        </a>
+      </div>
+
+      <!-- Agent cards -->
+      <div class="section-header">🤖 Agents</div>
+      <div class="swarm-grid" id="agent-grid">
+        <p style="color:#6b7280;">Loading agents…</p>
+      </div>
+
+      <!-- NEEDS-ATTENTION alerts -->
+      <div class="section-header">🚨 Needs Attention</div>
+      <div id="alerts-container">
+        <p style="color:#6b7280; font-size:0.85rem;">Loading alerts…</p>
+      </div>
+
+      <p class="refresh-note" id="refresh-note">Auto-refreshes every 30 seconds.</p>
+    </main>
+  </div>
+
+  <script>
+    // --- Sidebar / theme boilerplate ---
+    (function () {
+      const toggle   = document.getElementById('sidebar-toggle');
+      const sidebar  = document.getElementById('oc-sidebar');
+      if (toggle && sidebar) {
+        let collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if (collapsed) sidebar.classList.add('collapsed');
+        toggle.addEventListener('click', () => {
+          collapsed = !collapsed;
+          sidebar.classList.toggle('collapsed', collapsed);
+          localStorage.setItem('overclaw-sidebar-collapsed', collapsed);
+        });
+      }
+      const themeBtn = document.getElementById('theme-toggle');
+      const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
+      let theme      = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+      document.body.classList.add(theme + '-mode');
+      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+      themeBtn.addEventListener('click', () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        document.body.classList.toggle('dark-mode',  theme === 'dark');
+        document.body.classList.toggle('light-mode', theme === 'light');
+        themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+        localStorage.setItem('overclaw-theme', theme);
+      });
+    })();
+
+    // --- Data fetching ---
+    function fmtDate(str) {
+      if (!str) return 'never';
+      try { return new Date(str).toLocaleString(); } catch { return str; }
+    }
+
+    function statusBadge(status) {
+      if (!status) return '<span class="badge badge-gray">unknown</span>';
+      const s = status.toLowerCase();
+      if (s.includes('active') || s.includes('online'))  return '<span class="badge badge-green">🟢 ' + status + '</span>';
+      if (s.includes('offline') || s.includes('down'))   return '<span class="badge badge-red">🔴 ' + status + '</span>';
+      if (s.includes('idle'))                             return '<span class="badge badge-yellow">🟡 ' + status + '</span>';
+      return '<span class="badge badge-blue">' + status + '</span>';
+    }
+
+    async function loadSummary() {
+      const errBox   = document.getElementById('vault-error');
+      const grid     = document.getElementById('agent-grid');
+      const alerts   = document.getElementById('alerts-container');
+
+      try {
+        const resp = await fetch('/api/swarm/summary');
+        const data = await resp.json();
+
+        if (data.error) {
+          errBox.style.display = 'block';
+          errBox.textContent   = '⚠️ Vault unavailable: ' + (data.details || data.error);
+          grid.innerHTML   = '<p style="color:#6b7280;">No agent data.</p>';
+          alerts.innerHTML = '<p style="color:#6b7280;">No alert data.</p>';
+          return;
+        }
+
+        errBox.style.display = 'none';
+
+        // Stats
+        const stats = data.taskBoardStats || {};
+        document.getElementById('stat-inbox').textContent      = stats.inbox      ?? '—';
+        document.getElementById('stat-inprogress').textContent = stats.inProgress ?? '—';
+        document.getElementById('stat-blocked').textContent    = stats.blocked    ?? '—';
+        document.getElementById('stat-done').textContent       = stats.done       ?? '—';
+
+        // Agent cards
+        const agentList = data.agents || [];
+        if (agentList.length === 0) {
+          grid.innerHTML = '<p style="color:#6b7280;">No agents in registry.</p>';
+        } else {
+          grid.innerHTML = agentList.map(agent => {
+            const nick    = agent.nickname || agent.agent || 'Agent';
+            const type    = agent.type    || '';
+            const machine = agent.machine || '';
+            const role    = agent.role    || '';
+            const status  = agent.status  || '';
+            const acct    = agent.account || '';
+
+            // Determine last heartbeat for this agent
+            const hbKey = machine || nick;
+            const hb    = (data.lastHeartbeat || {})[hbKey];
+            const hbStr = hb ? fmtDate(hb.date) : 'no heartbeat data';
+
+            return `
+              <div class="agent-card">
+                <div class="agent-nickname">${nick}</div>
+                <div class="agent-meta">
+                  ${statusBadge(status)}
+                  <span>${type}</span>
+                </div>
+                <div class="agent-meta">
+                  <span>💻 ${machine}</span>
+                  ${acct ? '<span>👤 ' + acct + '</span>' : ''}
+                </div>
+                ${role ? '<div class="agent-meta" style="font-style:italic;">🎯 ' + role + '</div>' : ''}
+                <div class="last-hb">Last heartbeat: ${hbStr}</div>
+              </div>`;
+          }).join('');
+        }
+
+        // Alerts
+        const alertList = data.alerts || [];
+        if (alertList.length === 0) {
+          alerts.innerHTML = '<p style="color:#34d399; font-size:0.85rem;">✅ No unhandled alerts.</p>';
+        } else {
+          alerts.innerHTML = '<div class="alerts-list">' +
+            alertList.map(a => `
+              <div class="alert-item">
+                <span>🚨</span>
+                <span class="alert-machine">${a.machine}</span>
+                <span class="alert-type">${a.type}</span>
+                <span class="alert-date">${fmtDate(a.date)}</span>
+              </div>`).join('') +
+            '</div>';
+        }
+
+        document.getElementById('refresh-note').textContent =
+          'Last updated: ' + new Date().toLocaleTimeString() + ' · Auto-refreshes every 30s';
+
+      } catch (err) {
+        errBox.style.display = 'block';
+        errBox.textContent   = '⚠️ Failed to fetch swarm data: ' + err.message;
+      }
+    }
+
+    loadSummary();
+    setInterval(loadSummary, 30000);
+  </script>
+</body>
+</html>
