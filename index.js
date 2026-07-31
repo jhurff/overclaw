@@ -204,12 +204,24 @@ app.get('/api/vault/agents', async (req, res) => {
 app.get('/api/vault/file', async (req, res) => {
   if (!vaultReader) return vaultUnavailable(res);
   const filePath = (req.query.path || '').trim();
-  if (!filePath) return res.status(400).json({ error: 'path required' });
   try {
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const abs = filePath ? path.resolve(vaultAbs, filePath) : vaultAbs;
+    // Security check
+    if (abs !== vaultAbs && !abs.startsWith(vaultAbs + path.sep)) {
+      return res.status(403).json({ error: 'Path traversal denied' });
+    }
+    let stat;
+    try { stat = await fs.stat(abs); } catch { return res.status(404).json({ error: 'Not found' }); }
+    if (stat.isDirectory()) {
+      const listing = await vaultReader.listDir(filePath);
+      return res.json(listing);
+    }
+    // File — must be .md
     const content = await vaultReader.getFile(filePath);
-    res.json({ content, path: filePath });
+    res.json({ type: 'file', content, path: filePath });
   } catch (err) {
-    const status = err.message.includes('denied') || err.message.includes('Only') ? 400 : 404;
+    const status = err.message.includes('denied') ? 403 : err.message.includes('Only') ? 400 : 404;
     res.status(status).json({ error: err.message });
   }
 });
