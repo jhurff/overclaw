@@ -120,11 +120,18 @@
       border-radius: 6px; padding: 0.5rem 0.75rem;
       display: flex; gap: 0.6rem; align-items: baseline;
       flex-wrap: wrap; font-size: 0.8rem;
+      text-decoration: none;
+      transition: background .12s, border-color .12s;
     }
-    .al-icon    { flex-shrink: 0; }
+    a.alert-item:hover {
+      background: rgba(194,65,12,0.22);
+      border-color: #c2410c;
+    }
     .al-machine { font-weight: 600; color: #fb923c; }
-    .al-type    { color: #fdba74; }
-    .al-date    { color: #6b7280; font-size: 0.7rem; margin-left: auto; }
+    .al-type    { color: #fdba74; flex: 1; min-width: 0; }
+    .al-date    { color: #6b7280; font-size: 0.7rem; white-space: nowrap; }
+    .al-open    { font-size: 0.67rem; color: #6b7280; white-space: nowrap; opacity: .7; }
+    a.alert-item:hover .al-open { opacity: 1; color: #9ca3af; }
     .no-alerts  { font-size: 0.82rem; color: #374151; padding: 0.5rem 0; }
   </style>
 </head>
@@ -305,12 +312,23 @@
         /* alerts */
         const alerts = data.alerts || [];
         document.getElementById('alerts-container').innerHTML = alerts.length
-          ? '<div class="alert-list">' + alerts.map(a => `
-              <div class="alert-item">
-                <span class="al-machine">${a.machine}</span>
-                <span class="al-type">${a.type || a.filename || ''}</span>
+          ? '<div class="alert-list">' + alerts.map(a => {
+              const docPath = a.relPath
+                ? '08 - QA-and-Monitoring/Heartbeats/' + a.relPath
+                : null;
+              const href = docPath
+                ? `/vault/doc?path=${encodeURIComponent(docPath)}`
+                : null;
+              const tag   = href ? 'a' : 'div';
+              const attrs = href ? ` href="${href}" target="_blank"` : '';
+              const label = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
+              return `<${tag} class="alert-item"${attrs}>
+                <span class="al-machine">${a.machine !== 'unknown' ? a.machine : '⚠️'}</span>
+                <span class="al-type">${label}</span>
                 <span class="al-date">${fmtDate(a.date)}</span>
-              </div>`).join('') + '</div>'
+                ${href ? '<span class="al-open">open →</span>' : ''}
+              </${tag}>`;
+            }).join('') + '</div>'
           : '<div class="no-alerts">✅ No unhandled alerts</div>';
 
         document.getElementById('sw-refresh-note').textContent =
