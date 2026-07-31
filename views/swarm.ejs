@@ -6,119 +6,128 @@
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ---- Swarm-specific styles ---- */
-    .swarm-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+    /* ── Override global grid so content flows as a column ── */
+    .oc-main-content {
+      overflow: hidden !important;
+      height: calc(100vh - 60px);
     }
-    .agent-card {
-      background: var(--card-bg, #1a1f2e);
-      border: 1px solid var(--border, #2d3548);
-      border-radius: 10px;
-      padding: 1.2rem 1.4rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
+    .oc-dashboard-area {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: unset !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      padding: 1rem 1.25rem !important;
+      gap: 0 !important;
     }
-    .agent-card .agent-nickname {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--heading, #e2e8f0);
-    }
-    .agent-card .agent-meta {
-      font-size: 0.82rem;
-      color: var(--muted, #8892a4);
-      display: flex;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-    .badge-green  { background: #166534; color: #bbf7d0; }
-    .badge-red    { background: #7f1d1d; color: #fecaca; }
-    .badge-yellow { background: #78350f; color: #fde68a; }
-    .badge-blue   { background: #1e3a5f; color: #93c5fd; }
-    .badge-gray   { background: #374151; color: #d1d5db; }
 
-    .stats-strip {
+    /* ── Top bar ── */
+    .sw-topbar {
       display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-shrink: 0;
+      margin-bottom: 1rem;
       gap: 1rem;
       flex-wrap: wrap;
-      margin-bottom: 1.5rem;
+    }
+    .sw-title { font-size: 1.1rem; font-weight: 700; color: var(--oc-text-dark, #e2e8f0); margin: 0; }
+    .sw-meta  { font-size: 0.73rem; color: #6b7280; display: flex; align-items: center; gap: 0.75rem; }
+    .sw-sync-btn {
+      font-size: 0.72rem; padding: 0.18rem 0.55rem;
+      border-radius: 4px; border: 1px solid #374151;
+      background: transparent; color: #9ca3af; cursor: pointer;
+    }
+    .sw-sync-btn:hover { border-color: #6b7280; color: #e2e8f0; }
+    .sw-sync-btn:disabled { opacity: .5; cursor: default; }
+
+    /* ── Error banner ── */
+    .sw-error {
+      display: none;
+      background: #1c1917; border: 1px solid #78350f;
+      border-radius: 6px; padding: 0.6rem 1rem;
+      color: #fde68a; font-size: 0.82rem; margin-bottom: 1rem;
+    }
+
+    /* ── Section label ── */
+    .sw-section {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #6b7280;
+      margin: 1.1rem 0 0.55rem;
+    }
+    .sw-section:first-of-type { margin-top: 0; }
+
+    /* ── Task board stat pills ── */
+    .stats-strip {
+      display: flex; gap: 0.6rem; flex-wrap: wrap;
     }
     .stat-pill {
-      background: var(--card-bg, #1a1f2e);
-      border: 1px solid var(--border, #2d3548);
+      background: var(--oc-card-bg, #111827);
+      border: 1px solid var(--oc-border-color, #1f2937);
+      border-radius: 8px; padding: 0.6rem 1rem;
+      text-align: center; min-width: 88px;
+      text-decoration: none;
+      transition: border-color .15s;
+    }
+    a.stat-pill:hover { border-color: #4b5563; }
+    .stat-num   { font-size: 1.5rem; font-weight: 800; color: var(--oc-text-dark, #e2e8f0); line-height: 1; }
+    .stat-label { font-size: 0.67rem; color: #6b7280; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ── Agent cards ── */
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.75rem;
+    }
+    .agent-card {
+      background: var(--oc-card-bg, #111827);
+      border: 1px solid var(--oc-border-color, #1f2937);
       border-radius: 8px;
-      padding: 0.7rem 1.2rem;
-      text-align: center;
-      min-width: 100px;
+      padding: 0.85rem 1rem;
+      display: flex; flex-direction: column; gap: 0.35rem;
     }
-    .stat-pill .stat-num {
-      font-size: 1.6rem;
-      font-weight: 800;
-      color: var(--heading, #e2e8f0);
-      line-height: 1;
+    .ac-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .ac-name   { font-size: 1rem; font-weight: 700; color: #e2e8f0; }
+    .ac-type   { font-size: 0.72rem; color: #6b7280; }
+    .ac-machine{ font-size: 0.75rem; color: #9ca3af; }
+    .ac-role   { font-size: 0.73rem; color: #6b7280; font-style: italic; line-height: 1.35;
+                 display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .ac-hb     { font-size: 0.68rem; color: #4b5563; margin-top: 2px; }
+
+    /* ── Status badge ── */
+    .badge {
+      display: inline-block; padding: 1px 7px;
+      border-radius: 9999px; font-size: 0.67rem; font-weight: 600;
+      white-space: nowrap;
     }
-    .stat-pill .stat-label {
-      font-size: 0.72rem;
-      color: var(--muted, #8892a4);
-      margin-top: 2px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .alerts-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .badge-green  { background: #14532d; color: #86efac; }
+    .badge-red    { background: #7f1d1d; color: #fca5a5; }
+    .badge-yellow { background: #78350f; color: #fde68a; }
+    .badge-gray   { background: #1f2937; color: #6b7280; }
+
+    /* ── Alert list ── */
+    .alert-list { display: flex; flex-direction: column; gap: 0.45rem; }
     .alert-item {
-      background: #3b1a08;
-      border: 1px solid #c2410c;
-      border-radius: 8px;
-      padding: 0.7rem 1rem;
-      display: flex;
-      gap: 0.8rem;
-      align-items: center;
-      flex-wrap: wrap;
-      font-size: 0.85rem;
+      background: rgba(194,65,12,0.12);
+      border: 1px solid #9a3412;
+      border-radius: 6px; padding: 0.5rem 0.75rem;
+      display: flex; gap: 0.6rem; align-items: baseline;
+      flex-wrap: wrap; font-size: 0.8rem;
     }
-    .alert-item .alert-machine { font-weight: 600; color: #fb923c; }
-    .alert-item .alert-type    { color: #fdba74; }
-    .alert-item .alert-date    { color: #9ca3af; font-size: 0.77rem; }
-    .section-header {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--heading, #e2e8f0);
-      margin: 1.5rem 0 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-    }
-    .last-hb { font-size: 0.76rem; color: #6b7280; }
-    .vault-unavailable {
-      background: #1c1917;
-      border: 1px solid #78350f;
-      border-radius: 8px;
-      padding: 1rem 1.2rem;
-      color: #fde68a;
-      font-size: 0.88rem;
-    }
-    .refresh-note { font-size: 0.75rem; color: #6b7280; margin-top: 1rem; }
+    .al-icon    { flex-shrink: 0; }
+    .al-machine { font-weight: 600; color: #fb923c; }
+    .al-type    { color: #fdba74; }
+    .al-date    { color: #6b7280; font-size: 0.7rem; margin-left: auto; }
+    .no-alerts  { font-size: 0.82rem; color: #374151; padding: 0.5rem 0; }
   </style>
 </head>
 <body>
   <header class="oc-header">
     <div class="logo">
       <h1 class="main-title">OVERCLAW</h1>
-      <span class="tagline">AGENT DASHBOARD</span>
+      <span class="tagline">SWARM OVERVIEW</span>
     </div>
     <div class="header-controls">
       <button id="sidebar-toggle" class="control-button">☰</button>
@@ -130,52 +139,68 @@
     <%- include('partials/sidebar', { currentPath: '/swarm' }) %>
 
     <main class="oc-dashboard-area">
-      <h1 style="margin-bottom: 0.25rem;">🌐 Swarm Overview</h1>
-      <p style="color: var(--muted, #8892a4); font-size:0.87rem; margin-bottom:1.5rem;">
-        Live view of all swarm agents, tasks, and alerts — powered by the shared vault.
-      </p>
 
-      <!-- Vault unavailable notice (shown when fetch fails) -->
-      <div id="vault-error" class="vault-unavailable" style="display:none;"></div>
+      <!-- Top bar -->
+      <div class="sw-topbar">
+        <h1 class="sw-title">🌐 Swarm Overview</h1>
+        <div class="sw-meta">
+          <span id="sw-refresh-note"></span>
+          <span id="sw-sync-ts"></span>
+          <button class="sw-sync-btn" id="sync-btn" onclick="syncVault()">↻ Sync</button>
+        </div>
+      </div>
 
-      <!-- Task board stats strip -->
-      <div class="section-header">📋 Task Board</div>
-      <div class="stats-strip" id="stats-strip">
-        <div class="stat-pill"><div class="stat-num" id="stat-inbox">—</div><div class="stat-label">Inbox</div></div>
-        <div class="stat-pill"><div class="stat-num" id="stat-inprogress">—</div><div class="stat-label">In Progress</div></div>
-        <div class="stat-pill"><div class="stat-num" id="stat-blocked" style="color:#f87171;">—</div><div class="stat-label">Blocked</div></div>
-        <div class="stat-pill"><div class="stat-num" id="stat-done" style="color:#34d399;">—</div><div class="stat-label">Done</div></div>
-        <a href="/task-board" class="stat-pill" style="text-decoration:none; cursor:pointer; border-color:#4ade80;">
-          <div class="stat-num" style="font-size:1rem; color:#4ade80;">→</div>
+      <!-- Error -->
+      <div class="sw-error" id="vault-error"></div>
+
+      <!-- Task board stats -->
+      <div class="sw-section">📋 Task Board</div>
+      <div class="stats-strip">
+        <div class="stat-pill">
+          <div class="stat-num" id="stat-inbox">—</div>
+          <div class="stat-label">Inbox</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-num" id="stat-inprogress">—</div>
+          <div class="stat-label">In Progress</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-num" id="stat-blocked" style="color:#f87171;">—</div>
+          <div class="stat-label">Blocked</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-num" id="stat-done" style="color:#6ee7b7;">—</div>
+          <div class="stat-label">Done</div>
+        </div>
+        <a href="/task-board" class="stat-pill" style="border-color:#374151;">
+          <div class="stat-num" style="font-size:1.1rem; color:#6b7280;">→</div>
           <div class="stat-label">View Board</div>
         </a>
       </div>
 
-      <!-- Agent cards -->
-      <div class="section-header">🤖 Agents</div>
-      <div class="swarm-grid" id="agent-grid">
-        <p style="color:#6b7280;">Loading agents…</p>
+      <!-- Agents -->
+      <div class="sw-section">🤖 Agents</div>
+      <div class="agent-grid" id="agent-grid">
+        <div style="color:#4b5563; font-size:0.8rem;">Loading…</div>
       </div>
 
-      <!-- NEEDS-ATTENTION alerts -->
-      <div class="section-header">🚨 Needs Attention</div>
+      <!-- Alerts -->
+      <div class="sw-section">🚨 Needs Attention</div>
       <div id="alerts-container">
-        <p style="color:#6b7280; font-size:0.85rem;">Loading alerts…</p>
+        <div style="color:#4b5563; font-size:0.8rem;">Loading…</div>
       </div>
 
-      <div style="display:flex; align-items:center; gap:1rem; margin-top:1rem;">
-        <p class="refresh-note" id="refresh-note">Auto-refreshes every 30 seconds.</p>
-        <span id="vault-sync-ts" style="font-size:0.75rem; color:#6b7280;"></span>
-        <button id="sync-btn" onclick="syncVault()" style="font-size:0.75rem; padding:0.2rem 0.6rem; border-radius:4px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer;">↻ Sync vault</button>
-      </div>
+      <!-- Bottom padding -->
+      <div style="height:1.5rem; flex-shrink:0;"></div>
+
     </main>
   </div>
 
   <script>
-    // --- Sidebar / theme boilerplate ---
+    /* ── Sidebar / theme boilerplate ── */
     (function () {
-      const toggle   = document.getElementById('sidebar-toggle');
-      const sidebar  = document.getElementById('oc-sidebar');
+      const toggle  = document.getElementById('sidebar-toggle');
+      const sidebar = document.getElementById('oc-sidebar');
       if (toggle && sidebar) {
         let collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
         if (collapsed) sidebar.classList.add('collapsed');
@@ -187,7 +212,7 @@
       }
       const themeBtn = document.getElementById('theme-toggle');
       const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
-      let theme      = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+      let theme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
       document.body.classList.add(theme + '-mode');
       themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
       themeBtn.addEventListener('click', () => {
@@ -199,135 +224,118 @@
       });
     })();
 
-    // --- Data fetching ---
+    /* ── Helpers ── */
     function fmtDate(str) {
       if (!str) return 'never';
-      try { return new Date(str).toLocaleString(); } catch { return str; }
+      try { return new Date(str).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
+      catch { return str; }
     }
 
-    function statusBadge(status) {
-      if (!status) return '<span class="badge badge-gray">unknown</span>';
-      const s = status.toLowerCase();
-      if (s.includes('active') || s.includes('online'))  return '<span class="badge badge-green">🟢 ' + status + '</span>';
-      if (s.includes('offline') || s.includes('down'))   return '<span class="badge badge-red">🔴 ' + status + '</span>';
-      if (s.includes('idle'))                             return '<span class="badge badge-yellow">🟡 ' + status + '</span>';
-      return '<span class="badge badge-blue">' + status + '</span>';
+    function statusBadge(raw) {
+      if (!raw) return '<span class="badge badge-gray">unknown</span>';
+      const s = raw.toLowerCase();
+      if (s.includes('active') || s.includes('online') || s.includes('🟢'))
+        return '<span class="badge badge-green">Active</span>';
+      if (s.includes('offline') || s.includes('down') || s.includes('🔴'))
+        return '<span class="badge badge-red">Offline</span>';
+      if (s.includes('idle') || s.includes('🟡'))
+        return '<span class="badge badge-yellow">Idle</span>';
+      return '<span class="badge badge-gray">' + raw.replace(/🟢|🔴|🟡/g,'').trim() + '</span>';
     }
 
+    /* ── Load ── */
     async function loadSummary() {
-      const errBox   = document.getElementById('vault-error');
-      const grid     = document.getElementById('agent-grid');
-      const alerts   = document.getElementById('alerts-container');
-
+      const err = document.getElementById('vault-error');
       try {
-        const resp = await fetch('/api/swarm/summary');
-        const data = await resp.json();
+        const data = await fetch('/api/swarm/summary').then(r => r.json());
 
         if (data.error) {
-          errBox.style.display = 'block';
-          errBox.textContent   = '⚠️ Vault unavailable: ' + (data.details || data.error);
-          grid.innerHTML   = '<p style="color:#6b7280;">No agent data.</p>';
-          alerts.innerHTML = '<p style="color:#6b7280;">No alert data.</p>';
+          err.style.display = 'block';
+          err.textContent = '⚠️ Vault unavailable: ' + (data.details || data.error);
+          document.getElementById('agent-grid').innerHTML =
+            '<div style="color:#4b5563;font-size:.8rem;">No data</div>';
+          document.getElementById('alerts-container').innerHTML =
+            '<div style="color:#4b5563;font-size:.8rem;">No data</div>';
           return;
         }
+        err.style.display = 'none';
 
-        errBox.style.display = 'none';
+        /* stats */
+        const s = data.taskBoardStats || {};
+        document.getElementById('stat-inbox').textContent      = s.inbox      ?? '—';
+        document.getElementById('stat-inprogress').textContent = s.inProgress ?? '—';
+        document.getElementById('stat-blocked').textContent    = s.blocked    ?? '—';
+        document.getElementById('stat-done').textContent       = s.done       ?? '—';
 
-        // Stats
-        const stats = data.taskBoardStats || {};
-        document.getElementById('stat-inbox').textContent      = stats.inbox      ?? '—';
-        document.getElementById('stat-inprogress').textContent = stats.inProgress ?? '—';
-        document.getElementById('stat-blocked').textContent    = stats.blocked    ?? '—';
-        document.getElementById('stat-done').textContent       = stats.done       ?? '—';
+        /* agents */
+        const agents = data.agents || [];
+        document.getElementById('agent-grid').innerHTML = agents.length
+          ? agents.map(a => {
+              const hbMap  = data.lastHeartbeat || {};
+              const hbKey  = Object.keys(hbMap).find(k =>
+                k.toLowerCase().includes((a.nickname||'').toLowerCase()) ||
+                k.toLowerCase().includes((a.machine||'').toLowerCase().split(' ')[0])
+              );
+              const hb = hbKey ? hbMap[hbKey] : null;
+              const hbStr = hb ? fmtDate(hb.date) : '—';
+              const roleTxt = (a.primary_role || a.role || '').replace(/\s—\s.*/, ''); /* first segment only */
+              return `
+                <div class="agent-card">
+                  <div class="ac-header">
+                    <span class="ac-name">${a.nickname || a.agent || 'Agent'}</span>
+                    ${statusBadge(a.status || '')}
+                  </div>
+                  <div class="ac-type">${a.type || ''}</div>
+                  <div class="ac-machine">💻 ${a.machine || ''}</div>
+                  ${roleTxt ? `<div class="ac-role">${roleTxt}</div>` : ''}
+                  <div class="ac-hb">Last heartbeat: ${hbStr}</div>
+                </div>`;
+            }).join('')
+          : '<div style="color:#4b5563;font-size:.8rem;">No agents in registry.</div>';
 
-        // Agent cards
-        const agentList = data.agents || [];
-        if (agentList.length === 0) {
-          grid.innerHTML = '<p style="color:#6b7280;">No agents in registry.</p>';
-        } else {
-          grid.innerHTML = agentList.map(agent => {
-            const nick    = agent.nickname || agent.agent || 'Agent';
-            const type    = agent.type    || '';
-            const machine = agent.machine || '';
-            const role    = agent.role    || '';
-            const status  = agent.status  || '';
-            const acct    = agent.account || '';
-
-            // Determine last heartbeat for this agent
-            const hbKey = machine || nick;
-            const hb    = (data.lastHeartbeat || {})[hbKey];
-            const hbStr = hb ? fmtDate(hb.date) : 'no heartbeat data';
-
-            return `
-              <div class="agent-card">
-                <div class="agent-nickname">${nick}</div>
-                <div class="agent-meta">
-                  ${statusBadge(status)}
-                  <span>${type}</span>
-                </div>
-                <div class="agent-meta">
-                  <span>💻 ${machine}</span>
-                  ${acct ? '<span>👤 ' + acct + '</span>' : ''}
-                </div>
-                ${role ? '<div class="agent-meta" style="font-style:italic;">🎯 ' + role + '</div>' : ''}
-                <div class="last-hb">Last heartbeat: ${hbStr}</div>
-              </div>`;
-          }).join('');
-        }
-
-        // Alerts
-        const alertList = data.alerts || [];
-        if (alertList.length === 0) {
-          alerts.innerHTML = '<p style="color:#34d399; font-size:0.85rem;">✅ No unhandled alerts.</p>';
-        } else {
-          alerts.innerHTML = '<div class="alerts-list">' +
-            alertList.map(a => `
+        /* alerts */
+        const alerts = data.alerts || [];
+        document.getElementById('alerts-container').innerHTML = alerts.length
+          ? '<div class="alert-list">' + alerts.map(a => `
               <div class="alert-item">
-                <span>🚨</span>
-                <span class="alert-machine">${a.machine}</span>
-                <span class="alert-type">${a.type}</span>
-                <span class="alert-date">${fmtDate(a.date)}</span>
-              </div>`).join('') +
-            '</div>';
-        }
+                <span class="al-machine">${a.machine}</span>
+                <span class="al-type">${a.type || a.filename || ''}</span>
+                <span class="al-date">${fmtDate(a.date)}</span>
+              </div>`).join('') + '</div>'
+          : '<div class="no-alerts">✅ No unhandled alerts</div>';
 
-        document.getElementById('refresh-note').textContent =
-          'Last updated: ' + new Date().toLocaleTimeString() + ' · Auto-refreshes every 30s';
+        document.getElementById('sw-refresh-note').textContent =
+          'Updated ' + new Date().toLocaleTimeString();
 
-      } catch (err) {
-        errBox.style.display = 'block';
-        errBox.textContent   = '⚠️ Failed to fetch swarm data: ' + err.message;
+      } catch(e) {
+        err.style.display = 'block';
+        err.textContent = '⚠️ ' + e.message;
       }
     }
 
     async function syncVault() {
       const btn = document.getElementById('sync-btn');
-      const ts  = document.getElementById('vault-sync-ts');
-      btn.disabled = true;
-      btn.textContent = '↻ Syncing…';
+      const ts  = document.getElementById('sw-sync-ts');
+      btn.disabled = true; btn.textContent = '↻ Syncing…';
       try {
-        const r = await fetch('/api/vault/sync', { method: 'POST' });
-        const d = await r.json();
-        if (d.ok) {
-          ts.textContent = '· Vault synced ' + new Date().toLocaleTimeString();
-          await loadSummary();
-        } else {
-          ts.textContent = '· Sync failed: ' + (d.error || d.stderr || 'unknown');
-        }
+        const d = await fetch('/api/vault/sync', { method:'POST' }).then(r => r.json());
+        ts.textContent = d.ok
+          ? '· synced ' + new Date().toLocaleTimeString()
+          : '· sync failed: ' + (d.error || d.stderr || 'err');
+        if (d.ok) await loadSummary();
       } catch(e) {
-        ts.textContent = '· Sync error: ' + e.message;
+        ts.textContent = '· error: ' + e.message;
       } finally {
-        btn.disabled = false;
-        btn.textContent = '↻ Sync vault';
+        btn.disabled = false; btn.textContent = '↻ Sync';
       }
     }
 
     loadSummary();
     setInterval(loadSummary, 30000);
-    // Show last sync time on load
-    fetch('/api/vault/status').then(r=>r.json()).then(d=>{
-      if (d.lastSyncAt) document.getElementById('vault-sync-ts').textContent =
-        '· Vault synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
+    fetch('/api/vault/status').then(r=>r.json()).then(d => {
+      if (d.lastSyncAt)
+        document.getElementById('sw-sync-ts').textContent =
+          '· synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
     }).catch(()=>{});
   </script>
 </body>
