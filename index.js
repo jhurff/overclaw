@@ -3,9 +3,10 @@ const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs').promises; // For async file operations
 const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
+const VaultReader = require('./lib/VaultReader'); // Vault integration
 
 const app = express();
-const port = 10000; // Updated port
+const port = parseInt(process.env.PORT || '8355', 10); // Default 8355
 
 // OverClaw's own state (learnings, etc.) lives here, not in ~/.openclaw
 const OVERCLAW_DATA_DIR = path.join(__dirname, 'data');
@@ -18,7 +19,29 @@ if (!openclawApiToken) {
   console.warn('OPENCLAW_API_TOKEN is not set. ClawBridge will not be able to authenticate with OpenClaw Gateway.');
 }
 
-const clawBridge = new ClawBridge(openclawGatewayUrl, openclawApiToken);
+let clawBridge = null;
+try {
+  if (openclawGatewayUrl && openclawApiToken) {
+    clawBridge = new ClawBridge(openclawGatewayUrl, openclawApiToken);
+  } else {
+    console.warn('ClawBridge disabled: OPENCLAW_GATEWAY_URL or OPENCLAW_API_TOKEN not set.');
+  }
+} catch (err) {
+  console.warn(`ClawBridge init failed: ${err.message} — gateway routes will return degraded responses`);
+}
+
+// ---------------------------------------------------------------------------
+// VaultReader — reads swarm coordination data from the Obsidian vault
+// ---------------------------------------------------------------------------
+const VAULT_PATH = process.env.VAULT_PATH || path.join(process.env.HOME, 'My-AI-Brain');
+let vaultReader;
+try {
+  vaultReader = new VaultReader(VAULT_PATH);
+  console.log(`VaultReader initialized for: ${VAULT_PATH}`);
+} catch (err) {
+  console.warn(`VaultReader init failed: ${err.message} — vault routes will return degraded responses`);
+  vaultReader = null;
+}
 
 // Set EJS as the templating engine
 app.set('view engine', 'ejs');
@@ -87,9 +110,124 @@ app.get('/docs', (req, res) => {
   res.render('docs', { title: 'OverClaw Documentation' });
 });
 
-// Activity & Audit Log screen route (for OCUs MVP)
+// Activity & Audit Log screen route
 app.get('/activity', (req, res) => {
   res.render('activity', { title: 'OverClaw Activity & Audit Log', currentPath: '/activity' });
+});
+
+// ---------------------------------------------------------------------------
+// Swarm routes — vault-powered
+// ---------------------------------------------------------------------------
+
+// Swarm overview page
+app.get('/swarm', (req, res) => {
+  res.render('swarm', { title: 'Swarm Overview', currentPath: '/swarm' });
+});
+
+// Task board page
+app.get('/task-board', (req, res) => {
+  res.render('task-board', { title: 'Task Board', currentPath: '/task-board' });
+});
+
+// Helper: return a degraded response when the vault is unavailable
+function vaultUnavailable(res, details) {
+  return res.status(503).json({ error: 'Vault not available', details: details || 'VaultReader not initialized' });
+}
+
+// Helper: return a degraded response when ClawBridge is unavailable
+function gatewayUnavailable(res) {
+  return res.status(503).json({ error: 'OpenClaw gateway not available', details: 'Set OPENCLAW_GATEWAY_URL and OPENCLAW_API_TOKEN to enable gateway features.' });
+}
+
+// GET /api/vault/status
+app.get('/api/vault/status', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const status = await vaultReader.isAvailable();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to check vault status', details: err.message });
+  }
+});
+
+// GET /api/vault/task-board
+app.get('/api/vault/task-board', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+    const data = await vaultReader.getTaskBoard();
+    res.json(data);
+  } catch (err) {
+    console.error(`Error reading task board: ${err.message}`);
+    res.status(500).json({ error: 'Failed to read task board', details: err.message });
+  }
+});
+
+// GET /api/vault/agents
+app.get('/api/vault/agents', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+    const agents = await vaultReader.getAgentRegistry();
+    res.json(agents);
+  } catch (err) {
+    console.error(`Error reading agent registry: ${err.message}`);
+    res.status(500).json({ error: 'Failed to read agent registry', details: err.message });
+  }
+});
+
+// GET /api/vault/activity
+app.get('/api/vault/activity', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+    const limitParam = parseInt(req.query.limit || '100', 10);
+    const heartbeats = await vaultReader.getHeartbeats({ limit: limitParam });
+    res.json(heartbeats);
+  } catch (err) {
+    console.error(`Error reading vault activity: ${err.message}`);
+    res.status(500).json({ error: 'Failed to read vault activity', details: err.message });
+  }
+});
+
+// GET /api/swarm/summary — combined swarm snapshot
+app.get('/api/swarm/summary', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+
+    // Fetch in parallel
+    const [taskBoard, agents, heartbeats] = await Promise.all([
+      vaultReader.getTaskBoard().catch(e => ({ error: e.message })),
+      vaultReader.getAgentRegistry().catch(e => []),
+      vaultReader.getHeartbeats({ limit: 200 }).catch(e => []),
+    ]);
+
+    // Build last-heartbeat-per-machine map
+    const lastHeartbeat = {};
+    for (const hb of heartbeats) {
+      const key = hb.subAgent ? `${hb.machine}/${hb.subAgent}` : hb.machine;
+      if (!lastHeartbeat[key]) lastHeartbeat[key] = hb;
+    }
+
+    // NEEDS-ATTENTION alerts (not handled)
+    const alerts = heartbeats.filter(h => h.isAlert && !h.isHandled).slice(0, 20);
+
+    res.json({
+      vaultPath: VAULT_PATH,
+      taskBoardStats: taskBoard.stats || {},
+      agents,
+      lastHeartbeat,
+      alerts,
+    });
+  } catch (err) {
+    console.error(`Error building swarm summary: ${err.message}`);
+    res.status(500).json({ error: 'Failed to build swarm summary', details: err.message });
+  }
 });
 
 // Normalize gateway response: may be array or { agents: [...] } / { list: [...] }
@@ -102,6 +240,7 @@ function normalizeAgentsList(raw) {
 
 // API endpoint to list OpenClaw agents (summary for dashboard card)
 app.get('/api/agents', async (req, res) => {
+  if (!clawBridge) return gatewayUnavailable(res);
   try {
     const raw = await clawBridge.getAgents();
     const agents = normalizeAgentsList(raw);
@@ -119,6 +258,7 @@ app.get('/api/agents', async (req, res) => {
 
 // API endpoint to get detailed OpenClaw sessions
 app.get('/api/sessions-detail', async (req, res) => {
+  if (!clawBridge) return gatewayUnavailable(res);
   try {
     const sessions = await clawBridge.getSessions();
     res.json(sessions);
@@ -130,6 +270,7 @@ app.get('/api/sessions-detail', async (req, res) => {
 
 // API endpoint to list OpenClaw cron jobs
 app.get('/api/cron-jobs', async (req, res) => {
+  if (!clawBridge) return gatewayUnavailable(res);
   try {
     const cronData = await clawBridge.getCronJobs();
     res.json(cronData);

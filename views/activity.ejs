@@ -5,7 +5,135 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
-  <script src="/scripts.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .feed-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+    .feed-tab {
+      padding: 0.35rem 1rem;
+      border: 1px solid var(--border, #2d3548);
+      border-radius: 9999px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted, #8892a4);
+      background: none;
+      transition: all 0.15s;
+    }
+    .feed-tab.active {
+      background: #1e40af;
+      color: #bfdbfe;
+      border-color: #1e40af;
+    }
+    .feed-tab:hover:not(.active) {
+      border-color: #6b7280;
+      color: #e2e8f0;
+    }
+
+    .activity-feed { display: flex; flex-direction: column; gap: 0.55rem; }
+
+    .feed-item {
+      background: var(--card-bg, #1a1f2e);
+      border: 1px solid var(--border, #2d3548);
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      display: flex;
+      gap: 0.8rem;
+      align-items: flex-start;
+      font-size: 0.83rem;
+    }
+    .feed-item.alert-item {
+      border-color: #c2410c;
+      background: #3b1a08;
+    }
+    .feed-item .feed-icon { font-size: 1rem; flex-shrink: 0; }
+    .feed-item .feed-body { flex: 1; min-width: 0; }
+    .feed-item .feed-title {
+      font-weight: 600;
+      color: var(--heading, #e2e8f0);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .feed-item.alert-item .feed-title { color: #fb923c; }
+    .feed-item .feed-meta {
+      font-size: 0.73rem;
+      color: var(--muted, #6b7280);
+      margin-top: 1px;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .machine-chip {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+    .alert-badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: #7f1d1d;
+      color: #fca5a5;
+    }
+    .handled-badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: #14532d;
+      color: #86efac;
+    }
+
+    .learning-card {
+      background: var(--card-bg, #1a1f2e);
+      border: 1px solid var(--border, #2d3548);
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.83rem;
+    }
+    .learning-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--heading, #e2e8f0);
+      margin: 0 0 0.3rem;
+    }
+    .tag-chip {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 9999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: #1a3a2a;
+      color: #6ee7b7;
+      margin-right: 4px;
+    }
+
+    .vault-unavailable {
+      background: #1c1917;
+      border: 1px solid #78350f;
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      color: #fde68a;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .refresh-note { font-size: 0.75rem; color: #6b7280; margin-top: 1rem; }
+    #feed-count { color: #6b7280; font-size: 0.8rem; margin-bottom: 0.8rem; }
+  </style>
 </head>
 <body>
   <header class="oc-header">
@@ -18,63 +146,195 @@
       <button id="theme-toggle" class="control-button">☀️</button>
     </div>
   </header>
+
   <div class="oc-main-content">
-    <%- include('partials/sidebar', { currentPath: typeof currentPath !== 'undefined' ? currentPath : '/activity' }) %>
+    <%- include('partials/sidebar', { currentPath: '/activity' }) %>
+
     <main class="oc-dashboard-area">
-      <h1><%= title %></h1>
-      <p>A chronological log of agent learnings and key decisions, linked to session history.</p>
-      <div id="learnings-list" class="mt-8">
-        <!-- Learnings will be loaded here by JavaScript -->
+      <h1 style="margin-bottom:0.25rem;">📡 Activity Feed</h1>
+      <p style="color:var(--muted,#8892a4); font-size:0.87rem; margin-bottom:1.2rem;">
+        Unified swarm activity — vault heartbeats from all machines plus agent learnings.
+      </p>
+
+      <div id="vault-error" class="vault-unavailable" style="display:none;"></div>
+
+      <!-- Tab bar -->
+      <div class="feed-tabs">
+        <button class="feed-tab active" data-tab="vault" onclick="switchTab('vault', this)">📡 Vault Heartbeats</button>
+        <button class="feed-tab" data-tab="learnings" onclick="switchTab('learnings', this)">📖 Learnings</button>
       </div>
+
+      <!-- Vault heartbeats tab -->
+      <div id="tab-vault">
+        <div style="display:flex; gap:0.8rem; margin-bottom:0.8rem; flex-wrap:wrap; align-items:center;">
+          <label style="font-size:0.8rem; color:#6b7280;">
+            <input type="checkbox" id="filter-alerts-only" onchange="renderHeartbeats()">
+            Alerts only
+          </label>
+          <label style="font-size:0.8rem; color:#6b7280;">
+            <input type="checkbox" id="filter-hide-handled" onchange="renderHeartbeats()">
+            Hide handled
+          </label>
+        </div>
+        <div id="feed-count"></div>
+        <div id="heartbeats-feed" class="activity-feed">
+          <div style="color:#6b7280; font-size:0.85rem;">Loading heartbeats…</div>
+        </div>
+      </div>
+
+      <!-- Learnings tab (hidden by default) -->
+      <div id="tab-learnings" style="display:none;">
+        <div id="learnings-list" class="activity-feed">
+          <div style="color:#6b7280; font-size:0.85rem;">Loading learnings…</div>
+        </div>
+      </div>
+
+      <p class="refresh-note" id="refresh-note">Auto-refreshes every 60 seconds.</p>
     </main>
   </div>
 
   <script>
+    // --- Sidebar / theme boilerplate ---
     (function () {
-      const sidebarToggle = document.getElementById('sidebar-toggle');
+      const toggle  = document.getElementById('sidebar-toggle');
       const sidebar = document.getElementById('oc-sidebar');
-      if (sidebarToggle && sidebar) {
-        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (sidebarCollapsed) sidebar.classList.add('collapsed');
-        sidebarToggle.addEventListener('click', () => {
-          sidebarCollapsed = !sidebarCollapsed;
-          sidebar.classList.toggle('collapsed', sidebarCollapsed);
-          localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
+      if (toggle && sidebar) {
+        let collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if (collapsed) sidebar.classList.add('collapsed');
+        toggle.addEventListener('click', () => {
+          collapsed = !collapsed;
+          sidebar.classList.toggle('collapsed', collapsed);
+          localStorage.setItem('overclaw-sidebar-collapsed', collapsed);
         });
       }
+      const themeBtn = document.getElementById('theme-toggle');
+      const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
+      let theme      = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+      document.body.classList.add(theme + '-mode');
+      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+      themeBtn.addEventListener('click', () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        document.body.classList.toggle('dark-mode',  theme === 'dark');
+        document.body.classList.toggle('light-mode', theme === 'light');
+        themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+        localStorage.setItem('overclaw-theme', theme);
+      });
     })();
-    document.addEventListener('DOMContentLoaded', async () => {
-      const learningsList = document.getElementById('learnings-list');
-      try {
-        const response = await fetch('/api/learnings');
-        const learnings = await response.json();
 
-        if (learnings.length === 0) {
-          learningsList.innerHTML = '<p class="text-ink-500">No learnings recorded yet.</p>';
+    // --- Tab switching ---
+    function switchTab(tabName, btn) {
+      document.querySelectorAll('.feed-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-vault').style.display     = tabName === 'vault'     ? '' : 'none';
+      document.getElementById('tab-learnings').style.display = tabName === 'learnings' ? '' : 'none';
+    }
+
+    // --- Heartbeats ---
+    let allHeartbeats = [];
+
+    function fmtDate(str) {
+      if (!str) return '—';
+      try { return new Date(str).toLocaleString(); } catch { return str; }
+    }
+
+    function renderHeartbeats() {
+      const alertsOnly    = document.getElementById('filter-alerts-only').checked;
+      const hideHandled   = document.getElementById('filter-hide-handled').checked;
+      const feed          = document.getElementById('heartbeats-feed');
+      const countEl       = document.getElementById('feed-count');
+
+      let items = allHeartbeats;
+      if (alertsOnly)  items = items.filter(h => h.isAlert);
+      if (hideHandled) items = items.filter(h => !h.isHandled);
+
+      countEl.textContent = items.length + ' event' + (items.length !== 1 ? 's' : '');
+
+      if (items.length === 0) {
+        feed.innerHTML = '<div style="color:#6b7280; font-size:0.85rem; padding:1rem 0;">No events match filters.</div>';
+        return;
+      }
+
+      feed.innerHTML = items.map(hb => {
+        const alertBadge   = hb.isAlert   ? '<span class="alert-badge">⚠️ ALERT</span>'  : '';
+        const handledBadge = hb.isHandled ? '<span class="handled-badge">✅ handled</span>' : '';
+        const subStr       = hb.subAgent  ? ' / ' + hb.subAgent : '';
+        const icon         = hb.isAlert ? '🚨' : '💓';
+        return `
+          <div class="feed-item ${hb.isAlert ? 'alert-item' : ''}">
+            <span class="feed-icon">${icon}</span>
+            <div class="feed-body">
+              <div class="feed-title">${hb.type || hb.filename || 'heartbeat'}</div>
+              <div class="feed-meta">
+                <span class="machine-chip">${hb.machine}${subStr}</span>
+                <span>${fmtDate(hb.date)}</span>
+                ${alertBadge}
+                ${handledBadge}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function loadHeartbeats() {
+      const errBox = document.getElementById('vault-error');
+      try {
+        const resp = await fetch('/api/vault/activity?limit=200');
+        const data = await resp.json();
+
+        if (data.error) {
+          errBox.style.display = 'block';
+          errBox.textContent   = '⚠️ Vault unavailable: ' + (data.details || data.error);
+          allHeartbeats        = [];
+          renderHeartbeats();
           return;
         }
 
-        learnings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        errBox.style.display = 'none';
+        allHeartbeats        = Array.isArray(data) ? data : [];
+        renderHeartbeats();
 
-        learnings.forEach(learning => {
-          const learningCard = document.createElement('div');
-          learningCard.className = 'bg-white dark:bg-ink-800 rounded-lg shadow-md p-6 mb-4';
-          learningCard.innerHTML = `
-            <h2 class="text-xl font-semibold text-ink-900 dark:text-ink-100 mb-2">${learning.title}</h2>
-            <p class="text-ink-600 dark:text-ink-300 mb-3">${learning.summary}</p>
-            <div class="flex flex-wrap gap-2 mb-3">
-              ${learning.tags.map(tag => `<span class="bg-weed-100 dark:bg-weed-900 text-weed-800 dark:text-weed-200 text-xs font-medium px-2.5 py-0.5 rounded-full">${tag}</span>`).join('')}
-            </div>
-            <p class="text-xs text-ink-500 dark:text-ink-400">Created: ${new Date(learning.created_at).toLocaleString()}</p>
-            ${learning.derived_from ? `<p class="text-xs text-ink-500 dark:text-ink-400 mt-1">Source: <a href="#" onclick="window.parent.postMessage({ type: 'navigate', payload: '${learning.derived_from.session_key}' }, '*'); return false;" class="text-weed-600 hover:underline">${learning.derived_from.link_text || learning.derived_from.session_key}</a></p>` : ''}
-          `;
-          learningsList.appendChild(learningCard);
-        });
-      } catch (error) {
-        console.error('Error fetching learnings:', error);
-        learningsList.innerHTML = '<p class="text-red-500">Failed to load learnings.</p>';
+        document.getElementById('refresh-note').textContent =
+          'Last updated: ' + new Date().toLocaleTimeString() + ' · Auto-refreshes every 60s';
+
+      } catch (err) {
+        errBox.style.display = 'block';
+        errBox.textContent   = '⚠️ Error fetching vault activity: ' + err.message;
       }
-    });
+    }
+
+    // --- Learnings ---
+    async function loadLearnings() {
+      const list = document.getElementById('learnings-list');
+      try {
+        const resp = await fetch('/api/learnings');
+        const data = await resp.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          list.innerHTML = '<div style="color:#6b7280; font-size:0.85rem;">No learnings recorded yet.</div>';
+          return;
+        }
+
+        data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        list.innerHTML = data.map(l => `
+          <div class="learning-card">
+            <h3>${l.title || '(untitled)'}</h3>
+            <p style="color:var(--muted,#8892a4); margin:0.2rem 0 0.5rem;">${l.summary || ''}</p>
+            <div style="margin-bottom:0.4rem;">
+              ${(l.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
+            </div>
+            <div style="font-size:0.72rem; color:#6b7280;">
+              ${l.created_at ? new Date(l.created_at).toLocaleString() : ''}
+            </div>
+          </div>`).join('');
+      } catch (err) {
+        list.innerHTML = '<div style="color:#f87171; font-size:0.85rem;">Failed to load learnings: ' + err.message + '</div>';
+      }
+    }
+
+    // Init
+    loadHeartbeats();
+    loadLearnings();
+    setInterval(loadHeartbeats, 60000);
   </script>
 </body>
 </html>
