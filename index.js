@@ -841,9 +841,9 @@ app.get('/debug-agents-data', async (req, res) => {
   }
 });
 
-// Projects Kanban board view
-app.get('/projects/kanban', (req, res) => {
-  res.render('kanban', { title: 'Kanban Project Management' });
+// Projects Kanban board — redirected to vault-backed task board
+app.get('/projects/kanban', (req, res) => res.redirect(301, '/task-board'));
+app.get('/kanban', (req, res) => res.redirect(301, '/task-board'));
 });
 
 // Helper function to read projects data
