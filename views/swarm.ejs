@@ -107,6 +107,11 @@
     .badge-yellow { background: #78350f; color: #fde68a; }
     .badge-gray   { background: #1f2937; color: #6b7280; }
 
+    /* ── Agent card links ── */
+    .ac-links { display: flex; gap: 0.5rem; margin-top: 0.35rem; }
+    .ac-link   { font-size: 0.7rem; color: #6b7280; text-decoration: none; padding: 1px 5px; border-radius: 4px; border: 1px solid #1f2937; }
+    .ac-link:hover { color: #e2e8f0; border-color: #374151; }
+
     /* ── Alert list ── */
     .alert-list { display: flex; flex-direction: column; gap: 0.45rem; }
     .alert-item {
@@ -289,6 +294,10 @@
                   <div class="ac-machine">💻 ${a.machine || ''}</div>
                   ${roleTxt ? `<div class="ac-role">${roleTxt}</div>` : ''}
                   <div class="ac-hb">Last heartbeat: ${hbStr}</div>
+                  <div class="ac-links">
+                    <a href="/vault/graph" class="ac-link">🕸️ Graph</a>
+                    <a href="/vault/doc?path=${encodeURIComponent('03 - Agents/Agent Registry.md')}" class="ac-link">📋 Registry</a>
+                  </div>
                 </div>`;
             }).join('')
           : '<div style="color:#4b5563;font-size:.8rem;">No agents in registry.</div>';

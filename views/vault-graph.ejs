@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- D3 v7 -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <style>
+    /* ── Full-viewport layout ── */
+    .oc-main-content {
+      overflow: hidden !important;
+      height: calc(100vh - 60px);
+    }
+    .oc-dashboard-area {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: unset !important;
+      overflow: hidden !important;
+      padding: 0 !important;
+      gap: 0 !important;
+    }
+
+    /* ── Top bar ── */
+    .vg-topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      height: 48px;
+      flex-shrink: 0;
+      padding: 0 1rem;
+      border-bottom: 1px solid #1f2937;
+      background: #0d1117;
+    }
+    .vg-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      white-space: nowrap;
+    }
+    .vg-stats {
+      font-size: 0.73rem;
+      color: #4b5563;
+      white-space: nowrap;
+    }
+    .vg-search-wrap {
+      flex: 1;
+      max-width: 260px;
+      position: relative;
+    }
+    .vg-search {
+      width: 100%;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 5px;
+      color: #e2e8f0;
+      font-size: 0.78rem;
+      padding: 4px 28px 4px 8px;
+      outline: none;
+    }
+    .vg-search:focus { border-color: #374151; }
+    .vg-search-clear {
+      position: absolute;
+      right: 6px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: #4b5563; cursor: pointer;
+      font-size: 1rem; line-height: 1;
+      display: none;
+    }
+    .vg-search-clear.visible { display: block; }
+    .vg-filter-chips {
+      display: flex;
+      gap: 4px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      max-width: 400px;
+      flex-shrink: 1;
+    }
+    .vg-chip {
+      font-size: 0.62rem;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      opacity: 0.55;
+      transition: opacity .15s;
+    }
+    .vg-chip.active { opacity: 1; border-color: rgba(255,255,255,0.15); }
+    .vg-spinner {
+      width: 16px; height: 16px;
+      border: 2px solid #1f2937;
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+      display: none;
+    }
+    .vg-spinner.visible { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SVG canvas ── */
+    #vg-svg {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      background: #080d14;
+      display: block;
+    }
+
+    /* ── Tooltip ── */
+    .vg-tooltip {
+      position: fixed;
+      background: rgba(13,17,23,0.95);
+      border: 1px solid #374151;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 0.75rem;
+      color: #e2e8f0;
+      pointer-events: none;
+      z-index: 100;
+      display: none;
+      max-width: 260px;
+    }
+    .vg-tooltip .tt-name { font-weight: 600; margin-bottom: 2px; word-break: break-all; }
+    .vg-tooltip .tt-dir  { color: #6b7280; font-size: 0.68rem; }
+    .vg-tooltip .tt-deg  { color: #9ca3af; font-size: 0.7rem; }
+
+    /* ── Legend overlay ── */
+    .vg-legend {
+      position: absolute;
+      top: 56px; right: 8px;
+      background: rgba(8,13,20,0.88);
+      border: 1px solid #1f2937;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.65rem;
+      z-index: 10;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+    .vg-legend-title {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #4b5563;
+      margin-bottom: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .vg-legend-body { display: flex; flex-direction: column; gap: 3px; }
+    .vg-legend-body.collapsed { display: none; }
+    .vg-legend-row { display: flex; align-items: center; gap: 5px; color: #9ca3af; }
+    .vg-legend-swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Graph area wrapper (relative for legend positioning) ── */
+    .vg-canvas-wrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <header class="oc-header">
+    <div class="logo">
+      <h1 class="main-title">OVERCLAW</h1>
+      <span class="tagline">VAULT GRAPH</span>
+    </div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
+  </header>
+
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/vault/graph' }) %>
+
+    <main class="oc-dashboard-area">
+
+      <!-- Top bar -->
+      <div class="vg-topbar">
+        <span class="vg-title">🕸️ Vault Graph</span>
+        <span class="vg-stats" id="vg-stats">Scanning…</span>
+        <div class="vg-search-wrap">
+          <input type="text" class="vg-search" id="vg-search" placeholder="Search nodes…" oninput="filterGraph(this.value)">
+          <button class="vg-search-clear" id="vg-clear" onclick="clearSearch()">×</button>
+        </div>
+        <div class="vg-filter-chips" id="vg-chips"></div>
+        <div class="vg-spinner" id="vg-spinner"></div>
+      </div>
+
+      <!-- Canvas -->
+      <div class="vg-canvas-wrap" id="vg-canvas-wrap">
+        <svg id="vg-svg"></svg>
+
+        <!-- Legend -->
+        <div class="vg-legend" id="vg-legend">
+          <div class="vg-legend-title" onclick="toggleLegend()">▾ Directories</div>
+          <div class="vg-legend-body" id="vg-legend-body"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="vg-tooltip" id="vg-tooltip">
+    <div class="tt-name" id="tt-name"></div>
+    <div class="tt-dir"  id="tt-dir"></div>
+    <div class="tt-deg"  id="tt-deg"></div>
+  </div>
+
+  <script>
+    /* ── Sidebar / theme boilerplate ── */
+    (function () {
+      const toggle  = document.getElementById('sidebar-toggle');
+      const sidebar = document.getElementById('oc-sidebar');
+      if (toggle && sidebar) {
+        let collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if (collapsed) sidebar.classList.add('collapsed');
+        toggle.addEventListener('click', () => {
+          collapsed = !collapsed;
+          sidebar.classList.toggle('collapsed', collapsed);
+          localStorage.setItem('overclaw-sidebar-collapsed', collapsed);
+        });
+      }
+      const themeBtn = document.getElementById('theme-toggle');
+      const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
+      let theme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+      document.body.classList.add(theme + '-mode');
+      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+      themeBtn.addEventListener('click', () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        document.body.classList.toggle('dark-mode',  theme === 'dark');
+        document.body.classList.toggle('light-mode', theme === 'light');
+        themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+        localStorage.setItem('overclaw-theme', theme);
+      });
+    })();
+
+    /* ── Color map by top-level directory ── */
+    const DIR_COLORS = {
+      '00 - Home':             '#94a3b8',
+      '01 - Prompts':          '#fbbf24',
+      '02 - Projects':         '#34d399',
+      '03 - Agents':           '#818cf8',
+      '04 - Models-and-Tools': '#22d3ee',
+      '05 - Research':         '#60a5fa',
+      '06 - Loops':            '#fb923c',
+      '07 - Weekly-Reviews':   '#2dd4bf',
+      '08 - QA-and-Monitoring':'#f87171',
+      '_Archive':              '#374151',
+      '_Templates':            '#4b5563',
+      '_Scripts':              '#6b7280',
+      'root':                  '#9ca3af',
+    };
+    function nodeColor(dir) { return DIR_COLORS[dir] || '#6b7280'; }
+    function nodeRadius(d) { return 3 + Math.min(12, Math.log(1 + (d.degree || 0)) * 3); }
+
+    /* ── Graph state ── */
+    let simulation = null;
+    let allNodes   = [];
+    let allEdges   = [];
+    let activeDir  = null; // null = all
+    let searchQuery = '';
+    let nodeSelection, edgeSelection, labelSelection;
+    let zoomBehavior;
+    let legendCollapsed = false;
+
+    /* ── SVG setup ── */
+    const svg = d3.select('#vg-svg');
+    const wrap = document.getElementById('vg-canvas-wrap');
+
+    function getSvgDims() {
+      const r = wrap.getBoundingClientRect();
+      return { width: r.width, height: r.height };
+    }
+
+    const zoomLayer = svg.append('g').attr('class', 'zoom-layer');
+    const edgeGroup  = zoomLayer.append('g').attr('class', 'edges');
+    const nodeGroup  = zoomLayer.append('g').attr('class', 'nodes');
+    const labelGroup = zoomLayer.append('g').attr('class', 'labels');
+
+    /* ── Zoom ── */
+    zoomBehavior = d3.zoom()
+      .scaleExtent([0.05, 8])
+      .on('zoom', (event) => {
+        zoomLayer.attr('transform', event.transform);
+      });
+    svg.call(zoomBehavior);
+
+    /* ── Tooltip ── */
+    const tooltip = document.getElementById('vg-tooltip');
+    function showTip(event, d) {
+      document.getElementById('tt-name').textContent = d.name;
+      document.getElementById('tt-dir').textContent  = d.dir;
+      document.getElementById('tt-deg').textContent  = d.degree + ' link' + (d.degree === 1 ? '' : 's');
+      tooltip.style.display = 'block';
+      moveTip(event);
+    }
+    function moveTip(event) {
+      const x = event.clientX + 14;
+      const y = event.clientY - 8;
+      tooltip.style.left = Math.min(x, window.innerWidth - 270) + 'px';
+      tooltip.style.top  = Math.min(y, window.innerHeight - 80) + 'px';
+    }
+    function hideTip() { tooltip.style.display = 'none'; }
+
+    /* ── Legend ── */
+    function buildLegend(dirs) {
+      const body = document.getElementById('vg-legend-body');
+      body.innerHTML = '';
+      dirs.forEach(dir => {
+        const row = document.createElement('div');
+        row.className = 'vg-legend-row';
+        row.innerHTML = `<span class="vg-legend-swatch" style="background:${nodeColor(dir)}"></span><span>${dir}</span>`;
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => toggleDirFilter(dir));
+        body.appendChild(row);
+      });
+    }
+    function toggleLegend() {
+      legendCollapsed = !legendCollapsed;
+      document.getElementById('vg-legend-body').classList.toggle('collapsed', legendCollapsed);
+      document.querySelector('.vg-legend-title').textContent = (legendCollapsed ? '▸' : '▾') + ' Directories';
+    }
+
+    /* ── Filter chips ── */
+    function buildChips(dirs) {
+      const container = document.getElementById('vg-chips');
+      container.innerHTML = '';
+      dirs.slice(0, 10).forEach(dir => {
+        const chip = document.createElement('button');
+        chip.className = 'vg-chip active';
+        chip.textContent = dir.replace(/^\d+\s*-\s*/, '');
+        chip.style.background = nodeColor(dir) + '22';
+        chip.style.color       = nodeColor(dir);
+        chip.style.borderColor = nodeColor(dir) + '44';
+        chip.dataset.dir = dir;
+        chip.addEventListener('click', () => toggleDirFilter(dir));
+        container.appendChild(chip);
+      });
+    }
+
+    function toggleDirFilter(dir) {
+      if (activeDir === dir) {
+        activeDir = null;
+      } else {
+        activeDir = dir;
+      }
+      applyVisibility();
+      // Update chip states
+      document.querySelectorAll('.vg-chip').forEach(c => {
+        c.classList.toggle('active', activeDir === null || c.dataset.dir === activeDir);
+      });
+    }
+
+    /* ── Search & filter ── */
+    function filterGraph(query) {
+      searchQuery = query.toLowerCase().trim();
+      document.getElementById('vg-clear').classList.toggle('visible', searchQuery.length > 0);
+      applyVisibility();
+    }
+
+    function clearSearch() {
+      document.getElementById('vg-search').value = '';
+      filterGraph('');
+    }
+
+    function applyVisibility() {
+      if (!nodeSelection) return;
+      nodeSelection.style('opacity', d => {
+        if (activeDir && d.dir !== activeDir) return 0.07;
+        if (searchQuery && !d.name.toLowerCase().includes(searchQuery) && !d.id.toLowerCase().includes(searchQuery)) return 0.07;
+        return 1;
+      });
+      nodeSelection.attr('r', d => {
+        const base = nodeRadius(d);
+        if (searchQuery && d.name.toLowerCase().includes(searchQuery)) return base * 1.8;
+        return base;
+      });
+      edgeSelection.style('opacity', d => {
+        const sDir = typeof d.source === 'object' ? d.source.dir : null;
+        const tDir = typeof d.target === 'object' ? d.target.dir : null;
+        if (activeDir && sDir !== activeDir && tDir !== activeDir) return 0.03;
+        if (searchQuery) {
+          const sName = typeof d.source === 'object' ? d.source.name : '';
+          const tName = typeof d.target === 'object' ? d.target.name : '';
+          if (!sName.toLowerCase().includes(searchQuery) && !tName.toLowerCase().includes(searchQuery)) return 0.03;
+        }
+        return 0.3;
+      });
+    }
+
+    /* ── Drag ── */
+    function drag(simulation) {
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x; d.fy = d.y;
+      }
+      function dragged(event, d) {
+        d.fx = event.x; d.fy = event.y;
+      }
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        // Pin the node where it was dropped
+      }
+      return d3.drag().on('start', dragstarted).on('drag', dragged).on('end', dragended);
+    }
+
+    /* ── Zoom to fit ── */
+    function zoomToFit() {
+      const { width, height } = getSvgDims();
+      if (!allNodes.length || !width || !height) return;
+      const xs = allNodes.map(d => d.x).filter(Boolean);
+      const ys = allNodes.map(d => d.y).filter(Boolean);
+      if (!xs.length) return;
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const bw = maxX - minX || 1;
+      const bh = maxY - minY || 1;
+      const scale = Math.min(0.95 * width / bw, 0.95 * height / bh, 2);
+      const tx = width  / 2 - scale * (minX + maxX) / 2;
+      const ty = height / 2 - scale * (minY + maxY) / 2;
+      svg.transition().duration(600)
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+    }
+
+    /* ── Build graph ── */
+    function buildGraph(data) {
+      const { width, height } = getSvgDims();
+
+      allNodes = data.nodes;
+      allEdges = data.edges;
+
+      // Update SVG size
+      svg.attr('width', width).attr('height', height);
+
+      // Build dirs list
+      const dirs = [...new Set(allNodes.map(d => d.dir))].sort();
+      buildLegend(dirs);
+      buildChips(dirs);
+
+      // Edges
+      edgeSelection = edgeGroup.selectAll('line')
+        .data(allEdges)
+        .join('line')
+        .attr('stroke', '#1f2937')
+        .attr('stroke-width', 0.7)
+        .style('opacity', 0.3);
+
+      // Nodes
+      nodeSelection = nodeGroup.selectAll('circle')
+        .data(allNodes, d => d.id)
+        .join('circle')
+        .attr('r', d => nodeRadius(d))
+        .attr('fill', d => nodeColor(d.dir))
+        .attr('stroke', d => nodeColor(d.dir) + 'aa')
+        .attr('stroke-width', 1)
+        .style('cursor', 'pointer')
+        .call(drag(simulationRef))
+        .on('mouseover', (event, d) => showTip(event, d))
+        .on('mousemove', (event) => moveTip(event))
+        .on('mouseout',  () => hideTip())
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          window.location.href = '/vault/doc?path=' + encodeURIComponent(d.id);
+        });
+
+      // Labels (only for high-degree nodes)
+      labelSelection = labelGroup.selectAll('text')
+        .data(allNodes.filter(d => d.degree >= 3), d => d.id)
+        .join('text')
+        .attr('font-size', 7)
+        .attr('fill', '#6b7280')
+        .attr('text-anchor', 'middle')
+        .attr('pointer-events', 'none')
+        .attr('dy', d => -(nodeRadius(d) + 3))
+        .text(d => d.name.length > 20 ? d.name.slice(0, 18) + '…' : d.name);
+
+      // Simulation tick
+      simulationRef.on('tick', () => {
+        edgeSelection
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+        nodeSelection
+          .attr('cx', d => d.x)
+          .attr('cy', d => d.y);
+        labelSelection
+          .attr('x', d => d.x)
+          .attr('y', d => d.y);
+      });
+
+      // Zoom to fit after simulation settles
+      let tickCount = 0;
+      simulationRef.on('tick.fit', () => {
+        tickCount++;
+        if (tickCount === 120) {
+          zoomToFit();
+          simulationRef.on('tick.fit', null);
+        }
+      });
+
+      // Stats
+      document.getElementById('vg-stats').textContent =
+        `${data.nodes.length} nodes · ${data.edges.length} edges`;
+    }
+
+    /* ── Simulation (defined before buildGraph so drag() can reference it) ── */
+    let simulationRef;
+
+    async function loadGraph() {
+      const spinner = document.getElementById('vg-spinner');
+      spinner.classList.add('visible');
+      document.getElementById('vg-stats').textContent = 'Scanning ' + 921 + ' files…';
+
+      try {
+        const resp = await fetch('/api/vault/graph');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+
+        const { width, height } = getSvgDims();
+
+        // Create simulation
+        simulationRef = d3.forceSimulation(data.nodes)
+          .force('link',    d3.forceLink(data.edges).id(d => d.id).distance(30).strength(0.3))
+          .force('charge',  d3.forceManyBody().strength(-80))
+          .force('center',  d3.forceCenter(width / 2, height / 2))
+          .force('collide', d3.forceCollide().radius(d => nodeRadius(d) + 2));
+
+        buildGraph(data);
+
+      } catch (err) {
+        document.getElementById('vg-stats').textContent = '⚠️ ' + err.message;
+      } finally {
+        spinner.classList.remove('visible');
+      }
+    }
+
+    /* ── Window resize ── */
+    window.addEventListener('resize', () => {
+      const { width, height } = getSvgDims();
+      svg.attr('width', width).attr('height', height);
+      if (simulationRef) {
+        simulationRef.force('center', d3.forceCenter(width / 2, height / 2));
+        simulationRef.alpha(0.1).restart();
+      }
+    });
+
+    /* ── Boot ── */
+    loadGraph();
+  </script>
+</body>
+</html>

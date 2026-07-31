@@ -129,6 +129,17 @@ app.get('/task-board', (req, res) => {
   res.render('task-board', { title: 'Task Board', currentPath: '/task-board' });
 });
 
+// Vault document viewer page
+app.get('/vault/doc', (req, res) => {
+  const filePath = (req.query.path || '').replace(/\.\./g, ''); // basic sanitize
+  res.render('vault-doc', { title: 'Vault Doc', filePath, currentPath: '/vault/doc' });
+});
+
+// Vault graph explorer page
+app.get('/vault/graph', (req, res) => {
+  res.render('vault-graph', { title: 'Vault Graph', currentPath: '/vault/graph' });
+});
+
 // Helper: return a degraded response when the vault is unavailable
 function vaultUnavailable(res, details) {
   return res.status(503).json({ error: 'Vault not available', details: details || 'VaultReader not initialized' });
@@ -186,6 +197,47 @@ app.get('/api/vault/agents', async (req, res) => {
   } catch (err) {
     console.error(`Error reading agent registry: ${err.message}`);
     res.status(500).json({ error: 'Failed to read agent registry', details: err.message });
+  }
+});
+
+// API: read a vault file
+app.get('/api/vault/file', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const filePath = (req.query.path || '').trim();
+  if (!filePath) return res.status(400).json({ error: 'path required' });
+  try {
+    const content = await vaultReader.getFile(filePath);
+    res.json({ content, path: filePath });
+  } catch (err) {
+    const status = err.message.includes('denied') || err.message.includes('Only') ? 400 : 404;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// API: vault graph data
+app.get('/api/vault/graph', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const graph = await vaultReader.buildGraph();
+    res.json(graph);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to build graph', details: err.message });
+  }
+});
+
+// API: resolve wiki link name to vault path
+app.get('/api/vault/resolve', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const name = (req.query.name || '').toLowerCase().trim();
+  if (!name) return res.status(400).json({ error: 'name required' });
+  try {
+    const graph = await vaultReader.buildGraph();
+    // Find node whose name matches (case-insensitive)
+    const node = graph.nodes.find(n => n.name.toLowerCase() === name);
+    if (!node) return res.status(404).json({ error: 'Not found', name });
+    res.json({ path: node.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

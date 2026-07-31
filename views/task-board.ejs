@@ -152,7 +152,8 @@
       border-color: #7f1d1d;
       background: rgba(127,29,29,0.15);
     }
-    .kb-card .task-id {
+    .kb-card .task-id,
+    .kb-card a.task-id {
       font-size: 0.63rem;
       font-family: monospace;
       color: #4b9edb;
@@ -160,8 +161,12 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-decoration: none;
+      display: block;
     }
-    .kb-card .task-title {
+    .kb-card a.task-id:hover { text-decoration: underline; }
+    .kb-card .task-title,
+    .kb-card a.task-title {
       font-weight: 500;
       color: #cbd5e1;
       line-height: 1.35;
@@ -170,7 +175,9 @@
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      text-decoration: none;
     }
+    .kb-card a.task-title:hover { color: #93c5fd; }
     .kb-card .task-footer {
       display: flex;
       flex-wrap: wrap;
@@ -347,10 +354,17 @@
     }
 
     function card(task, extraCls) {
-      const idBadge = task.taskId
-        ? `<div class="task-id">${task.taskId}</div>` : '';
+      // task.link is like "Tasks/TASK-20260730-007.md" — relative to "03 - Agents/Coordination/"
+      const docPath = task.link
+        ? '03 - Agents/Coordination/' + task.link
+        : null;
       const title = (task.title || '(untitled)').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const titleEl = `<div class="task-title">${title}</div>`;
+      const titleEl = docPath
+        ? `<a href="/vault/doc?path=${encodeURIComponent(docPath)}" class="task-title" target="_blank">${title}</a>`
+        : `<div class="task-title">${title}</div>`;
+      const idBadge = task.taskId && docPath
+        ? `<a href="/vault/doc?path=${encodeURIComponent(docPath)}" class="task-id" target="_blank">${task.taskId}</a>`
+        : task.taskId ? `<div class="task-id">${task.taskId}</div>` : '';
       const agentEl = task.agent
         ? `<span class="chip chip-agent" style="${agentColor(task.agent)}">${task.agent}</span>` : '';
       const pri = priorityChip(task.priority);
