@@ -22,36 +22,7 @@
     </header>
 
     <div class="oc-main-content">
-        <aside class="oc-sidebar" id="oc-sidebar">
-            <nav>
-                <div class="nav-group-title">Control</div>
-                <ul>
-                    <li><a href="/"><span class="icon">🏠</span>Dashboard</a></li>
-                    <li><a href="/sessions"><span class="icon">💬</span>Sessions</a></li>
-                    <li><a href="/cron-jobs"><span class="icon">⏰</span>Cron Jobs</a></li>
-                </ul>
-                <div class="nav-group-title">Agent</div>
-                <ul>
-                    <li><a href="/agents" class="active"><span class="icon">🤖</span>Agents</a></li>
-                    <li><a href="/skills"><span class="icon">🧠</span>Skills</a></li>
-                    <li><a href="/nodes"><span class="icon">🖥️</span>Nodes</a></li>
-                </ul>
-                <div class="nav-group-title">Settings</div>
-                <ul>
-                    <li><a href="/config"><span class="icon">⚙️</span>Config</a></li>
-                    <li><a href="/logs"><span class="icon">📜</span>Logs</a></li>
-                    <li><a href="/debug"><span class="icon">🐛</span>Debug</a></li>
-                </ul>
-                <div class="nav-group-title">Projects</div>
-                <ul>
-                    <li><a href="/projects/kanban"><span class="icon">📋</span>Kanban</a></li>
-                </ul>
-                <div class="nav-group-title">Resources</div>
-                <ul>
-                    <li><a href="/docs"><span class="icon">📚</span>Docs</a></li>
-                </ul>
-            </nav>
-        </aside>
+<%- include('partials/sidebar', { currentPath: '/agents' }) %>
 
         <main class="oc-dashboard-area">
             <div class="oc-card full-width">
