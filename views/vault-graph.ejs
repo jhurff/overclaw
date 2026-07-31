@@ -394,7 +394,7 @@
           const tName = typeof d.target === 'object' ? d.target.name : '';
           if (!sName.toLowerCase().includes(searchQuery) && !tName.toLowerCase().includes(searchQuery)) return 0.03;
         }
-        return 0.3;
+        return 0.55;
       });
     }
 
@@ -451,9 +451,9 @@
       edgeSelection = edgeGroup.selectAll('line')
         .data(allEdges)
         .join('line')
-        .attr('stroke', '#1f2937')
-        .attr('stroke-width', 0.7)
-        .style('opacity', 0.3);
+        .attr('stroke', '#475569')
+        .attr('stroke-width', 1.2)
+        .style('opacity', 0.55);
 
       // Nodes
       nodeSelection = nodeGroup.selectAll('circle')
