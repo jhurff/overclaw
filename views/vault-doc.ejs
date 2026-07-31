@@ -131,6 +131,39 @@
     .vault-doc-body ul, .vault-doc-body ol { color: #cbd5e1; line-height: 1.7; padding-left: 1.5rem; }
     .vault-doc-body hr { border: none; border-top: 1px solid #374151; margin: 1.5rem 0; }
     .vault-doc-body img { max-width: 100%; border-radius: 4px; }
+
+    /* ── Directory listing ── */
+    .dir-listing {
+      display: flex; flex-direction: column; gap: 2px;
+      max-width: 680px;
+    }
+    .dir-group-label {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #4b5563;
+      margin: 0.9rem 0 0.3rem;
+    }
+    .dir-entry {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.38rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.85rem; color: #cbd5e1;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background .1s, border-color .1s;
+    }
+    .dir-entry:hover {
+      background: #1f2937; border-color: #374151; color: #e2e8f0;
+    }
+    .dir-entry[href*="type=dir"], .dir-entry.dir-up {
+      color: #93c5fd;
+    }
+    .dir-up { color: #6b7280 !important; font-size: 0.78rem; }
+    .dir-readme-divider {
+      margin: 1.5rem 0 0.75rem;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #4b5563;
+      border-top: 1px solid #1f2937; padding-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -162,7 +195,7 @@
 
       <!-- Content -->
       <div class="vd-scroll">
-        <div class="vault-doc-body" id="vd-body">
+        <div id="vd-body">
           <div class="vd-loading">Loading…</div>
         </div>
       </div>
@@ -285,51 +318,122 @@
       document.getElementById('vd-error').style.display = 'none';
     }
 
-    /* ── Main load ── */
-    async function loadDoc(filePath) {
-      if (!filePath) {
-        document.getElementById('vd-body').innerHTML =
-          '<div class="vd-loading" style="color:#6b7280;">No file path provided.<br><a href="/vault/graph" style="color:#818cf8;">Open Graph Explorer →</a></div>';
-        return;
+    /* ── Directory listing renderer ── */
+    function renderDir(data) {
+      const body = document.getElementById('vd-body');
+      const { path: dirPath, name, entries, readme } = data;
+
+      // Breadcrumb for the dir itself
+      renderBreadcrumb(dirPath || '');
+      document.title = name + ' — Vault';
+
+      // Build parent link
+      const parentPath = dirPath && dirPath.includes('/')
+        ? dirPath.substring(0, dirPath.lastIndexOf('/'))
+        : null;
+
+      const dirs  = entries.filter(e => e.type === 'dir');
+      const files = entries.filter(e => e.type === 'file');
+
+      function entryLink(e) {
+        const icon = e.type === 'dir' ? '📁' : '📄';
+        const label = e.type === 'file' ? e.name.replace(/\.md$/, '') : e.name;
+        return `<a class="dir-entry" href="/vault/doc?path=${encodeURIComponent(e.path)}">${icon} ${label}</a>`;
       }
 
-      renderBreadcrumb(filePath);
+      let html = `<div class="dir-listing">`;
 
+      if (parentPath !== null) {
+        html += `<a class="dir-entry dir-up" href="/vault/doc?path=${encodeURIComponent(parentPath)}">⬆ ..</a>`;
+      } else if (dirPath) {
+        html += `<a class="dir-entry dir-up" href="/vault/doc?path=">⬆ Vault Root</a>`;
+      }
+
+      if (dirs.length) {
+        html += `<div class="dir-group-label">Folders</div>`;
+        html += dirs.map(entryLink).join('');
+      }
+      if (files.length) {
+        html += `<div class="dir-group-label">Files</div>`;
+        html += files.map(entryLink).join('');
+      }
+      if (!dirs.length && !files.length) {
+        html += `<div style="color:#4b5563;font-size:.82rem;padding:.5rem 0;">Empty directory</div>`;
+      }
+
+      html += `</div>`;
+
+      // README preview below listing
+      if (readme) {
+        html += `<div class="dir-readme-divider">📖 README</div><div id="dir-readme-content"><div class="vd-loading">Loading README…</div></div>`;
+      }
+
+      body.innerHTML = html;
+
+      // Load README async
+      if (readme) {
+        loadMarkdownInto('dir-readme-content', readme);
+      }
+    }
+
+    /* ── Render markdown content into a container by id ── */
+    async function loadMarkdownInto(containerId, filePath) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
       try {
         const resp = await fetch('/api/vault/file?path=' + encodeURIComponent(filePath));
         const data = await resp.json();
+        if (!resp.ok || data.error) { container.innerHTML = `<div style="color:#f87171;font-size:.8rem;">${data.error}</div>`; return; }
+        let raw = preprocessWikiLinks(data.content);
+        raw = rewriteMdLinks(raw, filePath);
+        container.innerHTML = `<div class="vault-doc-body">${marked.parse(raw)}</div>`;
+        container.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+        attachWikiLinkHandlers();
+      } catch(e) {
+        container.innerHTML = `<div style="color:#f87171;font-size:.8rem;">${e.message}</div>`;
+      }
+    }
+
+    /* ── Main load ── */
+    async function loadDoc(filePath) {
+      // empty = vault root directory
+      renderBreadcrumb(filePath || '');
+
+      const body = document.getElementById('vd-body');
+      body.innerHTML = '<div class="vd-loading">Loading…</div>';
+
+      try {
+        const resp = await fetch('/api/vault/file?path=' + encodeURIComponent(filePath || ''));
+        const data = await resp.json();
 
         if (!resp.ok || data.error) {
-          showError(data.error || 'Failed to load file');
-          document.getElementById('vd-body').innerHTML = '';
+          showError(data.error || 'Failed to load');
+          body.innerHTML = '';
           return;
         }
 
         hideError();
 
-        // Pre-process: wiki links + relative md links
+        // Directory?
+        if (data.type === 'directory') {
+          renderDir(data);
+          return;
+        }
+
+        // File — render markdown
+        renderBreadcrumb(filePath);
         let raw = preprocessWikiLinks(data.content);
         raw = rewriteMdLinks(raw, filePath);
-
-        // Render markdown
         const html = marked.parse(raw);
-        document.getElementById('vd-body').innerHTML = html;
-
-        // Syntax highlight code blocks
-        document.querySelectorAll('#vd-body pre code').forEach(block => {
-          hljs.highlightElement(block);
-        });
-
-        // Attach wiki link click handlers
+        body.innerHTML = `<div class="vault-doc-body">${html}</div>`;
+        body.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
         attachWikiLinkHandlers();
-
-        // Update page title
         const filename = filePath.split('/').pop().replace(/\.md$/, '');
         document.title = filename + ' — Vault Doc';
 
       } catch (err) {
         showError(err.message);
-        document.getElementById('vd-body').innerHTML = '';
+        body.innerHTML = '';
       }
     }
 
