@@ -6,128 +6,223 @@
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ---- Task Board styles ---- */
-    .kanban-board {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
+    /* ── Force the dashboard area into a flex column (override global grid) ── */
+    .oc-main-content {
+      overflow: hidden !important;
+      height: calc(100vh - 60px);
+    }
+    .oc-dashboard-area {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: unset !important;
+      overflow: hidden !important;
+      padding: 0.75rem 1rem 0 1rem !important;
+      gap: 0 !important;
+    }
+
+    /* ── Top strip ── */
+    .tb-topbar {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-shrink: 0;
+      padding-bottom: 0.6rem;
       gap: 1rem;
-      align-items: start;
+      flex-wrap: wrap;
     }
-    @media (max-width: 1100px) {
-      .kanban-board { grid-template-columns: repeat(2, 1fr); }
+    .tb-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--oc-text-dark, #e2e8f0);
+      margin: 0;
     }
-    @media (max-width: 600px) {
-      .kanban-board { grid-template-columns: 1fr; }
+    .tb-meta {
+      font-size: 0.75rem;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
-    .kb-column {
-      background: var(--card-bg, #1a1f2e);
-      border: 1px solid var(--border, #2d3548);
-      border-radius: 10px;
-      padding: 1rem;
-      min-height: 200px;
+    .tb-sync-btn {
+      font-size: 0.73rem;
+      padding: 0.18rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid #374151;
+      background: transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
     }
-    .kb-column-header {
-      font-size: 0.85rem;
+    .tb-sync-btn:hover { border-color: #6b7280; color: #e2e8f0; }
+    .tb-sync-btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── Error banner ── */
+    .tb-error {
+      display: none;
+      background: #1c1917;
+      border: 1px solid #78350f;
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      color: #fde68a;
+      font-size: 0.82rem;
+      margin-bottom: 0.6rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Board ── */
+    .kb-board {
+      display: flex;
+      flex: 1;
+      gap: 0.6rem;
+      min-height: 0;
+      overflow-x: auto;      /* scroll horizontally if viewport too narrow */
+      overflow-y: hidden;
+      padding-bottom: 0.75rem;
+    }
+
+    /* ── Column ── */
+    .kb-col {
+      flex: 1 1 0;
+      min-width: 210px;
+      display: flex;
+      flex-direction: column;
+      background: var(--oc-card-bg, #111827);
+      border: 1px solid var(--oc-border-color, #1f2937);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .kb-col-header {
+      padding: 0.55rem 0.8rem;
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.8rem;
+      letter-spacing: 0.07em;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: 1px solid var(--oc-border-color, #1f2937);
+      flex-shrink: 0;
     }
+    .kb-col-body {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      padding: 0.5rem;
+      scrollbar-width: thin;
+      scrollbar-color: #374151 transparent;
+    }
+    .kb-col-body::-webkit-scrollbar { width: 4px; }
+    .kb-col-body::-webkit-scrollbar-track { background: transparent; }
+    .kb-col-body::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
+
+    /* Column accent colors */
+    .col-inbox    .kb-col-header { color: #a78bfa; border-bottom-color: #312e5f; }
+    .col-inbox    { border-top: 2px solid #7c3aed; }
+    .col-inprogress .kb-col-header { color: #60a5fa; border-bottom-color: #1e3a5f; }
+    .col-inprogress { border-top: 2px solid #2563eb; }
+    .col-blocked  .kb-col-header { color: #f87171; border-bottom-color: #4c1414; }
+    .col-blocked  { border-top: 2px solid #dc2626; }
+    .col-done     .kb-col-header { color: #6ee7b7; border-bottom-color: #0d3326; }
+    .col-done     { border-top: 2px solid #059669; }
+
     .kb-count {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       background: #374151;
       color: #d1d5db;
-      padding: 1px 7px;
+      padding: 1px 6px;
       border-radius: 9999px;
       font-weight: 600;
     }
+
+    /* ── Card ── */
     .kb-card {
-      background: #111827;
+      background: rgba(255,255,255,0.03);
       border: 1px solid #1f2937;
-      border-radius: 8px;
-      padding: 0.75rem;
-      margin-bottom: 0.6rem;
-      font-size: 0.83rem;
+      border-radius: 6px;
+      padding: 0.55rem 0.65rem;
+      margin-bottom: 0.45rem;
+      font-size: 0.8rem;
+      cursor: default;
+      transition: border-color .12s;
     }
+    .kb-card:hover { border-color: #374151; }
     .kb-card.is-blocked {
-      border-color: #991b1b;
-      background: #1c0a0a;
+      border-color: #7f1d1d;
+      background: rgba(127,29,29,0.15);
     }
     .kb-card .task-id {
-      font-size: 0.68rem;
+      font-size: 0.63rem;
       font-family: monospace;
-      color: #60a5fa;
+      color: #4b9edb;
       margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .kb-card .task-title {
-      font-weight: 600;
-      color: #e2e8f0;
+      font-weight: 500;
+      color: #cbd5e1;
       line-height: 1.35;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .kb-card .task-footer {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 3px;
       align-items: center;
     }
+
+    /* ── Chips ── */
     .chip {
       display: inline-block;
-      padding: 1px 7px;
+      padding: 1px 6px;
       border-radius: 9999px;
-      font-size: 0.68rem;
+      font-size: 0.63rem;
       font-weight: 600;
+      white-space: nowrap;
     }
     .chip-agent    { background: #1e3a5f; color: #93c5fd; }
     .chip-high     { background: #7f1d1d; color: #fca5a5; }
     .chip-medium   { background: #78350f; color: #fde68a; }
     .chip-low      { background: #14532d; color: #86efac; }
     .chip-critical { background: #4c0519; color: #fda4af; }
-    .chip-default  { background: #374151; color: #d1d5db; }
-    .kb-date { font-size: 0.66rem; color: #6b7280; }
+    .chip-default  { background: #2d3748; color: #a0aec0; }
+    .kb-date { font-size: 0.62rem; color: #6b7280; }
 
+    /* ── Show more ── */
     .show-more-btn {
       background: none;
-      border: 1px solid #374151;
-      color: #9ca3af;
-      font-size: 0.75rem;
-      border-radius: 6px;
-      padding: 3px 10px;
+      border: 1px solid #2d3748;
+      color: #6b7280;
+      font-size: 0.72rem;
+      border-radius: 5px;
+      padding: 3px 8px;
       cursor: pointer;
-      margin-top: 4px;
       width: 100%;
+      margin-top: 2px;
     }
-    .show-more-btn:hover { border-color: #6b7280; color: #e2e8f0; }
+    .show-more-btn:hover { border-color: #4a5568; color: #e2e8f0; }
 
-    .vault-unavailable {
-      background: #1c1917;
-      border: 1px solid #78350f;
-      border-radius: 8px;
-      padding: 1rem 1.2rem;
-      color: #fde68a;
-      font-size: 0.88rem;
-      margin-bottom: 1.5rem;
+    /* ── Empty state ── */
+    .kb-empty {
+      color: #374151;
+      font-size: 0.78rem;
+      text-align: center;
+      padding: 1.5rem 0;
     }
-    .refresh-note { font-size: 0.75rem; color: #6b7280; margin-top: 1rem; }
-
-    /* Inbox header color */
-    .col-inbox .kb-column-header     { color: #a78bfa; }
-    .col-inprogress .kb-column-header { color: #60a5fa; }
-    .col-blocked .kb-column-header   { color: #f87171; }
-    .col-done .kb-column-header      { color: #34d399; }
   </style>
 </head>
 <body>
   <header class="oc-header">
     <div class="logo">
       <h1 class="main-title">OVERCLAW</h1>
-      <span class="tagline">AGENT DASHBOARD</span>
+      <span class="tagline">TASK BOARD</span>
     </div>
     <div class="header-controls">
       <button id="sidebar-toggle" class="control-button">☰</button>
@@ -139,42 +234,68 @@
     <%- include('partials/sidebar', { currentPath: '/task-board' }) %>
 
     <main class="oc-dashboard-area">
-      <h1 style="margin-bottom:0.25rem;">📋 Task Board</h1>
-      <p style="color:var(--muted,#8892a4); font-size:0.87rem; margin-bottom:1.5rem;">
-        Swarm task board from the shared vault — all four agents.
-      </p>
 
-      <div id="vault-error" class="vault-unavailable" style="display:none;"></div>
-
-      <div class="kanban-board" id="kanban-board">
-        <div class="kb-column col-inbox">
-          <div class="kb-column-header">📥 Inbox <span class="kb-count" id="count-inbox">—</span></div>
-          <div id="col-inbox-cards"><div style="color:#6b7280;font-size:0.8rem;">Loading…</div></div>
-        </div>
-        <div class="kb-column col-inprogress">
-          <div class="kb-column-header">🔄 In Progress <span class="kb-count" id="count-inprogress">—</span></div>
-          <div id="col-inprogress-cards"><div style="color:#6b7280;font-size:0.8rem;">Loading…</div></div>
-        </div>
-        <div class="kb-column col-blocked">
-          <div class="kb-column-header">🚫 Blocked <span class="kb-count" id="count-blocked">—</span></div>
-          <div id="col-blocked-cards"><div style="color:#6b7280;font-size:0.8rem;">Loading…</div></div>
-        </div>
-        <div class="kb-column col-done">
-          <div class="kb-column-header">✅ Done <span class="kb-count" id="count-done">—</span></div>
-          <div id="col-done-cards"><div style="color:#6b7280;font-size:0.8rem;">Loading…</div></div>
+      <!-- Top strip -->
+      <div class="tb-topbar">
+        <h1 class="tb-title">📋 Task Board</h1>
+        <div class="tb-meta">
+          <span id="tb-refresh-note">Loading…</span>
+          <span id="tb-sync-ts"></span>
+          <button class="tb-sync-btn" id="sync-btn" onclick="syncVault()">↻ Sync</button>
         </div>
       </div>
 
-      <div style="display:flex; align-items:center; gap:1rem; margin-top:1rem;">
-        <p class="refresh-note" id="refresh-note">Auto-refreshes every 60 seconds.</p>
-        <span id="vault-sync-ts" style="font-size:0.75rem; color:#6b7280;"></span>
-        <button id="sync-btn" onclick="syncVault()" style="font-size:0.75rem; padding:0.2rem 0.6rem; border-radius:4px; border:1px solid #d1d5db; background:#f9fafb; cursor:pointer;">↻ Sync vault</button>
+      <!-- Vault error -->
+      <div class="tb-error" id="vault-error"></div>
+
+      <!-- Board -->
+      <div class="kb-board" id="kanban-board">
+        <div class="kb-col col-inbox">
+          <div class="kb-col-header">
+            <span>📥 Inbox</span>
+            <span class="kb-count" id="count-inbox">—</span>
+          </div>
+          <div class="kb-col-body" id="col-inbox-cards">
+            <div class="kb-empty">Loading…</div>
+          </div>
+        </div>
+
+        <div class="kb-col col-inprogress">
+          <div class="kb-col-header">
+            <span>🔄 In Progress</span>
+            <span class="kb-count" id="count-inprogress">—</span>
+          </div>
+          <div class="kb-col-body" id="col-inprogress-cards">
+            <div class="kb-empty">Loading…</div>
+          </div>
+        </div>
+
+        <div class="kb-col col-blocked">
+          <div class="kb-col-header">
+            <span>🚫 Blocked</span>
+            <span class="kb-count" id="count-blocked">—</span>
+          </div>
+          <div class="kb-col-body" id="col-blocked-cards">
+            <div class="kb-empty">Loading…</div>
+          </div>
+        </div>
+
+        <div class="kb-col col-done">
+          <div class="kb-col-header">
+            <span>✅ Done</span>
+            <span class="kb-count" id="count-done">—</span>
+          </div>
+          <div class="kb-col-body" id="col-done-cards">
+            <div class="kb-empty">Loading…</div>
+          </div>
+        </div>
       </div>
+
     </main>
   </div>
 
   <script>
-    // --- Sidebar / theme boilerplate ---
+    /* ── Sidebar / theme boilerplate ── */
     (function () {
       const toggle  = document.getElementById('sidebar-toggle');
       const sidebar = document.getElementById('oc-sidebar');
@@ -189,7 +310,7 @@
       }
       const themeBtn = document.getElementById('theme-toggle');
       const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
-      let theme      = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+      let theme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
       document.body.classList.add(theme + '-mode');
       themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
       themeBtn.addEventListener('click', () => {
@@ -201,144 +322,124 @@
       });
     })();
 
-    const DONE_TRUNCATE = 10;
-    let currentData = null;
+    /* ── State ── */
+    const DONE_LIMIT = 10;
+    let currentData  = null;
     let doneExpanded = false;
 
-    function priorityChip(priority) {
-      if (!priority) return '';
-      const p = priority.toLowerCase();
-      let cls = 'chip-default';
-      if (p.includes('critical'))  cls = 'chip-critical';
-      else if (p.includes('high')) cls = 'chip-high';
-      else if (p.includes('med'))  cls = 'chip-medium';
-      else if (p.includes('low'))  cls = 'chip-low';
-      return `<span class="chip ${cls}">${priority}</span>`;
+    /* ── Helpers ── */
+    function priorityChip(p) {
+      if (!p) return '';
+      const lp = p.toLowerCase();
+      let cls = '';
+      if (lp.includes('critical'))   cls = 'chip-critical';
+      else if (lp.includes('high'))  cls = 'chip-high';
+      else if (lp.includes('med'))   cls = 'chip-medium';
+      else if (lp.includes('low'))   cls = 'chip-low';
+      else return ''; /* skip date strings / empty */
+      return `<span class="chip ${cls}">${p}</span>`;
     }
 
-    function taskCard(task, extraClass) {
-      const idHtml = task.taskId
-        ? `<div class="task-id">${task.taskId}</div>`
-        : '';
-      const titleEl = task.link
-        ? `<a href="${task.link}" class="task-title" style="color:inherit;text-decoration:none;" target="_blank">${task.title || '(untitled)'}</a>`
-        : `<div class="task-title">${task.title || '(untitled)'}</div>`;
-      const agentChip = task.agent
-        ? `<span class="chip chip-agent">${task.agent}</span>`
-        : '';
-      const dateStr = task.created || task.deadline || '';
-      const dateEl  = dateStr ? `<span class="kb-date">${dateStr}</span>` : '';
-
-      return `
-        <div class="kb-card ${extraClass || ''}">
-          ${idHtml}
-          ${titleEl}
-          <div class="task-footer">
-            ${agentChip}
-            ${priorityChip(task.priority)}
-            ${dateEl}
-          </div>
-        </div>`;
+    function agentColor(agent) {
+      const map = { spike:'#7c3aed', steve:'#2563eb', lex:'#0891b2', bill:'#d97706', jimmy:'#059669' };
+      const col = map[(agent||'').toLowerCase()] || '#4b5563';
+      return `background:${col}22; color:${col};`;
     }
 
-    function renderColumn(containerId, tasks, isBlocked, isDone) {
-      const container = document.getElementById(containerId);
-      if (!tasks || tasks.length === 0) {
-        container.innerHTML = '<div style="color:#4b5563;font-size:0.8rem;text-align:center;padding:1rem;">Empty</div>';
+    function card(task, extraCls) {
+      const idBadge = task.taskId
+        ? `<div class="task-id">${task.taskId}</div>` : '';
+      const title = (task.title || '(untitled)').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const titleEl = `<div class="task-title">${title}</div>`;
+      const agentEl = task.agent
+        ? `<span class="chip chip-agent" style="${agentColor(task.agent)}">${task.agent}</span>` : '';
+      const pri = priorityChip(task.priority);
+      const date = (task.created || task.deadline || '').replace(/</g,'&lt;');
+      const dateEl = date && date !== '—' ? `<span class="kb-date">${date}</span>` : '';
+      return `<div class="kb-card ${extraCls||''}">
+        ${idBadge}${titleEl}
+        <div class="task-footer">${agentEl}${pri}${dateEl}</div>
+      </div>`;
+    }
+
+    function renderCol(id, tasks, blocked, isDone) {
+      const el = document.getElementById(id);
+      if (!tasks || !tasks.length) {
+        el.innerHTML = '<div class="kb-empty">Empty</div>';
         return;
       }
-
-      const extraClass = isBlocked ? 'is-blocked' : '';
-
-      if (isDone && !doneExpanded && tasks.length > DONE_TRUNCATE) {
-        const visible = tasks.slice(0, DONE_TRUNCATE);
-        const rest    = tasks.length - DONE_TRUNCATE;
-        container.innerHTML =
-          visible.map(t => taskCard(t, '')).join('') +
-          `<button class="show-more-btn" onclick="expandDone()">Show ${rest} more…</button>`;
+      const cls = blocked ? 'is-blocked' : '';
+      if (isDone && !doneExpanded && tasks.length > DONE_LIMIT) {
+        const rest = tasks.length - DONE_LIMIT;
+        el.innerHTML = tasks.slice(0, DONE_LIMIT).map(t => card(t, '')).join('') +
+          `<button class="show-more-btn" onclick="expandDone()">+${rest} more</button>`;
       } else {
-        container.innerHTML = tasks.map(t => taskCard(t, extraClass)).join('');
-        if (isDone && tasks.length > DONE_TRUNCATE && doneExpanded) {
-          container.innerHTML += `<button class="show-more-btn" onclick="collapseDone()">Show less</button>`;
-        }
+        el.innerHTML = tasks.map(t => card(t, cls)).join('');
+        if (isDone && tasks.length > DONE_LIMIT)
+          el.innerHTML += `<button class="show-more-btn" onclick="collapseDone()">Show less</button>`;
       }
     }
 
-    function expandDone() {
-      doneExpanded = true;
-      if (currentData) renderColumn('col-done-cards', currentData.done, false, true);
-    }
+    function expandDone()  { doneExpanded = true;  if (currentData) renderCol('col-done-cards', currentData.done, false, true); }
+    function collapseDone(){ doneExpanded = false; if (currentData) renderCol('col-done-cards', currentData.done, false, true); }
 
-    function collapseDone() {
-      doneExpanded = false;
-      if (currentData) renderColumn('col-done-cards', currentData.done, false, true);
-    }
-
+    /* ── Load board ── */
     async function loadBoard() {
-      const errBox = document.getElementById('vault-error');
+      const err = document.getElementById('vault-error');
       try {
-        const resp = await fetch('/api/vault/task-board');
-        const data = await resp.json();
-
+        const data = await fetch('/api/vault/task-board').then(r => r.json());
         if (data.error) {
-          errBox.style.display = 'block';
-          errBox.textContent   = '⚠️ Vault unavailable: ' + (data.details || data.error);
-          ['inbox','inprogress','blocked','done'].forEach(k => {
-            document.getElementById('col-' + k + '-cards').innerHTML =
-              '<div style="color:#6b7280;font-size:0.8rem;">No data</div>';
-          });
+          err.style.display = 'block';
+          err.textContent = '⚠️ Vault unavailable: ' + (data.details || data.error);
+          ['inbox','inprogress','blocked','done'].forEach(k =>
+            document.getElementById('col-'+k+'-cards').innerHTML = '<div class="kb-empty">No data</div>');
           return;
         }
-
-        errBox.style.display = 'none';
+        err.style.display = 'none';
         currentData = data;
-
         document.getElementById('count-inbox').textContent      = data.inbox.length;
         document.getElementById('count-inprogress').textContent = data.inProgress.length;
         document.getElementById('count-blocked').textContent    = data.blocked.length;
         document.getElementById('count-done').textContent       = data.done.length;
-
-        renderColumn('col-inbox-cards',     data.inbox,      false, false);
-        renderColumn('col-inprogress-cards', data.inProgress, false, false);
-        renderColumn('col-blocked-cards',   data.blocked,    true,  false);
-        renderColumn('col-done-cards',      data.done,       false, true);
-
-        document.getElementById('refresh-note').textContent =
-          'Last updated: ' + new Date().toLocaleTimeString() + ' · Auto-refreshes every 60s';
-
-      } catch (err) {
-        errBox.style.display = 'block';
-        errBox.textContent   = '⚠️ Failed to fetch task board: ' + err.message;
+        renderCol('col-inbox-cards',      data.inbox,      false, false);
+        renderCol('col-inprogress-cards', data.inProgress, false, false);
+        renderCol('col-blocked-cards',    data.blocked,    true,  false);
+        renderCol('col-done-cards',       data.done,       false, true);
+        document.getElementById('tb-refresh-note').textContent =
+          'Updated ' + new Date().toLocaleTimeString();
+      } catch(e) {
+        err.style.display = 'block';
+        err.textContent = '⚠️ ' + e.message;
       }
     }
 
+    /* ── Sync vault ── */
     async function syncVault() {
       const btn = document.getElementById('sync-btn');
-      const ts  = document.getElementById('vault-sync-ts');
-      btn.disabled = true;
-      btn.textContent = '↻ Syncing…';
+      const ts  = document.getElementById('tb-sync-ts');
+      btn.disabled = true; btn.textContent = '↻ Syncing…';
       try {
-        const r = await fetch('/api/vault/sync', { method: 'POST' });
-        const d = await r.json();
+        const d = await fetch('/api/vault/sync', { method:'POST' }).then(r => r.json());
         if (d.ok) {
-          ts.textContent = '· Vault synced ' + new Date().toLocaleTimeString();
+          ts.textContent = '· synced ' + new Date().toLocaleTimeString();
           await loadBoard();
         } else {
-          ts.textContent = '· Sync failed: ' + (d.error || d.stderr || 'unknown');
+          ts.textContent = '· sync failed: ' + (d.error || d.stderr || 'unknown');
         }
       } catch(e) {
-        ts.textContent = '· Sync error: ' + e.message;
+        ts.textContent = '· error: ' + e.message;
       } finally {
-        btn.disabled = false;
-        btn.textContent = '↻ Sync vault';
+        btn.disabled = false; btn.textContent = '↻ Sync';
       }
     }
 
+    /* ── Boot ── */
     loadBoard();
     setInterval(loadBoard, 60000);
     fetch('/api/vault/status').then(r=>r.json()).then(d=>{
-      if (d.lastSyncAt) document.getElementById('vault-sync-ts').textContent =
-        '· Vault synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
+      if (d.lastSyncAt)
+        document.getElementById('tb-sync-ts').textContent =
+          '· synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
     }).catch(()=>{});
   </script>
 </body>
