@@ -757,3 +757,120 @@ a:hover {
 .dark-mode .btn-secondary:hover {
     background-color: #5a6268;
 }
+
+/* ============================================================
+   MOBILE  —  icon-only nav rail  (≤ 820px)
+   ============================================================ */
+@media (max-width: 820px) {
+
+    /* iOS safe-area: push header below notch/Dynamic Island */
+    .oc-header {
+        padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+        height: auto;
+        min-height: 60px;
+        box-sizing: border-box;
+    }
+
+    /* Prevent iOS auto-zoom on input focus */
+    input, textarea, select {
+        font-size: max(16px, 0.9rem) !important;
+    }
+
+    /* Momentum scroll + no pull-to-refresh on main content */
+    .oc-main-content {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    /* ── Icon rail ─────────────────────────────────────────── */
+    .oc-sidebar {
+        width: 52px;
+        min-width: 52px;
+        padding-top: 0.5rem;
+        /* Safe area for home bar at the bottom */
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* Collapsed class still works — just make it 0 */
+    .oc-sidebar.collapsed {
+        width: 0;
+        min-width: 0;
+    }
+
+    /* Section headings — hidden, no room */
+    .oc-sidebar .nav-group-title {
+        display: none;
+    }
+
+    /* Nav links: hide text via font-size:0, center the icon */
+    .oc-sidebar nav ul li a {
+        font-size: 0;           /* hides text node */
+        justify-content: center;
+        padding: 0.65rem 0;
+    }
+
+    /* Restore emoji size and remove left margin */
+    .oc-sidebar nav ul li a .icon {
+        font-size: 1.35rem;
+        margin-right: 0;
+        width: 28px;
+        height: 28px;
+    }
+
+    /* Active indicator — left border becomes bottom border so it still shows */
+    .oc-sidebar nav ul li a.active {
+        border-right: none;
+        border-bottom: 2px solid var(--oc-primary-purple);
+    }
+
+    /* Tighten list spacing */
+    .oc-sidebar nav ul {
+        margin-bottom: 0.25rem;
+    }
+
+    /* ── Main content: safe-area side padding ───────────────── */
+    main, .oc-dashboard-area {
+        padding-left:  max(0.75rem, env(safe-area-inset-left,  0px));
+        padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Dashboard card grid: single column on narrow screens */
+    .oc-dashboard-area {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1rem max(0.75rem, env(safe-area-inset-right, 0px))
+                 max(1rem, env(safe-area-inset-bottom, 0px))
+                 max(0.75rem, env(safe-area-inset-left, 0px));
+    }
+
+    /* Tables: horizontal scroll instead of overflow */
+    .oc-agent-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Kanban board: horizontal scroll */
+    .kanban-board {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.5rem;
+    }
+
+    /* Header: shrink title slightly */
+    .oc-header .logo .main-title {
+        font-size: 1.3rem;
+    }
+    .oc-header .logo .tagline {
+        font-size: 0.6rem;
+    }
+
+    /* Buttons in header: 44px tap targets */
+    .oc-header .control-button {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.1rem;
+    }
+}
