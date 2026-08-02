@@ -276,10 +276,11 @@ app.get('/api/swarm/summary', async (req, res) => {
     if (!status.available) return vaultUnavailable(res, status.error);
 
     // Fetch in parallel
-    const [taskBoard, agents, heartbeats] = await Promise.all([
+    const [taskBoard, agents, heartbeats, heatmap] = await Promise.all([
       vaultReader.getTaskBoard().catch(e => ({ error: e.message })),
       vaultReader.getAgentRegistry().catch(e => []),
       vaultReader.getHeartbeats({ limit: 200 }).catch(e => []),
+      vaultReader.getActivityHeatmap().catch(e => ({ days: [], agents: [] })),
     ]);
 
     // Build last-heartbeat-per-machine map
@@ -295,9 +296,16 @@ app.get('/api/swarm/summary', async (req, res) => {
     res.json({
       vaultPath: VAULT_PATH,
       taskBoardStats: taskBoard.stats || {},
+      taskBoard: {
+        inbox:      (taskBoard.inbox      || []).slice(0, 8),
+        inProgress: (taskBoard.inProgress || []).slice(0, 8),
+        blocked:    (taskBoard.blocked    || []).slice(0, 8),
+        done:       (taskBoard.done       || []).slice(0, 5),
+      },
       agents,
       lastHeartbeat,
       alerts,
+      heatmap,
     });
   } catch (err) {
     console.error(`Error building swarm summary: ${err.message}`);

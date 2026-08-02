@@ -112,8 +112,88 @@
     .ac-link   { font-size: 0.7rem; color: #6b7280; text-decoration: none; padding: 1px 5px; border-radius: 4px; border: 1px solid #1f2937; }
     .ac-link:hover { color: #e2e8f0; border-color: #374151; }
 
-    /* ── Alert list ── */
-    .alert-list { display: flex; flex-direction: column; gap: 0.45rem; }
+    /* ── Heatmap styles ── */
+    .heatmap-section { margin-top: 0; }
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: 52px repeat(7, 1fr);
+      gap: 3px;
+      font-size: 0.68rem;
+    }
+    .hm-agent-label {
+      display: flex; align-items: center;
+      font-size: 0.7rem; font-weight: 600;
+      color: #9ca3af; padding-right: 4px;
+    }
+    .hm-day-label {
+      text-align: center; color: #4b5563;
+      padding-bottom: 3px; font-size: 0.62rem;
+    }
+    .hm-cell {
+      height: 26px; border-radius: 3px;
+      background: #111827; border: 1px solid #1f2937;
+      cursor: default; position: relative;
+      transition: transform .1s;
+    }
+    .hm-cell:hover { transform: scale(1.15); z-index: 5; }
+    .hm-cell .hm-tip {
+      display: none; position: absolute;
+      bottom: calc(100% + 5px); left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937; border: 1px solid #374151;
+      border-radius: 4px; padding: 3px 7px;
+      white-space: nowrap; font-size: 0.68rem;
+      color: #e2e8f0; pointer-events: none; z-index: 20;
+    }
+    .hm-cell:hover .hm-tip { display: block; }
+    .hm-legend {
+      display: flex; gap: 10px; align-items: center;
+      margin-top: 8px; font-size: 0.65rem; color: #4b5563;
+    }
+    .hm-legend-swatch {
+      width: 11px; height: 11px; border-radius: 2px; display: inline-block;
+    }
+
+    /* ── Pipeline styles ── */
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.7rem;
+    }
+    .pipe-col { }
+    .pipe-col-header {
+      font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 0.45rem;
+    }
+    .pipe-count {
+      background: #1f2937; border-radius: 9999px;
+      padding: 0px 6px; font-size: 0.65rem; color: #9ca3af;
+    }
+    .pipe-inbox    .pipe-col-header { color: #9ca3af; }
+    .pipe-wip      .pipe-col-header { color: #60a5fa; }
+    .pipe-blocked  .pipe-col-header { color: #f87171; }
+    .pipe-done     .pipe-col-header { color: #6ee7b7; }
+    .pipe-task {
+      background: #111827; border: 1px solid #1f2937;
+      border-radius: 5px; padding: 0.5rem 0.65rem;
+      margin-bottom: 0.4rem; font-size: 0.75rem;
+    }
+    .pipe-task-id { font-size: 0.62rem; color: #4b5563; font-family: monospace; margin-bottom: 2px; }
+    .pipe-task-title { color: #d1d5db; line-height: 1.35; }
+    .pipe-task-agent {
+      margin-top: 5px; font-size: 0.62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .ta-spike { color: #f97316; } .ta-steve { color: #60a5fa; }
+    .ta-lex   { color: #c084fc; } .ta-bill  { color: #6ee7b7; }
+    .ta-jimmy { color: #fbbf24; } .ta-other { color: #9ca3af; }
+    .pipe-empty { font-size: 0.75rem; color: #374151; padding: 4px 0; }
+    @media (max-width: 700px) {
+      .pipeline-grid { grid-template-columns: repeat(2, 1fr); }
+      .heatmap-grid  { grid-template-columns: 44px repeat(7, 1fr); }
+    } display: flex; flex-direction: column; gap: 0.45rem; }
     .alert-item {
       background: rgba(194,65,12,0.12);
       border: 1px solid #9a3412;
@@ -200,6 +280,29 @@
       <div class="sw-section">🚨 Needs Attention</div>
       <div id="alerts-container">
         <div style="color:#4b5563; font-size:0.8rem;">Loading…</div>
+      </div>
+
+      <!-- Activity Heatmap -->
+      <div class="sw-section">📊 7-Day Activity</div>
+      <div class="heatmap-section">
+        <div class="heatmap-grid" id="heatmap-grid">
+          <div style="color:#4b5563;font-size:.75rem;">Loading…</div>
+        </div>
+        <div class="hm-legend">
+          <span>Less</span>
+          <span class="hm-legend-swatch" style="background:#111827;border:1px solid #1f2937"></span>
+          <span class="hm-legend-swatch" style="background:#1e3a5f"></span>
+          <span class="hm-legend-swatch" style="background:#1d4ed8"></span>
+          <span class="hm-legend-swatch" style="background:#3b82f6"></span>
+          <span class="hm-legend-swatch" style="background:#93c5fd"></span>
+          <span>More</span>
+        </div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="sw-section">🗂️ Task Pipeline</div>
+      <div class="pipeline-grid" id="pipeline-grid">
+        <div style="color:#4b5563;font-size:.75rem;">Loading…</div>
       </div>
 
       <!-- Bottom padding -->
@@ -331,6 +434,12 @@
             }).join('') + '</div>'
           : '<div class="no-alerts">✅ No unhandled alerts</div>';
 
+        /* heatmap */
+        renderHeatmap(data.heatmap || { days: [], agents: [] });
+
+        /* pipeline */
+        renderPipeline(data.taskBoard || {});
+
         document.getElementById('sw-refresh-note').textContent =
           'Updated ' + new Date().toLocaleTimeString();
 
@@ -359,6 +468,87 @@
 
     loadSummary();
     setInterval(loadSummary, 30000);
+
+    /* ── Heatmap renderer ── */
+    function renderHeatmap({ days, agents }) {
+      const grid = document.getElementById('heatmap-grid');
+      if (!days || !days.length) { grid.innerHTML = '<div style="color:#4b5563;font-size:.75rem;">No data</div>'; return; }
+
+      // Color scale per agent (4 levels + zero)
+      const scales = {
+        Spike: ['#111827','#431407','#7c2d12','#c2410c','#f97316'],
+        Steve: ['#111827','#1e3a5f','#1e40af','#2563eb','#60a5fa'],
+        Lex:   ['#111827','#3b0764','#6b21a8','#9333ea','#c084fc'],
+        Bill:  ['#111827','#052e16','#065f46','#059669','#6ee7b7'],
+      };
+      function cellColor(name, n) {
+        const s = scales[name] || scales.Spike;
+        if (n === 0) return s[0];
+        if (n <= 3)  return s[1];
+        if (n <= 7)  return s[2];
+        if (n <= 14) return s[3];
+        return s[4];
+      }
+
+      const dayLabels = days.map(d => {
+        const dt = new Date(d + 'T12:00:00');
+        return dt.toLocaleDateString([], { month:'short', day:'numeric' });
+      });
+
+      let html = '';
+      // Day header row
+      html += '<div></div>'; // blank corner
+      for (const lbl of dayLabels) {
+        html += `<div class="hm-day-label">${lbl}</div>`;
+      }
+      // Agent rows
+      for (const agent of agents) {
+        html += `<div class="hm-agent-label" style="color:${(scales[agent.name]||scales.Spike)[3]}">${agent.name}</div>`;
+        agent.counts.forEach((n, i) => {
+          const bg  = cellColor(agent.name, n);
+          const tip = `${agent.name} · ${dayLabels[i]} · ${n} commit${n!==1?'s':''}`;
+          html += `<div class="hm-cell" style="background:${bg}" title="${tip}"><span class="hm-tip">${tip}</span></div>`;
+        });
+      }
+      grid.innerHTML = html;
+    }
+
+    /* ── Pipeline renderer ── */
+    function agentClass(a) {
+      if (!a) return 'ta-other';
+      const s = a.toLowerCase();
+      if (s.includes('spike')) return 'ta-spike';
+      if (s.includes('steve')) return 'ta-steve';
+      if (s.includes('lex'))   return 'ta-lex';
+      if (s.includes('bill'))  return 'ta-bill';
+      if (s.includes('jimmy')) return 'ta-jimmy';
+      return 'ta-other';
+    }
+    function taskCard(t) {
+      const title = (t.title || t.description || '').replace(/\*\*/g,'').replace(/—.*$/,'').trim();
+      const short = title.length > 70 ? title.slice(0,70)+'…' : title;
+      const id = t.id || t.taskId || '';
+      const agent = t.assignedTo || t.agent || '';
+      return `<div class="pipe-task">
+        ${id ? `<div class="pipe-task-id">${id}</div>` : ''}
+        <div class="pipe-task-title">${short}</div>
+        ${agent ? `<div class="pipe-task-agent ${agentClass(agent)}">${agent.toUpperCase()}</div>` : ''}
+      </div>`;
+    }
+    function renderPipeline({ inbox=[], inProgress=[], blocked=[], done=[] }) {
+      const cols = [
+        { key:'pipe-inbox',   label:'📥 Inbox',       items: inbox },
+        { key:'pipe-wip',     label:'🔄 In Progress', items: inProgress },
+        { key:'pipe-blocked', label:'🔴 Blocked',     items: blocked },
+        { key:'pipe-done',    label:'✅ Done',        items: done },
+      ];
+      document.getElementById('pipeline-grid').innerHTML = cols.map(col => `
+        <div class="pipe-col ${col.key}">
+          <div class="pipe-col-header">${col.label} <span class="pipe-count">${col.items.length}</span></div>
+          ${col.items.length ? col.items.map(taskCard).join('') : '<div class="pipe-empty">Empty</div>'}
+        </div>`
+      ).join('');
+    }
     fetch('/api/vault/status').then(r=>r.json()).then(d => {
       if (d.lastSyncAt)
         document.getElementById('sw-sync-ts').textContent =
