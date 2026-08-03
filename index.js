@@ -294,6 +294,22 @@ app.get('/api/swarm/summary', async (req, res) => {
       if (!lastHeartbeat[key]) lastHeartbeat[key] = hb;
     }
 
+    // Fallback for agents that write work logs but not heartbeat files.
+    // Lex (Cursor) writes session logs to 03 - Agents/Cursor/ but never
+    // writes to the Heartbeats directory (Cursor has no background scheduler).
+    // Use the most recent dated .md file in that dir as a proxy for last-seen.
+    const LEX_KEY = 'BrightMove-MBP/Cursor';
+    if (!lastHeartbeat[LEX_KEY] || !lastHeartbeat[LEX_KEY].date) {
+      const lexDate = await vaultReader.getLatestEntryDate('03 - Agents/Cursor').catch(() => null);
+      if (lexDate) {
+        lastHeartbeat[LEX_KEY] = {
+          machine: 'BrightMove-MBP', subAgent: 'Cursor',
+          date: lexDate, isAlert: false, isHandled: false,
+          filename: 'work-log-fallback', type: 'work-log',
+        };
+      }
+    }
+
     // NEEDS-ATTENTION alerts (not handled)
     const alerts = heartbeats.filter(h => h.isAlert && !h.isHandled).slice(0, 20);
 
