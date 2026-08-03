@@ -65,9 +65,9 @@ app.get('/', (req, res) => {
   res.render('index', { title: 'OverClaw Gateway Dashboard' });
 });
 
-// Agents screen route
+// Agents screen route — swarm personas from vault registry
 app.get('/agents', (req, res) => {
-  res.render('agents', { title: 'OverClaw Agent Details' });
+  res.render('agents', { title: 'Swarm Agents', currentPath: '/agents' });
 });
 
 // Config Viewer screen route
@@ -80,19 +80,23 @@ app.get('/sessions', (req, res) => {
   res.render('sessions', { title: 'OverClaw Sessions Viewer' });
 });
 
-// Cron Jobs screen route
-app.get('/cron-jobs', (req, res) => {
-  res.render('cron-jobs', { title: 'OverClaw Cron Jobs' });
+// Scheduled Tasks — swarm-wide cron/loops view
+app.get('/scheduled-tasks', (req, res) => {
+  res.render('scheduled-tasks', { title: 'Scheduled Tasks', currentPath: '/scheduled-tasks' });
 });
+// Legacy redirect
+app.get('/cron-jobs', (req, res) => res.redirect(301, '/scheduled-tasks'));
 
-// Skills screen route
-app.get('/skills', (req, res) => {
-  res.render('skills', { title: 'OverClaw Skills' });
+// Tools & Models — swarm-wide capability/model view
+app.get('/tools', (req, res) => {
+  res.render('tools', { title: 'Tools & Models', currentPath: '/tools' });
 });
+// Legacy redirect
+app.get('/skills', (req, res) => res.redirect(301, '/tools'));
 
-// Nodes screen route
+// Nodes — physical machines in the swarm
 app.get('/nodes', (req, res) => {
-  res.render('nodes', { title: 'OverClaw Nodes' });
+  res.render('nodes', { title: 'Swarm Nodes', currentPath: '/nodes' });
 });
 
 // Logs screen route

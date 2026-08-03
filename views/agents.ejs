@@ -25,217 +25,121 @@
 <%- include('partials/sidebar', { currentPath: '/agents' }) %>
 
         <main class="oc-dashboard-area">
-            <div class="oc-card full-width">
-                <h2>OpenClaw Agents Overview</h2>
-                <div id="agents-detail-list">
-                    <p>Loading detailed agent information...</p>
-                </div>
-            </div>
+          <style>
+            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
+            .sw-section:first-of-type { margin-top:0; }
+
+            .roster-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.75rem; }
+
+            .persona-card {
+              background:#111827; border:1px solid #1f2937; border-radius:10px;
+              padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.3rem;
+              border-top:3px solid var(--ac,#374151);
+            }
+            .pc-header { display:flex; align-items:flex-start; gap:.6rem; }
+            .pc-emoji  { font-size:1.6rem; line-height:1; flex-shrink:0; }
+            .pc-name   { font-size:1.05rem; font-weight:800; color:var(--ac,#e2e8f0); }
+            .pc-type   { font-size:.68rem; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; }
+            .pc-machine{ font-size:.74rem; color:#9ca3af; margin-top:.1rem; }
+            .pc-role-title  { font-size:.78rem; font-weight:600; color:#cbd5e1; margin-top:.25rem; }
+            .pc-role-detail { font-size:.73rem; color:#6b7280; line-height:1.4;
+              display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+            .pc-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.3rem; margin-top:.45rem; }
+            .pc-reg    { font-size:.67rem; color:#374151; }
+            .pc-links  { display:flex; gap:.35rem; }
+            .pc-link   { font-size:.69rem; color:#6b7280; text-decoration:none; padding:2px 6px; border-radius:4px; border:1px solid #1f2937; }
+            .pc-link:hover { color:#e2e8f0; border-color:#374151; }
+            .pc-badge  { font-size:.64rem; font-weight:600; padding:1px 7px; border-radius:9999px; white-space:nowrap; margin-left:auto; flex-shrink:0; }
+            .badge-active   { background:#14532d; color:#86efac; }
+            .badge-inactive { background:#7f1d1d; color:#fca5a5; }
+            .badge-unknown  { background:#1f2937; color:#6b7280; }
+            #agents-err { display:none; color:#f87171; font-size:.82rem; margin-bottom:.5rem; }
+          </style>
+
+          <div class="sw-section">🤖 Swarm Roster</div>
+          <div id="agents-err"></div>
+          <div class="roster-grid" id="roster-grid">
+            <div style="color:#4b5563;font-size:.8rem;">Loading…</div>
+          </div>
         </main>
     </div>
 
     <script>
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebar = document.getElementById('oc-sidebar');
+      /* ── sidebar/theme boilerplate ── */
+      (function(){
+        const sb = document.getElementById('oc-sidebar');
+        const btn = document.getElementById('sidebar-toggle');
+        let col = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if(col) sb.classList.add('collapsed');
+        btn.addEventListener('click',()=>{ col=!col; sb.classList.toggle('collapsed',col); localStorage.setItem('overclaw-sidebar-collapsed',col); });
+        const th = document.getElementById('theme-toggle');
+        let tm = localStorage.getItem('overclaw-theme') || (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+        document.body.classList.add(tm+'-mode'); th.textContent = tm==='dark'?'🌙':'☀️';
+        th.addEventListener('click',()=>{ tm=tm==='light'?'dark':'light'; document.body.classList.toggle('light-mode',tm==='light'); document.body.classList.toggle('dark-mode',tm==='dark'); localStorage.setItem('overclaw-theme',tm); th.textContent=tm==='dark'?'🌙':'☀️'; });
+      })();
 
-        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (sidebarCollapsed) {
-            sidebar.classList.add('collapsed');
-        } else {
-            sidebar.classList.remove('collapsed');
+      /* ── Agents roster ── */
+      const AGENT_META = {
+        Spike: { emoji:'🦞', color:'#f97316' },
+        Steve: { emoji:'📈', color:'#3b82f6' },
+        Lex:   { emoji:'💻', color:'#a855f7' },
+        Bill:  { emoji:'🐟', color:'#10b981' },
+      };
+
+      function badgeCls(s) {
+        if (!s) return 'badge-unknown';
+        const l = s.toLowerCase();
+        if (l.includes('active')) return 'badge-active';
+        if (l.includes('inactive') || l.includes('offline')) return 'badge-inactive';
+        return 'badge-unknown';
+      }
+      function badgeText(s) {
+        return (s||'Unknown').replace(/^[^\w]*/,'').trim();
+      }
+
+      async function loadRoster() {
+        const grid = document.getElementById('roster-grid');
+        const err  = document.getElementById('agents-err');
+        try {
+          const data = await fetch('/api/vault/agents').then(r => r.json());
+          if (!Array.isArray(data) || !data.length) {
+            grid.innerHTML = '<div style="color:#6b7280;font-size:.8rem;">No agents in registry.</div>';
+            return;
+          }
+          grid.innerHTML = data.map(a => {
+            const name    = a.nickname || a.agent || 'Agent';
+            const meta    = AGENT_META[name] || { emoji:'🤖', color:'#6b7280' };
+            const parts   = (a.primary_role || a.role || '').split(' — ');
+            const roleT   = parts[0] ? parts[0].trim() : '';
+            const roleD   = parts.slice(1).join(' — ').trim();
+            return `<div class="persona-card" style="--ac:${meta.color}">
+              <div class="pc-header">
+                <span class="pc-emoji">${meta.emoji}</span>
+                <div style="flex:1;min-width:0">
+                  <div class="pc-name">${name}</div>
+                  <div class="pc-type">${a.type || 'AI Agent'}</div>
+                </div>
+                <span class="pc-badge ${badgeCls(a.status)}">${badgeText(a.status)}</span>
+              </div>
+              <div class="pc-machine">💻 ${a.machine || '—'}</div>
+              ${roleT   ? `<div class="pc-role-title">${roleT}</div>` : ''}
+              ${roleD   ? `<div class="pc-role-detail">${roleD}</div>` : ''}
+              <div class="pc-footer">
+                <span class="pc-reg">Since ${a.registered || '—'}</span>
+                <div class="pc-links">
+                  <a href="/activity?agent=${encodeURIComponent(name)}" class="pc-link">📡 Activity</a>
+                  <a href="/vault/doc?path=${encodeURIComponent('03 - Agents/Agent Registry.md')}" class="pc-link">📋 Registry</a>
+                </div>
+              </div>
+            </div>`;
+          }).join('');
+        } catch(e) {
+          err.style.display = 'block';
+          err.textContent   = '⚠️ Failed to load agents: ' + e.message;
+          grid.innerHTML    = '';
         }
-
-        sidebarToggle.addEventListener('click', () => {
-            sidebarCollapsed = !sidebarCollapsed;
-            if (sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-            } else {
-                sidebar.classList.remove('collapsed');
-            }
-            localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
-        });
-
-        const themeToggle = document.getElementById('theme-toggle');
-        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-
-        let currentTheme = localStorage.getItem('overclaw-theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
-        document.body.classList.add(currentTheme + '-mode');
-        if (currentTheme === 'dark') {
-            themeToggle.textContent = '🌙';
-        } else {
-            themeToggle.textContent = '☀️';
-        }
-
-        themeToggle.addEventListener('click', () => {
-            currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
-            document.body.classList.toggle('light-mode', currentTheme === 'light');
-            document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-            localStorage.setItem('overclaw-theme', currentTheme);
-            if (currentTheme === 'dark') {
-                themeToggle.textContent = '🌙';
-            } else {
-                themeToggle.textContent = '☀️';
-            }
-        });
-
-        prefersDarkScheme.addEventListener('change', (e) => {
-            if (!localStorage.getItem('overclaw-theme')) {
-                currentTheme = e.matches ? 'dark' : 'light';
-                document.body.classList.toggle('light-mode', currentTheme === 'light');
-                document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-                if (currentTheme === 'dark') {
-                    themeToggle.textContent = '🌙';
-                } else {
-                    themeToggle.textContent = '☀️';
-                }
-            }
-        });
-
-        // Helper function to extract agent ID from session key
-        function getAgentIdFromSessionKey(sessionKey) {
-            const parts = sessionKey.split(':');
-            if (parts.length > 1 && parts[0] === 'agent') {
-                return parts[1]; // e.g., 'main', 'sheeba-m', 'buster-mcthunderstick'
-            }
-            return null; 
-        }
-
-        // --- Fetch Agent and Session Data ---
-        async function fetchAgentDetails() {
-            const agentsDetailListDiv = document.getElementById('agents-detail-list');
-            try {
-                console.log('Fetching /api/agents...');
-                const agentsResponse = await fetch('/api/agents');
-                const agents = await agentsResponse.json();
-                console.log('Agents data (from /api/agents):', agents);
-
-                if (agents.error) {
-                    agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching agents: ${agents.error}</p><p>Details: ${agents.details || 'N/A'}</p><p>Stdout (partial): ${agents.stdout || 'N/A'}</p>`;
-                    return;
-                }
-
-                console.log('Fetching /api/sessions-detail...');
-                const sessionsResponse = await fetch('/api/sessions-detail');
-                const sessionsData = await sessionsResponse.json();
-                console.log('Sessions raw data (from /api/sessions-detail):', sessionsData);
-
-                if (sessionsData.error) {
-                    agentsDetailListDiv.innerHTML = `<p style="color: red;">Error fetching sessions: ${sessionsData.error}</p><p>Details: ${sessionsData.details || 'N/A'}</p><p>Stdout (partial): ${sessionsData.stdout || 'N/A'}</p>`;
-                    return;
-                }
-
-                // Normalize sessions to always have updatedAtMs
-                const allSessions = (sessionsData.sessions || []).map(s => ({
-                    ...s,
-                    updatedAtMs: s.updatedAtMs || (s.updatedAt ? new Date(s.updatedAt).getTime() : undefined)
-                }));
-                console.log('All sessions available for processing (normalized updatedAtMs):', allSessions);
-
-                const combinedData = agents.map(agent => {
-                    const agentSessions = allSessions.filter(session => {
-                        const extractedAgentId = getAgentIdFromSessionKey(session.key);
-                        console.log(`Comparing agent.id: ${agent.id} with extractedAgentId: ${extractedAgentId} for session key: ${session.key} (raw session.agentId: ${session.agentId})`);
-                        return extractedAgentId === agent.id;
-                    });
-                    console.log(`Filtered sessions for agent ${agent.name} (${agent.id}):`, agentSessions);
-                    
-                    // Sort sessions by updatedAtMs in descending order (most recent first)
-                    agentSessions.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
-
-                    // Determine last activity
-                    const lastActivityMs = agentSessions.length > 0 
-                        ? Math.max(...agentSessions.filter(s => s.updatedAtMs !== undefined).map(s => s.updatedAtMs))
-                        : null; // Filter out undefined updatedAtMs
-                    const lastActivity = lastActivityMs ? new Date(lastActivityMs).toLocaleString() : 'N/A';
-
-                    // Determine active sessions (e.g., updated within the last 5 minutes)
-                    const ACTIVE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
-                    const now = Date.now();
-                    const activeSessions = agentSessions.filter(s => {
-                        const ageMs = now - (s.updatedAtMs || 0); // Use 0 if updatedAtMs is still undefined
-                        const isActive = (s.updatedAtMs !== undefined) && (ageMs < ACTIVE_THRESHOLD_MS); // Ensure updatedAtMs exists
-                        console.log(`Session key: ${s.key}, updatedAtMs: ${s.updatedAtMs}, now: ${now}, ageMs: ${ageMs}, threshold: ${ACTIVE_THRESHOLD_MS}. Is active? ${isActive}`);
-                        return isActive;
-                    }); 
-                    const activeSessionsCount = activeSessions.length;
-                    console.log(`Agent ${agent.name}: Active sessions (${ACTIVE_THRESHOLD_MS / 60000} min threshold):`, activeSessions);
-
-                    // Determine current task/last message from the most recent active session, then overall most recent
-                    const mostRelevantSession = activeSessions.length > 0 ? activeSessions[0] : (agentSessions.length > 0 ? agentSessions[0] : null);
-                    let currentTask = 'N/A';
-                    if (mostRelevantSession) {
-                        console.log(`Agent ${agent.name}: Most relevant session for task:`, mostRelevantSession);
-                        if (mostRelevantSession.message && typeof mostRelevantSession.message === 'string' && mostRelevantSession.message.length > 0) {
-                            currentTask = mostRelevantSession.message; 
-                        } else if (mostRelevantSession.lastMessage?.message && typeof mostRelevantSession.lastMessage.message === 'string' && mostRelevantSession.lastMessage.message.length > 0) {
-                            currentTask = mostRelevantSession.lastMessage.message; 
-                        } else if (mostRelevantSession.key) {
-                            const keyParts = mostRelevantSession.key.split(':');
-                            if (keyParts.includes('cron')) {
-                                currentTask = `Cron Job: ${keyParts[3] || 'Unknown'}`;
-                            } else if (keyParts.includes('subagent')) {
-                                currentTask = `Subagent: ${keyParts[2] || 'Unknown'}`;
-                            } else if (keyParts.includes('discord') || keyParts.includes('main')) {
-                                currentTask = `Chat Session: ${keyParts[keyParts.length - 1]}`;
-                            } else {
-                                currentTask = `Session: ${mostRelevantSession.key}`;
-                            }
-                        }
-                    }
-                    currentTask = currentTask.length > 100 ? currentTask.substring(0, 97) + '...' : currentTask; // Truncate long tasks
-                    
-                    return {
-                        ...agent,
-                        lastActivity,
-                        activeSessionsCount,
-                        currentTask,
-                    };
-                });
-
-                if (combinedData.length === 0) {
-                    agentsDetailListDiv.innerHTML = '<p>No detailed agent information available.</p>';
-                    return;
-                }
-
-                // Create Table
-                const table = document.createElement('table');
-                table.className = 'oc-agent-table'; // Add a class for table styling
-                table.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th>Agent Name</th>
-                            <th>ID</th>
-                            <th>Active Sessions</th>
-                            <th>Last Activity</th>
-                            <th>Current Task</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                `;
-                const tbody = table.querySelector('tbody');
-
-                combinedData.forEach(agent => {
-                    const row = tbody.insertRow();
-                    row.innerHTML = `
-                        <td><span class="icon">🤖</span> ${agent.name}</td>
-                        <td><code>${agent.id}</code></td>
-                        <td>${agent.activeSessionsCount}</td>
-                        <td>${agent.lastActivity}</td>
-                        <td>${agent.currentTask}</td>
-                    `;
-                });
-
-                agentsDetailListDiv.innerHTML = ''; // Clear loading message
-                agentsDetailListDiv.appendChild(table);
-
-            } catch (error) {
-                console.error('Error fetching agent details:', error);
-                agentsDetailListDiv.innerHTML = '<p style="color: red;">Failed to load detailed agent data due to client-side error. Check console for details.</p>';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', fetchAgentDetails);
+      }
+      loadRoster();
     </script>
 </body>
 </html>

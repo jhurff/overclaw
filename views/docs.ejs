@@ -25,61 +25,93 @@
 <%- include('partials/sidebar', { currentPath: '/docs' }) %>
 
         <main class="oc-dashboard-area">
-            <div class="oc-card full-width">
-                <h2>OverClaw Documentation</h2>
-                <div style="margin-top: 1rem;">
-                    <h3>Getting Started</h3>
-                    <ul>
-                        <li><strong>Dashboard:</strong> Overview of all agents and sessions</li>
-                        <li><strong>Agents:</strong> View active agents, their status, and activity</li>
-                        <li><strong>Sessions:</strong> Monitor OpenClaw sessions across all agents</li>
-                        <li><strong>Config:</strong> View and audit agent configuration files and memory</li>
-                    </ul>
+          <style>
+            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
+            .sw-section:first-of-type { margin-top:0; }
+            .doc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.75rem; margin-bottom:1.25rem; }
+            .doc-card { background:#111827; border:1px solid #1f2937; border-radius:10px; padding:.9rem 1rem; }
+            .doc-card h3 { font-size:.82rem; font-weight:700; color:#e2e8f0; margin:0 0 .4rem; display:flex; align-items:center; gap:.4rem; }
+            .doc-card ul { margin:0; padding-left:1rem; list-style:disc; }
+            .doc-card li { font-size:.75rem; color:#6b7280; margin-bottom:.22rem; line-height:1.4; }
+            .doc-card li strong { color:#9ca3af; }
+            .doc-link { font-size:.75rem; color:#6b7280; display:block; margin-bottom:.2rem; text-decoration:none; }
+            .doc-link:hover { color:#e2e8f0; }
+            .doc-note { font-size:.72rem; color:#4b5563; font-style:italic; margin-top:.3rem; }
+          </style>
 
-                    <h3>Administration</h3>
-                    <ul>
-                        <li><strong>Cron Jobs:</strong> Manage and monitor scheduled tasks</li>
-                        <li><strong>Logs:</strong> View system and application logs</li>
-                        <li><strong>Debug:</strong> System diagnostics and troubleshooting</li>
-                    </ul>
+          <div class="sw-section">📚 OverClaw Documentation</div>
+          <p style="font-size:.8rem;color:#6b7280;margin-bottom:1rem;">
+            OverClaw is the swarm oversight dashboard — it reads the vault (My-AI-Brain) as its source of truth, not any single OpenClaw instance. The nav is organized around the swarm, not the runtime.
+          </p>
 
-                    <h3>Resources</h3>
-                    <ul>
-                        <li><a href="https://docs.openclaw.ai" target="_blank">OpenClaw Official Docs</a></li>
-                        <li><a href="https://github.com/openclaw/openclaw" target="_blank">GitHub Repository</a></li>
-                        <li><a href="https://discord.com/invite/clawd" target="_blank">Community Discord</a></li>
-                    </ul>
-                </div>
+          <div class="doc-grid">
+
+            <div class="doc-card">
+              <h3>🌐 Swarm</h3>
+              <ul>
+                <li><strong>Swarm Overview</strong> — Health of all 4 agents at a glance: task stats, heartbeat dots, 7-day activity heatmap, alerts.</li>
+                <li><strong>Task Board</strong> — Vault task board (Inbox → In Progress → Blocked → Done). Click a stat card on the overview to jump to that column.</li>
+                <li><strong>Activity Feed</strong> — Live heartbeats and learnings per agent. Filter by agent pill or link from the swarm health cards.</li>
+                <li><strong>Vault Graph</strong> — Interactive knowledge graph of the My-AI-Brain Obsidian vault.</li>
+              </ul>
             </div>
+
+            <div class="doc-card">
+              <h3>🤖 Roster</h3>
+              <ul>
+                <li><strong>Agents</strong> — High-level personas for each swarm agent (Spike, Steve, Lex, Bill): role, runtime type, machine, status. Source: vault Agent Registry.</li>
+                <li><strong>Tools & Models</strong> — Per-agent capability cards: model family, tools available, and skill areas. Spike's model is pulled live from OpenClaw config.</li>
+                <li><strong>Nodes</strong> — Physical machines in the swarm. Shows OS, IP, assigned agents, and last heartbeat timestamp per machine.</li>
+              </ul>
+            </div>
+
+            <div class="doc-card">
+              <h3>🔁 Operations</h3>
+              <ul>
+                <li><strong>Dashboard</strong> — OverClaw home. Gateway status, version info, and quick links.</li>
+                <li><strong>Scheduled Tasks</strong> — All loops, cron jobs, and recurring work across the swarm. Spike's OpenClaw cron jobs are pulled live; other agents' known schedules are listed statically. Filter by agent.</li>
+                <li><strong>Sessions</strong> — Active OpenClaw sessions on this instance (Spike's runtime). Shows session list, model, and recent activity.</li>
+              </ul>
+            </div>
+
+            <div class="doc-card">
+              <h3>⚙️ Settings</h3>
+              <ul>
+                <li><strong>Config</strong> — View and audit agent configuration files (SOUL.md, MEMORY.md, AGENTS.md, openclaw.json, model settings).</li>
+                <li><strong>Logs</strong> — OpenClaw gateway application logs from this machine.</li>
+                <li><strong>Debug</strong> — System diagnostics, API health, and troubleshooting tools for this OverClaw instance.</li>
+              </ul>
+            </div>
+
+          </div>
+
+          <div class="sw-section">🔗 External Resources</div>
+          <div style="display:flex;flex-direction:column;gap:.3rem;margin-bottom:1rem;">
+            <a href="https://docs.openclaw.ai" target="_blank" class="doc-link">📖 OpenClaw Official Docs (docs.openclaw.ai)</a>
+            <a href="https://github.com/openclaw/openclaw" target="_blank" class="doc-link">🐙 OpenClaw GitHub (source)</a>
+            <a href="/vault/doc?path=03%20-%20Agents/Agent%20Registry.md" class="doc-link">🗂️ Agent Registry (vault)</a>
+            <a href="/vault/doc?path=03%20-%20Agents/Coordination/README.md" class="doc-link">📐 Coordination Protocol (vault)</a>
+            <a href="/vault/doc?path=08%20-%20QA-and-Monitoring/README.md" class="doc-link">🏥 QA & Monitoring Guide (vault)</a>
+          </div>
+
+          <div class="sw-section">🧠 Vault Authority</div>
+          <p style="font-size:.78rem;color:#6b7280;line-height:1.5;">
+            OverClaw reads <strong style="color:#9ca3af;">My-AI-Brain</strong> (the Obsidian vault at <code style="font-size:.72rem;color:#6366f1;">~/My-AI-Brain</code>) as its source of truth for agents, tasks, heartbeats, learnings, and activity. The vault is synced via git — Spike pulls on every heartbeat, Steve auto-pushes hourly. OverClaw itself does not write to the vault; agents write it, OverClaw reads it.
+          </p>
         </main>
     </div>
 
     <script>
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebar = document.getElementById('oc-sidebar');
-
-        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (sidebarCollapsed) sidebar.classList.add('collapsed');
-
-        sidebarToggle.addEventListener('click', () => {
-            sidebarCollapsed = !sidebarCollapsed;
-            sidebarCollapsed ? sidebar.classList.add('collapsed') : sidebar.classList.remove('collapsed');
-            localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
-        });
-
-        const themeToggle = document.getElementById('theme-toggle');
-        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-        let currentTheme = localStorage.getItem('overclaw-theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
-        document.body.classList.add(currentTheme + '-mode');
-        themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-
-        themeToggle.addEventListener('click', () => {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.body.classList.toggle('light-mode', currentTheme === 'light');
-            document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-            localStorage.setItem('overclaw-theme', currentTheme);
-            themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-        });
+      (function(){
+        const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+        let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+        if(col)sb.classList.add('collapsed');
+        btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+        const th=document.getElementById('theme-toggle');
+        let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+        document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+        th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+      })();
     </script>
 </body>
 </html>

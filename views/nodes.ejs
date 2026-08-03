@@ -25,39 +25,153 @@
 <%- include('partials/sidebar', { currentPath: '/nodes' }) %>
 
         <main class="oc-dashboard-area">
-            <div class="oc-card full-width">
-                <h2>OpenClaw Nodes</h2>
-                <p>Paired nodes and device management coming soon. Monitor connected hardware and remote systems.</p>
-            </div>
+          <style>
+            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
+            .sw-section:first-of-type { margin-top:0; }
+
+            .nodes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.75rem; }
+            .node-card {
+              background:#111827; border:1px solid #1f2937; border-radius:10px;
+              padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.3rem;
+              border-top:3px solid var(--ac,#374151);
+            }
+            .nc-header { display:flex; align-items:center; gap:.5rem; }
+            .nc-name   { font-size:1rem; font-weight:800; color:#e2e8f0; flex:1; }
+            .nc-dot    { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+            .dot-green  { background:#22c55e; box-shadow:0 0 5px #22c55e; }
+            .dot-yellow { background:#eab308; box-shadow:0 0 5px #eab308; }
+            .dot-red    { background:#ef4444; box-shadow:0 0 5px #ef4444; }
+            .dot-gray   { background:#374151; }
+            .nc-os     { font-size:.72rem; color:#6b7280; }
+            .nc-ip     { font-size:.72rem; color:#374151; font-family:monospace; }
+            .nc-agents { font-size:.73rem; color:#9ca3af; margin-top:.1rem; }
+            .nc-hb     { font-size:.72rem; color:#94a3b8; margin-top:.2rem; }
+            .nc-hb-stale { color:#6b7280; }
+            .nc-hb-never { color:#374151; font-style:italic; }
+            .nc-footer { display:flex; gap:.35rem; margin-top:.45rem; }
+            .nc-link   { font-size:.69rem; color:#6b7280; text-decoration:none; padding:2px 6px; border-radius:4px; border:1px solid #1f2937; }
+            .nc-link:hover { color:#e2e8f0; border-color:#374151; }
+            #nodes-err { display:none; color:#f87171; font-size:.82rem; margin-bottom:.5rem; }
+          </style>
+
+          <div class="sw-section">🖥️ Swarm Nodes</div>
+          <div id="nodes-err"></div>
+          <div class="nodes-grid" id="nodes-grid">
+            <div style="color:#4b5563;font-size:.8rem;">Loading…</div>
+          </div>
         </main>
     </div>
 
     <script>
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebar = document.getElementById('oc-sidebar');
+      /* ── sidebar/theme boilerplate ── */
+      (function(){
+        const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+        let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+        if(col)sb.classList.add('collapsed');
+        btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+        const th=document.getElementById('theme-toggle');
+        let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+        document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+        th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+      })();
 
-        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (sidebarCollapsed) sidebar.classList.add('collapsed');
+      /* ── Static machine definitions ── */
+      const NODES = [
+        {
+          name: 'H2FClanker2',
+          os: 'Ubuntu 26.04 LTS',
+          ip: 'INSTANCE_IP',
+          tailscale: 'INSTANCE_TAILSCALE_IP',
+          agents: ['Spike (OpenClaw)'],
+          hbKey: 'OpenClaw',
+          color: '#f97316',
+          desc: 'Primary OpenClaw runtime. Google Drive (rclone), vault clone, OverClaw dashboard (port 8355).',
+          links: [{ label:'📡 Spike Activity', href:'/activity?agent=Spike' }, { label:'📋 Vault', href:'/vault/graph' }],
+        },
+        {
+          name: 'BrightMove-MBP',
+          os: 'macOS (INSTANCE_IP)',
+          ip: 'INSTANCE_IP',
+          tailscale: null,
+          agents: ['Steve (Claude Cowork)', 'Lex (Cursor)'],
+          hbKey: 'BrightMove-MBP',
+          color: '#3b82f6',
+          desc: 'BrightMove MacBook Pro. Steve runs daily SEO/health loops here. Lex runs Cursor for web development.',
+          links: [{ label:'📡 Steve Activity', href:'/activity?agent=Steve' }, { label:'📡 Lex Activity', href:'/activity?agent=Lex' }],
+        },
+        {
+          name: 'H2FClanker1',
+          os: 'Ubuntu (Here2Fish server)',
+          ip: 'Local',
+          tailscale: null,
+          agents: ['Bill (Claude Cowork)'],
+          hbKey: 'H2FClanker1',
+          color: '#10b981',
+          desc: 'Here2Fish ops server. Bill's runtime machine. Currently quiet — last active ~Jul 2026.',
+          links: [{ label:'📡 Bill Activity', href:'/activity?agent=Bill' }],
+        },
+      ];
 
-        sidebarToggle.addEventListener('click', () => {
-            sidebarCollapsed = !sidebarCollapsed;
-            sidebarCollapsed ? sidebar.classList.add('collapsed') : sidebar.classList.remove('collapsed');
-            localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
-        });
+      function timeAgo(d) {
+        if (!d) return null;
+        const ms = Date.now() - new Date(d).getTime();
+        const h  = ms / 3600000;
+        if (h < 1)   return Math.round(ms/60000) + 'm ago';
+        if (h < 24)  return Math.round(h) + 'h ago';
+        if (h < 48)  return 'yesterday';
+        if (h < 168) return Math.round(h/24) + 'd ago';
+        return Math.round(h/168) + 'w ago';
+      }
 
-        const themeToggle = document.getElementById('theme-toggle');
-        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-        let currentTheme = localStorage.getItem('overclaw-theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
-        document.body.classList.add(currentTheme + '-mode');
-        themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+      function dotCls(d) {
+        if (!d) return 'dot-gray';
+        const h = (Date.now() - new Date(d).getTime()) / 3600000;
+        if (h < 24)  return 'dot-green';
+        if (h < 72)  return 'dot-yellow';
+        return 'dot-red';
+      }
 
-        themeToggle.addEventListener('click', () => {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.body.classList.toggle('light-mode', currentTheme === 'light');
-            document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-            localStorage.setItem('overclaw-theme', currentTheme);
-            themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-        });
+      async function loadNodes() {
+        const grid = document.getElementById('nodes-grid');
+        const err  = document.getElementById('nodes-err');
+        let hbMap  = {};
+        try {
+          const summary = await fetch('/api/swarm/summary').then(r => r.json());
+          hbMap = summary.lastHeartbeat || {};
+        } catch(e) {
+          err.style.display = 'block';
+          err.textContent   = '⚠️ Could not load heartbeat data: ' + e.message;
+        }
+
+        grid.innerHTML = NODES.map(n => {
+          const hb     = hbMap[n.hbKey] || null;
+          const date   = hb ? (hb.date || null) : null;
+          const ago    = timeAgo(date);
+          let hbHtml;
+          if (!ago) {
+            hbHtml = `<div class="nc-hb nc-hb-never">💓 never recorded</div>`;
+          } else if (date && (Date.now() - new Date(date).getTime()) > 72*3600000) {
+            hbHtml = `<div class="nc-hb nc-hb-stale">💓 Last seen ${ago}</div>`;
+          } else {
+            hbHtml = `<div class="nc-hb">💓 Last seen ${ago}</div>`;
+          }
+          return `<div class="node-card" style="--ac:${n.color}">
+            <div class="nc-header">
+              <span class="nc-name">${n.name}</span>
+              <span class="nc-dot ${dotCls(date)}" title="${date || 'no data'}"></span>
+            </div>
+            <div class="nc-os">🖥️ ${n.os}</div>
+            <div class="nc-ip">📍 ${n.ip}${n.tailscale ? ` · Tailscale ${n.tailscale}` : ''}</div>
+            <div class="nc-agents">🤖 ${n.agents.join(' · ')}</div>
+            ${hbHtml}
+            <div style="font-size:.72rem;color:#4b5563;margin-top:.1rem;line-height:1.4">${n.desc}</div>
+            <div class="nc-footer">
+              ${n.links.map(l => `<a href="${l.href}" class="nc-link">${l.label}</a>`).join('')}
+            </div>
+          </div>`;
+        }).join('');
+      }
+      loadNodes();
     </script>
 </body>
 </html>
