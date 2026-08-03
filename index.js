@@ -383,6 +383,19 @@ app.get('/api/cron-jobs', async (req, res) => {
   }
 });
 
+// Instance-specific node config — reads from gitignored config/instance.json
+// Source code stays generic; each deployment maintains its own instance.json
+app.get('/api/instance-nodes', async (req, res) => {
+  const configPath = path.join(__dirname, 'config', 'instance.json');
+  try {
+    const raw = await fs.readFile(configPath, 'utf-8');
+    const cfg = JSON.parse(raw);
+    res.json(cfg.nodes || []);
+  } catch {
+    res.json([]);
+  }
+});
+
 // API endpoint for OCUs to fetch learning entries
 app.get('/api/learnings', async (req, res) => {
   const learningsDbPath = path.join(OVERCLAW_DATA_DIR, 'learnings_db.json');

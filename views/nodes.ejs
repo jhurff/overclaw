@@ -75,38 +75,7 @@
         th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
       })();
 
-      /* ── Static machine definitions ── */
-      // IPs and network details intentionally omitted from source — instance-specific.
-      // Configure in config/instance.json (gitignored) if you need them displayed.
-      const NODES = [
-        {
-          name: 'H2FClanker2',
-          os: 'Ubuntu 26.04 LTS',
-          agents: ['Spike (OpenClaw)'],
-          hbKey: 'OpenClaw',
-          color: '#f97316',
-          desc: 'Primary OpenClaw runtime. Vault clone, OverClaw dashboard.',
-          links: [{ label:'📡 Spike Activity', href:'/activity?agent=Spike' }, { label:'📋 Vault', href:'/vault/graph' }],
-        },
-        {
-          name: 'BrightMove-MBP',
-          os: 'macOS',
-          agents: ['Steve (Claude Cowork)', 'Lex (Cursor)'],
-          hbKey: 'BrightMove-MBP',
-          color: '#3b82f6',
-          desc: 'Steve runs daily SEO/health loops. Lex runs Cursor for web development.',
-          links: [{ label:'📡 Steve Activity', href:'/activity?agent=Steve' }, { label:'📡 Lex Activity', href:'/activity?agent=Lex' }],
-        },
-        {
-          name: 'H2FClanker1',
-          os: 'Ubuntu',
-          agents: ['Bill (Claude Cowork)'],
-          hbKey: 'H2FClanker1',
-          color: '#10b981',
-          desc: 'Here2Fish ops server. Bill’s runtime machine.',
-          links: [{ label:'📡 Bill Activity', href:'/activity?agent=Bill' }],
-        },
-      ];
+      /* ── Node config loaded from /api/instance-nodes (reads gitignored config/instance.json) ── */
 
       function timeAgo(d) {
         if (!d) return null;
@@ -130,42 +99,59 @@
       async function loadNodes() {
         const grid = document.getElementById('nodes-grid');
         const err  = document.getElementById('nodes-err');
-        let hbMap  = {};
         try {
-          const summary = await fetch('/api/swarm/summary').then(r => r.json());
-          hbMap = summary.lastHeartbeat || {};
+          const [nodes, summary] = await Promise.all([
+            fetch('/api/instance-nodes').then(r => r.json()),
+            fetch('/api/swarm/summary').then(r => r.json()),
+          ]);
+          const hbMap = summary.lastHeartbeat || {};
+
+          if (!nodes.length) {
+            grid.innerHTML = `<div style="color:#6b7280;font-size:.82rem;line-height:1.7;padding:.4rem 0">
+              <strong style="color:#9ca3af">No nodes configured.</strong><br>
+              Copy <code style="font-size:.75rem;color:#818cf8">config/instance.example.json</code>
+              to <code style="font-size:.75rem;color:#818cf8">config/instance.json</code>
+              and fill in your machine details.<br>
+              <span style="font-size:.72rem;color:#4b5563">That file is gitignored — safe to include IPs, Tailscale addresses, and ports.</span>
+            </div>`;
+            return;
+          }
+
+          grid.innerHTML = nodes.map(n => {
+            const hb   = hbMap[n.hbKey] || null;
+            const date = hb ? (hb.date || null) : null;
+            const ago  = timeAgo(date);
+            let hbHtml;
+            if (!ago) {
+              hbHtml = `<div class="nc-hb nc-hb-never">💓 never recorded</div>`;
+            } else if (date && (Date.now() - new Date(date).getTime()) > 72*3600000) {
+              hbHtml = `<div class="nc-hb nc-hb-stale">💓 Last seen ${ago}</div>`;
+            } else {
+              hbHtml = `<div class="nc-hb">💓 Last seen ${ago}</div>`;
+            }
+            const ipLine = n.ip
+              ? `<div class="nc-ip">📍 ${n.ip}${n.tailscale ? ' · Tailscale ' + n.tailscale : ''}</div>`
+              : '';
+            return `<div class="node-card" style="--ac:${n.color || '#374151'}">
+              <div class="nc-header">
+                <span class="nc-name">${n.name}</span>
+                <span class="nc-dot ${dotCls(date)}" title="${date || 'no data'}"></span>
+              </div>
+              <div class="nc-os">🖥️ ${n.os || ''}</div>
+              ${ipLine}
+              <div class="nc-agents">🤖 ${(n.agents || []).join(' · ')}</div>
+              ${hbHtml}
+              <div style="font-size:.72rem;color:#4b5563;margin-top:.1rem;line-height:1.4">${n.desc || ''}</div>
+              <div class="nc-footer">
+                ${(n.links || []).map(l => `<a href="${l.href}" class="nc-link">${l.label}</a>`).join('')}
+              </div>
+            </div>`;
+          }).join('');
         } catch(e) {
           err.style.display = 'block';
-          err.textContent   = '⚠️ Could not load heartbeat data: ' + e.message;
+          err.textContent   = '⚠️ Failed to load: ' + e.message;
+          grid.innerHTML    = '';
         }
-
-        grid.innerHTML = NODES.map(n => {
-          const hb     = hbMap[n.hbKey] || null;
-          const date   = hb ? (hb.date || null) : null;
-          const ago    = timeAgo(date);
-          let hbHtml;
-          if (!ago) {
-            hbHtml = `<div class="nc-hb nc-hb-never">💓 never recorded</div>`;
-          } else if (date && (Date.now() - new Date(date).getTime()) > 72*3600000) {
-            hbHtml = `<div class="nc-hb nc-hb-stale">💓 Last seen ${ago}</div>`;
-          } else {
-            hbHtml = `<div class="nc-hb">💓 Last seen ${ago}</div>`;
-          }
-          return `<div class="node-card" style="--ac:${n.color}">
-            <div class="nc-header">
-              <span class="nc-name">${n.name}</span>
-              <span class="nc-dot ${dotCls(date)}" title="${date || 'no data'}"></span>
-            </div>
-            <div class="nc-os">🖥️ ${n.os}</div>
-            <div class="nc-ip">📍 ${n.ip}${n.tailscale ? ` · Tailscale ${n.tailscale}` : ''}</div>
-            <div class="nc-agents">🤖 ${n.agents.join(' · ')}</div>
-            ${hbHtml}
-            <div style="font-size:.72rem;color:#4b5563;margin-top:.1rem;line-height:1.4">${n.desc}</div>
-            <div class="nc-footer">
-              ${n.links.map(l => `<a href="${l.href}" class="nc-link">${l.label}</a>`).join('')}
-            </div>
-          </div>`;
-        }).join('');
       }
       loadNodes();
     </script>
