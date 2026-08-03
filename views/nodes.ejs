@@ -76,38 +76,34 @@
       })();
 
       /* ── Static machine definitions ── */
+      // IPs and network details intentionally omitted from source — instance-specific.
+      // Configure in config/instance.json (gitignored) if you need them displayed.
       const NODES = [
         {
           name: 'H2FClanker2',
           os: 'Ubuntu 26.04 LTS',
-          ip: 'INSTANCE_IP',
-          tailscale: 'INSTANCE_TAILSCALE_IP',
           agents: ['Spike (OpenClaw)'],
           hbKey: 'OpenClaw',
           color: '#f97316',
-          desc: 'Primary OpenClaw runtime. Google Drive (rclone), vault clone, OverClaw dashboard (port 8355).',
+          desc: 'Primary OpenClaw runtime. Vault clone, OverClaw dashboard.',
           links: [{ label:'📡 Spike Activity', href:'/activity?agent=Spike' }, { label:'📋 Vault', href:'/vault/graph' }],
         },
         {
           name: 'BrightMove-MBP',
-          os: 'macOS (INSTANCE_IP)',
-          ip: 'INSTANCE_IP',
-          tailscale: null,
+          os: 'macOS',
           agents: ['Steve (Claude Cowork)', 'Lex (Cursor)'],
           hbKey: 'BrightMove-MBP',
           color: '#3b82f6',
-          desc: 'BrightMove MacBook Pro. Steve runs daily SEO/health loops here. Lex runs Cursor for web development.',
+          desc: 'Steve runs daily SEO/health loops. Lex runs Cursor for web development.',
           links: [{ label:'📡 Steve Activity', href:'/activity?agent=Steve' }, { label:'📡 Lex Activity', href:'/activity?agent=Lex' }],
         },
         {
           name: 'H2FClanker1',
-          os: 'Ubuntu (Here2Fish server)',
-          ip: 'Local',
-          tailscale: null,
+          os: 'Ubuntu',
           agents: ['Bill (Claude Cowork)'],
           hbKey: 'H2FClanker1',
           color: '#10b981',
-          desc: 'Here2Fish ops server. Bill's runtime machine. Currently quiet — last active ~Jul 2026.',
+          desc: 'Here2Fish ops server. Bill’s runtime machine.',
           links: [{ label:'📡 Bill Activity', href:'/activity?agent=Bill' }],
         },
       ];
