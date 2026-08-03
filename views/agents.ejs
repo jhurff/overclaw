@@ -20,24 +20,25 @@
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/agents' }) %>
     <main class="oc-dashboard-area">
-      <div class="oc-table-toolbar">
-        <input type="search" id="q" class="oc-search-input" placeholder="Search agents…">
-        <select id="f-type" class="oc-filter-select">
-          <option value="">All types</option>
-          <option value="OpenClaw">OpenClaw</option>
-          <option value="Claude Cowork">Claude Cowork</option>
-          <option value="Cursor">Cursor</option>
-          <option value="ChatGPT">ChatGPT</option>
-        </select>
-        <select id="f-status" class="oc-filter-select">
-          <option value="">All statuses</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-          <option value="Unknown">Unknown</option>
-        </select>
-        <span class="oc-count-badge" id="row-count">–</span>
-      </div>
-      <div class="oc-table-wrap">
+      <div class="oc-data-wrap">
+        <div class="oc-table-toolbar">
+          <input type="search" id="q" class="oc-search-input" placeholder="Search agents…">
+          <select id="f-type" class="oc-filter-select">
+            <option value="">All types</option>
+            <option value="OpenClaw">OpenClaw</option>
+            <option value="Claude Cowork">Claude Cowork</option>
+            <option value="Cursor">Cursor</option>
+            <option value="ChatGPT">ChatGPT</option>
+          </select>
+          <select id="f-status" class="oc-filter-select">
+            <option value="">All statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+          <span class="oc-count-badge" id="row-count">–</span>
+        </div>
+        <div class="oc-table-scroll">
         <table class="oc-data-table" id="agents-tbl">
           <thead><tr>
             <th data-sort="name">Agent</th>
@@ -53,6 +54,7 @@
             <tr><td colspan="8" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
           </tbody>
         </table>
+        </div>
       </div>
     </main>
   </div>
