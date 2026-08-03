@@ -5,6 +5,7 @@ data/
 .env
 .env.local
 config/instance.json
+config/overclaw.json
 *.log
 dist/
 build/
