@@ -1,0 +1,31 @@
+{
+  "_readme": "Copy this file to config/instance.json and fill in your values. config/instance.json is gitignored and never committed.",
+  "nodes": [
+    {
+      "name": "Server-1",
+      "os": "Ubuntu 22.04 LTS",
+      "ip": "192.168.x.x",
+      "tailscale": null,
+      "agents": ["AgentName (OpenClaw)"],
+      "hbKey": "VaultHeartbeatDirName",
+      "color": "#f97316",
+      "desc": "Primary OpenClaw runtime host.",
+      "links": [
+        { "label": "📡 Agent Activity", "href": "/activity?agent=AgentName" }
+      ]
+    },
+    {
+      "name": "Server-2",
+      "os": "macOS",
+      "ip": "192.168.x.x",
+      "tailscale": null,
+      "agents": ["AgentName2 (Claude Cowork)", "AgentName3 (Cursor)"],
+      "hbKey": "VaultHeartbeatDirName2",
+      "color": "#3b82f6",
+      "desc": "Secondary machine — describe agents and roles here.",
+      "links": [
+        { "label": "📡 Activity", "href": "/activity?agent=AgentName2" }
+      ]
+    }
+  ]
+}

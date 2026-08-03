@@ -4,6 +4,7 @@ data/
 !data/projects.example.json
 .env
 .env.local
+config/instance.json
 *.log
 dist/
 build/
