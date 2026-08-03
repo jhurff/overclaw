@@ -1,372 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Simple Markdown Renderer for client-side, if needed. For now, display raw. -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.10/marked.min.js"></script> -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header class="oc-header">
-        <div class="logo">
-            <h1 class="main-title">OVERCLAW</h1>
-            <span class="tagline">AGENT DASHBOARD</span>
-        </div>
-        <div class="header-controls">
-            <button id="sidebar-toggle" class="control-button">☰</button>
-            <button id="theme-toggle" class="control-button">☀️</button>
-        </div>
-    </header>
-
-    <div class="oc-main-content">
-<%- include('partials/sidebar', { currentPath: '/config' }) %>
-
-        <main class="oc-dashboard-area">
-            <div class="oc-card full-width">
-                <h2>Agent Configuration Viewer</h2>
-                <div id="config-viewer-content">
-                    <div id="agent-select-container">
-                        <h3>Select an Agent:</h3>
-                        <select id="agent-selector" class="oc-select"></select>
-                    </div>
-                    <div id="file-list-container" style="display: none;">
-                        <h3>Files for <span id="selected-agent-name"></span>: 
-                            <button id="back-to-agents" class="oc-button-secondary">Back to Agents</button>
-                        </h3>
-                        <ul id="config-file-list" class="oc-list-group"></ul>
-                    </div>
-                    <div id="file-content-container" style="display: none;">
-                        <h3>Viewing <span id="viewing-file-name"></span> for <span id="viewing-agent-name"></span>: 
-                            <button id="back-to-file-list" class="oc-button-secondary">Back to Files</button>
-                        </h3>
-                        <pre id="file-content" class="oc-code-block"></pre>
-                    </div>
-                    <div id="file-history-container" style="display: none;">
-                        <h3>History for <span id="history-file-name"></span>: 
-                            <button id="back-from-history" class="oc-button-secondary">Back to Files</button>
-                        </h3>
-                        <div id="history-list" class="oc-list-group"></div>
-                    </div>
-                    <div id="model-settings-container" style="display: none;">
-                        <h3>Model Settings for <span id="model-settings-agent-name"></span>: 
-                            <button id="back-from-model-settings" class="oc-button-secondary">Back to Files</button>
-                        </h3>
-                        <div id="model-settings-content" class="oc-code-block"></div>
-                    </div>
-                </div>
-            </div>
-        </main>
+  <header class="oc-header">
+    <div class="logo"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
     </div>
+  </header>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/config' }) %>
+    <main class="oc-dashboard-area">
+      <div class="oc-tab-bar">
+        <button class="oc-tab-btn active" data-tab="settings">⚙️ Settings</button>
+        <button class="oc-tab-btn" data-tab="viewer">🗂️ Agent Config Viewer</button>
+      </div>
 
-    <script>
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebar = document.getElementById('oc-sidebar');
+      <!-- ═══ Tab 1: OverClaw Settings ═══ -->
+      <div class="oc-tab-pane" id="tab-settings">
+        <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.1rem">
+          Settings are saved to <code style="color:#818cf8">config/overclaw.json</code> (gitignored).
+          Fields marked ⚠️ require a service restart to take effect.
+        </p>
+        <form id="settings-form" class="oc-settings-form">
+          <div class="oc-field">
+            <label for="brainPath">Brain Path — Obsidian Vault Location</label>
+            <input type="text" id="brainPath" name="brainPath"
+              value="<%= ocConfig.brainPath %>"
+              placeholder="~/My-AI-Brain">
+            <div class="hint warn">⚠️ Requires service restart</div>
+          </div>
+          <div class="oc-field">
+            <label for="port">Listen Port</label>
+            <input type="number" id="port" name="port"
+              value="<%= ocConfig.port %>"
+              min="1024" max="65535" style="max-width:140px">
+            <div class="hint warn">⚠️ Requires service restart</div>
+          </div>
+          <div class="oc-field">
+            <label for="scanFrequencySeconds">Vault Scan Frequency</label>
+            <select id="scanFrequencySeconds" name="scanFrequencySeconds" style="max-width:220px">
+              <option value="60"   <%= ocConfig.scanFrequencySeconds == 60   ? 'selected' : '' %>>Every 1 minute</option>
+              <option value="300"  <%= ocConfig.scanFrequencySeconds == 300  ? 'selected' : '' %>>Every 5 minutes</option>
+              <option value="900"  <%= ocConfig.scanFrequencySeconds == 900  ? 'selected' : '' %>>Every 15 minutes</option>
+              <option value="1800" <%= ocConfig.scanFrequencySeconds == 1800 ? 'selected' : '' %>>Every 30 minutes</option>
+            </select>
+            <div class="hint">Planned feature — not yet wired to a background poller</div>
+          </div>
+          <div class="oc-field">
+            <label for="openclawGatewayUrl">OpenClaw Gateway URL</label>
+            <input type="text" id="openclawGatewayUrl" name="openclawGatewayUrl"
+              value="<%= ocConfig.openclawGatewayUrl %>"
+              placeholder="ws://127.0.0.1:18789">
+            <div class="hint warn">⚠️ Requires service restart</div>
+          </div>
+          <div class="oc-field" style="display:flex;align-items:flex-start;gap:.5rem">
+            <input type="checkbox" id="vaultAutoPullOnLoad" name="vaultAutoPullOnLoad"
+              style="margin-top:.2rem;width:auto"
+              <%= ocConfig.vaultAutoPullOnLoad ? 'checked' : '' %>>
+            <div>
+              <label for="vaultAutoPullOnLoad" style="text-transform:none;font-size:.82rem;color:#cbd5e1;cursor:pointer">Auto-pull vault on each API request</label>
+              <div class="hint">Runs <code>git pull</code> in the vault directory before reading data</div>
+            </div>
+          </div>
+          <div style="margin-top:1.25rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+            <button type="submit" class="oc-save-btn">Save Settings</button>
+            <span class="oc-toast" id="save-toast">✓ Saved</span>
+            <span class="oc-toast" id="restart-warn" style="color:#d97706">— restart required for one or more changes</span>
+          </div>
+        </form>
+      </div>
 
-        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (sidebarCollapsed) {
-            sidebar.classList.add('collapsed');
-        } else {
-            sidebar.classList.remove('collapsed');
+      <!-- ═══ Tab 2: Agent Config Viewer ═══ -->
+      <div class="oc-tab-pane" id="tab-viewer" style="display:none">
+        <div class="oc-card full-width">
+          <div id="config-viewer-content">
+            <div id="agent-select-container">
+              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">Select an Agent:</h3>
+              <select id="agent-selector" class="oc-select"></select>
+            </div>
+            <div id="file-list-container" style="display:none">
+              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">Files for <span id="selected-agent-name"></span>
+                <button id="back-to-agents" class="oc-button-secondary">← Back</button></h3>
+              <ul id="config-file-list" class="oc-list-group"></ul>
+            </div>
+            <div id="file-content-container" style="display:none">
+              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">
+                <span id="viewing-file-name"></span> / <span id="viewing-agent-name"></span>
+                <button id="back-to-file-list" class="oc-button-secondary">← Back</button>
+              </h3>
+              <pre id="file-content" class="oc-code-block"></pre>
+            </div>
+            <div id="file-history-container" style="display:none">
+              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">History: <span id="history-file-name"></span>
+                <button id="back-from-history" class="oc-button-secondary">← Back</button></h3>
+              <div id="history-list" class="oc-list-group"></div>
+            </div>
+            <div id="model-settings-container" style="display:none">
+              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">Model Settings: <span id="model-settings-agent-name"></span>
+                <button id="back-from-model-settings" class="oc-button-secondary">← Back</button></h3>
+              <div id="model-settings-content" class="oc-code-block"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ── sidebar/theme ── */
+    (function(){
+      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+      if(col)sb.classList.add('collapsed');
+      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+      const th=document.getElementById('theme-toggle');
+      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+    })();
+
+    /* ── Tab switching ── */
+    document.querySelectorAll('.oc-tab-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.oc-tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.oc-tab-pane').forEach(p=>p.style.display='none');
+        document.getElementById('tab-'+btn.dataset.tab).style.display='block';
+      });
+    });
+
+    /* ── Settings form ── */
+    document.getElementById('settings-form').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const data={
+        brainPath: document.getElementById('brainPath').value.trim(),
+        port: parseInt(document.getElementById('port').value,10),
+        scanFrequencySeconds: parseInt(document.getElementById('scanFrequencySeconds').value,10),
+        openclawGatewayUrl: document.getElementById('openclawGatewayUrl').value.trim(),
+        vaultAutoPullOnLoad: document.getElementById('vaultAutoPullOnLoad').checked,
+      };
+      try{
+        const r=await fetch('/api/overclaw-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        const res=await r.json();
+        if(res.ok){
+          const toast=document.getElementById('save-toast');
+          const warn=document.getElementById('restart-warn');
+          toast.classList.add('show');
+          if(res.requiresRestart)warn.classList.add('show');
+          setTimeout(()=>{toast.classList.remove('show');warn.classList.remove('show');},5000);
+        }else{
+          alert('Error: '+(res.error||'Unknown error'));
         }
+      }catch(e2){
+        alert('Failed to save: '+e2.message);
+      }
+    });
 
-        sidebarToggle.addEventListener('click', () => {
-            sidebarCollapsed = !sidebarCollapsed;
-            if (sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-            } else {
-                sidebar.classList.remove('collapsed');
-            }
-            localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
+    /* ── Agent Config Viewer ── */
+    const agentSelector=document.getElementById('agent-selector');
+    const agentSelectContainer=document.getElementById('agent-select-container');
+    const fileListContainer=document.getElementById('file-list-container');
+    const configFileList=document.getElementById('config-file-list');
+    const selectedAgentNameSpan=document.getElementById('selected-agent-name');
+    const backToAgentsButton=document.getElementById('back-to-agents');
+    const fileContentContainer=document.getElementById('file-content-container');
+    const fileContentPre=document.getElementById('file-content');
+    const viewingFileNameSpan=document.getElementById('viewing-file-name');
+    const viewingAgentNameSpan=document.getElementById('viewing-agent-name');
+    const backToFileListButton=document.getElementById('back-to-file-list');
+    const fileHistoryContainer=document.getElementById('file-history-container');
+    const historyFileNameSpan=document.getElementById('history-file-name');
+    const historyListDiv=document.getElementById('history-list');
+    const backFromHistoryButton=document.getElementById('back-from-history');
+    const modelSettingsContainer=document.getElementById('model-settings-container');
+    const modelSettingsAgentNameSpan=document.getElementById('model-settings-agent-name');
+    const modelSettingsContentDiv=document.getElementById('model-settings-content');
+    const backFromModelSettingsButton=document.getElementById('back-from-model-settings');
+
+    let currentAgents=[],selectedAgentId=null,currentFiles=[];
+
+    function showContainer(id){
+      ['agent-select-container','file-list-container','file-content-container','file-history-container','model-settings-container']
+        .forEach(c=>document.getElementById(c).style.display='none');
+      document.getElementById(id).style.display='block';
+    }
+
+    async function fetchAndPopulateAgents(){
+      try{
+        const agents=await fetch('/api/agents').then(r=>r.json());
+        currentAgents=agents;
+        agentSelector.innerHTML='<option value="">-- Select Agent --</option>';
+        agents.forEach(a=>{
+          const o=document.createElement('option');
+          o.value=a.id; o.textContent=a.name;
+          agentSelector.appendChild(o);
         });
+        showContainer('agent-select-container');
+      }catch(e){
+        agentSelectContainer.innerHTML=`<p style="color:#f87171">Failed to load agents: ${e.message}</p>`;
+      }
+    }
 
-        const themeToggle = document.getElementById('theme-toggle');
-        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-
-        let currentTheme = localStorage.getItem('overclaw-theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
-        document.body.classList.add(currentTheme + '-mode');
-        if (currentTheme === 'dark') {
-            themeToggle.textContent = '🌙';
-        } else {
-            themeToggle.textContent = '☀️';
-        }
-
-        themeToggle.addEventListener('click', () => {
-            currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
-            document.body.classList.toggle('light-mode', currentTheme === 'light');
-            document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-            localStorage.setItem('overclaw-theme', currentTheme);
-            if (currentTheme === 'dark') {
-                themeToggle.textContent = '🌙';
-            } else {
-                themeToggle.textContent = '☀️';
-            }
+    async function fetchAndPopulateFiles(agentId){
+      try{
+        const files=await fetch(`/api/agent-config-files/${agentId}`).then(r=>r.json());
+        currentFiles=files;
+        if(files.error){configFileList.innerHTML=`<li style="color:#f87171">Error: ${files.error}</li>`;return;}
+        configFileList.innerHTML='';
+        if(!files.length){configFileList.innerHTML='<li>No discoverable config files.</li>';return;}
+        files.forEach(file=>{
+          const li=document.createElement('li');
+          li.className='oc-list-item';
+          const span=document.createElement('span');
+          span.className='oc-link'; span.dataset.filePath=file.path;
+          span.textContent=file.name+(file.type==='memory'?' (Memory)':file.type==='setting'?' (Settings)':file.type==='project'?' (Project)':' (Config)');
+          span.style.marginRight='10px';
+          li.appendChild(span);
+          if(file.isVersionControlled){
+            const hb=document.createElement('button');
+            hb.className='oc-button-inline'; hb.textContent='History'; hb.dataset.filePath=file.path;
+            hb.addEventListener('click',e=>{e.stopPropagation();fetchAndDisplayFileHistory(selectedAgentId,file.path);});
+            li.appendChild(hb);
+          }
+          configFileList.appendChild(li);
         });
+        selectedAgentNameSpan.textContent=currentAgents.find(a=>a.id===agentId)?.name||agentId;
+        showContainer('file-list-container');
+      }catch(e){
+        configFileList.innerHTML=`<li style="color:#f87171">Failed: ${e.message}</li>`;
+      }
+    }
 
-        prefersDarkScheme.addEventListener('change', (e) => {
-            if (!localStorage.getItem('overclaw-theme')) {
-                currentTheme = e.matches ? 'dark' : 'light';
-                document.body.classList.toggle('light-mode', currentTheme === 'light');
-                document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-                if (currentTheme === 'dark') {
-                    themeToggle.textContent = '🌙';
-                } else {
-                    themeToggle.textContent = '☀️';
-                }
-            }
+    async function fetchAndDisplayFileContent(agentId,filePath){
+      if(filePath==='__model_settings__'){fetchAndDisplayModelSettings(agentId);return;}
+      try{
+        const data=await fetch(`/api/file-content?agentId=${agentId}&filePath=${filePath}`).then(r=>r.json());
+        if(data.error){fileContentPre.textContent=`Error: ${data.error}`;fileContentPre.style.color='#f87171';return;}
+        fileContentPre.textContent=data.content;
+        fileContentPre.style.color='';
+        viewingFileNameSpan.textContent=filePath;
+        viewingAgentNameSpan.textContent=currentAgents.find(a=>a.id===agentId)?.name||agentId;
+        showContainer('file-content-container');
+      }catch(e){
+        fileContentPre.textContent=`Failed: ${e.message}`;
+        fileContentPre.style.color='#f87171';
+      }
+    }
+
+    async function fetchAndDisplayFileHistory(agentId,filePath){
+      try{
+        const history=await fetch(`/api/file-history?agentId=${agentId}&filePath=${filePath}`).then(r=>r.json());
+        if(history.error){historyListDiv.innerHTML=`<div style="color:#f87171">Error: ${history.error}</div>`;return;}
+        historyFileNameSpan.textContent=filePath;
+        historyListDiv.innerHTML='';
+        if(!history.length){historyListDiv.innerHTML='<div class="oc-list-item">No Git history.</div>';showContainer('file-history-container');return;}
+        history.forEach(c=>{
+          const d=document.createElement('div');
+          d.className='oc-list-item oc-commit-item';
+          d.innerHTML=`<strong>${c.subject}</strong><br><small>Hash: <code>${c.hash}</code> | ${c.author} | ${c.date}</small>`;
+          historyListDiv.appendChild(d);
         });
+        showContainer('file-history-container');
+      }catch(e){
+        historyListDiv.innerHTML=`<div style="color:#f87171">Failed: ${e.message}</div>`;
+      }
+    }
 
-        // --- Config Viewer Logic ---
-        const agentSelector = document.getElementById('agent-selector');
-        const agentSelectContainer = document.getElementById('agent-select-container');
-        const fileListContainer = document.getElementById('file-list-container');
-        const configFileList = document.getElementById('config-file-list');
-        const selectedAgentNameSpan = document.getElementById('selected-agent-name');
-        const backToAgentsButton = document.getElementById('back-to-agents');
-        const fileContentContainer = document.getElementById('file-content-container');
-        const fileContentPre = document.getElementById('file-content');
-        const viewingFileNameSpan = document.getElementById('viewing-file-name');
-        const viewingAgentNameSpan = document.getElementById('viewing-agent-name');
-        const backToFileListButton = document.getElementById('back-to-file-list');
-        const fileHistoryContainer = document.getElementById('file-history-container');
-        const historyFileNameSpan = document.getElementById('history-file-name');
-        const historyListDiv = document.getElementById('history-list');
-        const backFromHistoryButton = document.getElementById('back-from-history');
-        const modelSettingsContainer = document.getElementById('model-settings-container');
-        const modelSettingsAgentNameSpan = document.getElementById('model-settings-agent-name');
-        const modelSettingsContentDiv = document.getElementById('model-settings-content');
-        const backFromModelSettingsButton = document.getElementById('back-from-model-settings');
+    async function fetchAndDisplayModelSettings(agentId){
+      try{
+        const s=await fetch(`/api/agent-model-settings/${agentId}`).then(r=>r.json());
+        if(s.error){modelSettingsContentDiv.innerHTML=`<div style="color:#f87171">Error: ${s.error}</div>`;return;}
+        modelSettingsContentDiv.innerHTML=`<h4>Global: <code>${s.globalDefaultModel}</code></h4>
+          <h4>Agent (${s.agentId}): <code>${s.agentSpecificModel}</code></h4>
+          ${s.modelOrder?.length?'<h4>Failover:</h4><ul>'+s.modelOrder.map((m,i)=>`<li>${i+1}. <code>${m}</code></li>`).join('')+'</ul>':''}`;
+        modelSettingsAgentNameSpan.textContent=currentAgents.find(a=>a.id===agentId)?.name||agentId;
+        showContainer('model-settings-container');
+      }catch(e){
+        modelSettingsContentDiv.innerHTML=`<div style="color:#f87171">Failed: ${e.message}</div>`;
+      }
+    }
 
-        let currentAgents = [];
-        let selectedAgentId = null;
-        let currentFiles = []; // To store the fetched files with their metadata
-
-        function showContainer(containerId) {
-            agentSelectContainer.style.display = 'none';
-            fileListContainer.style.display = 'none';
-            fileContentContainer.style.display = 'none';
-            fileHistoryContainer.style.display = 'none';
-            modelSettingsContainer.style.display = 'none';
-
-            document.getElementById(containerId).style.display = 'block';
-        }
-
-        async function fetchAndPopulateAgents() {
-            try {
-                const response = await fetch('/api/agents');
-                const agents = await response.json();
-                currentAgents = agents; 
-
-                agentSelector.innerHTML = '<option value="">-- Select Agent --</option>';
-                agents.forEach(agent => {
-                    const option = document.createElement('option');
-                    option.value = agent.id;
-                    option.textContent = agent.name;
-                    agentSelector.appendChild(option);
-                });
-
-                showContainer('agent-select-container');
-
-            } catch (error) {
-                console.error('Error fetching agents for config viewer:', error);
-                agentSelectContainer.innerHTML = `<p style="color: red;">Failed to load agents for configuration viewer.</p>`;
-            }
-        }
-
-        async function fetchAndPopulateFiles(agentId) {
-            try {
-                const response = await fetch(`/api/agent-config-files/${agentId}`);
-                const files = await response.json();
-                currentFiles = files; // Store files with metadata including isVersionControlled
-
-                if (files.error) {
-                    configFileList.innerHTML = `<li style="color: red;">Error: ${files.error}</li>`;
-                    return;
-                }
-
-                configFileList.innerHTML = ''; // Clear previous files
-                if (files.length === 0) {
-                    configFileList.innerHTML = '<li>No discoverable config/memory files.</li>';
-                    return;
-                }
-
-                files.forEach(file => {
-                    const li = document.createElement('li');
-                    li.className = 'oc-list-item';
-
-                    const fileNameSpan = document.createElement('span');
-                    fileNameSpan.className = 'oc-link';
-                    fileNameSpan.dataset.filePath = file.path;
-                    fileNameSpan.textContent = file.name + 
-                        (file.type === 'memory' ? ' (Memory)' : 
-                         (file.type === 'setting' ? ' (Settings)' : 
-                          (file.type === 'project' ? ' (Project)' : ' (Config)')));
-                    fileNameSpan.style.marginRight = '10px';
-                    li.appendChild(fileNameSpan);
-
-                    if (file.isVersionControlled) {
-                        const historyButton = document.createElement('button');
-                        historyButton.className = 'oc-button-inline'; 
-                        historyButton.textContent = 'View History';
-                        historyButton.dataset.filePath = file.path;
-                        historyButton.addEventListener('click', (e) => {
-                            e.stopPropagation(); // Prevent li click event
-                            fetchAndDisplayFileHistory(selectedAgentId, file.path);
-                        });
-                        li.appendChild(historyButton);
-                    }
-                    configFileList.appendChild(li);
-                });
-
-                const selectedAgent = currentAgents.find(a => a.id === agentId);
-                selectedAgentNameSpan.textContent = selectedAgent ? selectedAgent.name : agentId;
-
-                showContainer('file-list-container');
-
-            } catch (error) {
-                console.error(`Error fetching files for agent ${agentId}:`, error);
-                configFileList.innerHTML = `<li style="color: red;">Failed to load files for agent ${agentId}.</li>`;
-            }
-        }
-
-        async function fetchAndDisplayFileContent(agentId, filePath) {
-            if (filePath === '__model_settings__') {
-                fetchAndDisplayModelSettings(agentId);
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/file-content?agentId=${agentId}&filePath=${filePath}`);
-                const data = await response.json();
-
-                if (data.error) {
-                    fileContentPre.textContent = `Error: ${data.error}\nDetails: ${data.details || 'N/A'}`; 
-                    fileContentPre.style.color = 'red';
-                    return;
-                }
-
-                fileContentPre.textContent = data.content;
-                fileContentPre.style.color = 'var(--oc-text-dark)'; // Reset color
-
-                viewingFileNameSpan.textContent = filePath;
-                viewingAgentNameSpan.textContent = currentAgents.find(a => a.id === agentId)?.name || agentId;
-
-                showContainer('file-content-container');
-
-            } catch (error) {
-                console.error(`Error fetching content for ${filePath}:`, error);
-                fileContentPre.textContent = `Failed to load content for ${filePath}.`;
-                fileContentPre.style.color = 'red';
-            }
-        }
-
-        async function fetchAndDisplayFileHistory(agentId, filePath) {
-            try {
-                const response = await fetch(`/api/file-history?agentId=${agentId}&filePath=${filePath}`);
-                const history = await response.json();
-
-                if (history.error) {
-                    historyListDiv.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${history.error}<br>Details: ${history.details || 'N/A'}</div>`;
-                    return;
-                }
-
-                historyFileNameSpan.textContent = filePath;
-                historyListDiv.innerHTML = ''; // Clear previous history
-
-                if (history.length === 0) {
-                    historyListDiv.innerHTML = '<div class="oc-list-item">No Git history found for this file.</div>';
-                    showContainer('file-history-container');
-                    return;
-                }
-
-                history.forEach(commit => {
-                    const div = document.createElement('div');
-                    div.className = 'oc-list-item oc-commit-item';
-                    div.innerHTML = `
-                        <strong>${commit.subject}</strong><br>
-                        <small>Hash: <code>${commit.hash}</code> | Author: ${commit.author} | Date: ${commit.date}</small>
-                    `;
-                    historyListDiv.appendChild(div);
-                });
-
-                showContainer('file-history-container');
-
-            } catch (error) {
-                console.error(`Error fetching history for ${filePath}:`, error);
-                historyListDiv.innerHTML = `<div style="color: red; padding: 1rem;">Failed to load history for ${filePath}.</div>`;
-            }
-        }
-
-        async function fetchAndDisplayModelSettings(agentId) {
-            try {
-                const response = await fetch(`/api/agent-model-settings/${agentId}`);
-                const settings = await response.json();
-
-                if (settings.error) {
-                    modelSettingsContentDiv.innerHTML = `<div style="color: red; padding: 1rem;">Error: ${settings.error}<br>Details: ${settings.details || 'N/A'}</div>`;
-                    return;
-                }
-
-                let contentHtml = `
-                    <h4>Global Default Model: <code>${settings.globalDefaultModel}</code></h4>
-                    <h4>Agent-Specific Model (${settings.agentId}): <code>${settings.agentSpecificModel}</code></h4>
-                `;
-
-                if (settings.modelOrder && settings.modelOrder.length > 0) {
-                    contentHtml += `<h4>Model Failover Order:</h4><ul>`;
-                    settings.modelOrder.forEach((model, index) => {
-                        contentHtml += `<li>${index + 1}. <code>${model}</code></li>`;
-                    });
-                    contentHtml += `</ul>`;
-                } else {
-                    contentHtml += `<p>No specific model failover order defined for this agent.</p>`;
-                }
-
-                modelSettingsAgentNameSpan.textContent = currentAgents.find(a => a.id === agentId)?.name || agentId;
-                modelSettingsContentDiv.innerHTML = contentHtml;
-
-                showContainer('model-settings-container');
-
-            } catch (error) {
-                console.error(`Error fetching model settings for ${agentId}:`, error);
-                modelSettingsContentDiv.innerHTML = `<div style="color: red; padding: 1rem;">Failed to load model settings for ${agentId}.</div>`;
-            }
-        }
-
-        // Event Listeners
-        agentSelector.addEventListener('change', (event) => {
-            selectedAgentId = event.target.value;
-            if (selectedAgentId) {
-                fetchAndPopulateFiles(selectedAgentId);
-            }
-        });
-
-        // Delegated event listener for file content display
-        configFileList.addEventListener('click', (event) => {
-            const fileNameSpan = event.target.closest('span.oc-link');
-            if (fileNameSpan && fileNameSpan.dataset.filePath && selectedAgentId) {
-                fetchAndDisplayFileContent(selectedAgentId, fileNameSpan.dataset.filePath);
-            }
-        });
-
-        backToAgentsButton.addEventListener('click', fetchAndPopulateAgents);
-        backToFileListButton.addEventListener('click', () => {
-            showContainer('file-list-container');
-        });
-        backFromHistoryButton.addEventListener('click', () => {
-            showContainer('file-list-container');
-        });
-        backFromModelSettingsButton.addEventListener('click', () => {
-            showContainer('file-list-container');
-        });
-
-        // Initial load
-        document.addEventListener('DOMContentLoaded', fetchAndPopulateAgents);
-
-    </script>
+    agentSelector.addEventListener('change',e=>{selectedAgentId=e.target.value;if(selectedAgentId)fetchAndPopulateFiles(selectedAgentId);});
+    configFileList.addEventListener('click',e=>{
+      const span=e.target.closest('span.oc-link');
+      if(span&&span.dataset.filePath&&selectedAgentId)fetchAndDisplayFileContent(selectedAgentId,span.dataset.filePath);
+    });
+    backToAgentsButton.addEventListener('click',fetchAndPopulateAgents);
+    backToFileListButton.addEventListener('click',()=>showContainer('file-list-container'));
+    backFromHistoryButton.addEventListener('click',()=>showContainer('file-list-container'));
+    backFromModelSettingsButton.addEventListener('click',()=>showContainer('file-list-container'));
+    document.addEventListener('DOMContentLoaded',fetchAndPopulateAgents);
+  </script>
 </body>
 </html>

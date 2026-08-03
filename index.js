@@ -6,13 +6,20 @@ const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
 const VaultReader = require('./lib/VaultReader'); // Vault integration
 
 const app = express();
-const port = parseInt(process.env.PORT || '8355', 10); // Default 8355
+
+// Load OverClaw instance config at startup (sync — file is small and gitignored)
+let ocConfig = {};
+try {
+  ocConfig = JSON.parse(require('fs').readFileSync(path.join(__dirname, 'config', 'overclaw.json'), 'utf-8'));
+} catch {}
+
+const port = parseInt(process.env.PORT || ocConfig.port || '8355', 10); // Default 8355
 
 // OverClaw's own state (learnings, etc.) lives here, not in ~/.openclaw
 const OVERCLAW_DATA_DIR = path.join(__dirname, 'data');
 
 // Initialize ClawBridge with environment variables
-const openclawGatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
+const openclawGatewayUrl = process.env.OPENCLAW_GATEWAY_URL || ocConfig.openclawGatewayUrl || 'ws://127.0.0.1:18789';
 const openclawApiToken = process.env.OPENCLAW_API_TOKEN;
 
 if (!openclawApiToken) {
@@ -33,7 +40,9 @@ try {
 // ---------------------------------------------------------------------------
 // VaultReader — reads swarm coordination data from the Obsidian vault
 // ---------------------------------------------------------------------------
-const VAULT_PATH = process.env.VAULT_PATH || path.join(process.env.HOME, 'My-AI-Brain');
+const VAULT_PATH = process.env.VAULT_PATH
+  || (ocConfig.brainPath && ocConfig.brainPath.replace(/^~/, process.env.HOME))
+  || path.join(process.env.HOME, 'My-AI-Brain');
 let vaultReader;
 try {
   vaultReader = new VaultReader(VAULT_PATH);
@@ -71,8 +80,20 @@ app.get('/agents', (req, res) => {
 });
 
 // Config Viewer screen route
-app.get('/config', (req, res) => {
-  res.render('config', { title: 'OverClaw Agent Configuration Viewer' });
+app.get('/config', async (req, res) => {
+  let cfg = {};
+  try {
+    const raw = await fs.readFile(path.join(__dirname, 'config', 'overclaw.json'), 'utf-8');
+    cfg = JSON.parse(raw);
+  } catch {}
+  const ocCfg = {
+    brainPath:            cfg.brainPath            || '~/My-AI-Brain',
+    port:                 cfg.port                 || 8355,
+    scanFrequencySeconds: cfg.scanFrequencySeconds || 300,
+    openclawGatewayUrl:   cfg.openclawGatewayUrl   || 'ws://127.0.0.1:18789',
+    vaultAutoPullOnLoad:  cfg.vaultAutoPullOnLoad  !== false,
+  };
+  res.render('config', { title: 'OverClaw Settings', currentPath: '/config', ocConfig: ocCfg });
 });
 
 // Sessions Viewer screen route
@@ -393,6 +414,31 @@ app.get('/api/instance-nodes', async (req, res) => {
     res.json(cfg.nodes || []);
   } catch {
     res.json([]);
+  }
+});
+
+// Read current OverClaw app config (from gitignored config/overclaw.json)
+app.get('/api/overclaw-config', async (req, res) => {
+  try {
+    const raw = await fs.readFile(path.join(__dirname, 'config', 'overclaw.json'), 'utf-8');
+    res.json(JSON.parse(raw));
+  } catch { res.json({}); }
+});
+
+// Save OverClaw app config
+app.post('/api/overclaw-config', async (req, res) => {
+  const cfgPath = path.join(__dirname, 'config', 'overclaw.json');
+  try {
+    let current = {};
+    try { current = JSON.parse(await fs.readFile(cfgPath, 'utf-8')); } catch {}
+    const updated = Object.assign(current, req.body);
+    await fs.writeFile(cfgPath, JSON.stringify(updated, null, 2));
+    const requiresRestart = req.body.brainPath !== undefined
+      || req.body.port !== undefined
+      || req.body.openclawGatewayUrl !== undefined;
+    res.json({ ok: true, requiresRestart });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

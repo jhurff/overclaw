@@ -1,0 +1,8 @@
+{
+  "_readme": "Copy to config/overclaw.json and fill in your values. Both files are gitignored — never commit them.",
+  "brainPath": "~/My-AI-Brain",
+  "port": 8355,
+  "scanFrequencySeconds": 300,
+  "openclawGatewayUrl": "ws://127.0.0.1:18789",
+  "vaultAutoPullOnLoad": true
+}

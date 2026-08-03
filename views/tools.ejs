@@ -1,157 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header class="oc-header">
-        <div class="logo">
-            <h1 class="main-title">OVERCLAW</h1>
-            <span class="tagline">AGENT DASHBOARD</span>
-        </div>
-        <div class="header-controls">
-            <button id="sidebar-toggle" class="control-button">☰</button>
-            <button id="theme-toggle" class="control-button">☀️</button>
-        </div>
-    </header>
-
-    <div class="oc-main-content">
-<%- include('partials/sidebar', { currentPath: '/tools' }) %>
-
-        <main class="oc-dashboard-area">
-          <style>
-            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
-            .sw-section:first-of-type { margin-top:0; }
-
-            .tools-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:.75rem; }
-            .tool-card {
-              background:#111827; border:1px solid #1f2937; border-radius:10px;
-              padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.45rem;
-              border-top:3px solid var(--ac,#374151);
-            }
-            .tc-header { display:flex; align-items:center; gap:.55rem; }
-            .tc-emoji  { font-size:1.5rem; line-height:1; flex-shrink:0; }
-            .tc-name   { font-size:1rem; font-weight:800; color:var(--ac,#e2e8f0); }
-            .tc-runtime{ font-size:.67rem; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; }
-            .tc-model  { font-size:.75rem; color:#9ca3af; }
-            .tc-focus  { font-size:.75rem; font-weight:600; color:#cbd5e1; }
-
-            .tc-section-label { font-size:.63rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#374151; margin-top:.3rem; }
-            .tc-chips  { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.2rem; }
-            .tc-chip   { font-size:.68rem; color:#64748b; background:#0f172a; border:1px solid #1e293b; border-radius:4px; padding:1px 6px; }
-            .tc-chip-skill { color:#7c3aed; border-color:#2e1065; background:#0f0a1a; }
-
-            .tc-model-live { font-size:.72rem; color:#f59e0b; }
-            #tools-note { font-size:.75rem; color:#4b5563; margin-top:.5rem; }
-          </style>
-
-          <div class="sw-section">🛠️ Tools & Models</div>
-          <p id="tools-note">Capabilities and model assignments per swarm agent. Spike's model is pulled live from OpenClaw config; others reflect known runtime environments.</p>
-          <div class="tools-grid" id="tools-grid">Loading…</div>
-        </main>
+  <header class="oc-header">
+    <div class="logo"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
     </div>
+  </header>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/tools' }) %>
+    <main class="oc-dashboard-area">
+      <div class="oc-table-toolbar">
+        <input type="search" id="q" class="oc-search-input" placeholder="Search tools, models, capabilities…">
+        <select id="f-runtime" class="oc-filter-select">
+          <option value="">All runtimes</option>
+          <option value="OpenClaw">OpenClaw</option>
+          <option value="Claude Cowork">Claude Cowork</option>
+          <option value="Cursor">Cursor</option>
+        </select>
+        <span class="oc-count-badge" id="row-count">–</span>
+      </div>
+      <div class="oc-table-wrap">
+        <table class="oc-data-table" id="tools-tbl">
+          <thead><tr>
+            <th data-sort="name">Agent</th>
+            <th data-sort="runtime">Runtime</th>
+            <th data-sort="model">Model</th>
+            <th data-sort="machine">Machine</th>
+            <th data-sort="focus">Focus</th>
+            <th class="no-sort">Tools</th>
+            <th class="no-sort">Capabilities</th>
+            <th class="no-sort">Actions</th>
+          </tr></thead>
+          <tbody id="tools-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+  <script>
+    /* ── sidebar/theme ── */
+    (function(){
+      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+      if(col)sb.classList.add('collapsed');
+      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+      const th=document.getElementById('theme-toggle');
+      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+    })();
 
-    <script>
-      /* ── sidebar/theme boilerplate ── */
-      (function(){
-        const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-        let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-        if(col)sb.classList.add('collapsed');
-        btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-        const th=document.getElementById('theme-toggle');
-        let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-        document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-        th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
-      })();
+    const AGENTS_STATIC=[
+      {name:'Spike',emoji:'🦞',color:'#f97316',runtime:'OpenClaw',modelKey:'main',
+       modelFallback:'Claude Sonnet 4.6 (Bedrock)',machine:'H2FClanker2 — Ubuntu 26.04',
+       focus:'Chief of Staff · Content · Sys Ops · Research',
+       tools:['exec/bash','web_search','web_fetch','memory_search','cron','sessions_spawn','image_generate','video_generate','vault read/write','GitHub','rclone','Bitwarden CLI'],
+       skills:['weather','browser-automation','notion','taskflow','gemini','meme-maker','diagram-maker','spike','healthcheck','node-connect']},
+      {name:'Steve',emoji:'📈',color:'#3b82f6',runtime:'Claude Cowork',modelKey:null,
+       modelFallback:'Claude Sonnet (Anthropic)',machine:'BrightMove-MBP — macOS',
+       focus:'Intelligence & Monitoring',
+       tools:['web_search','vault write','Slack API','Google Analytics','GitHub (read)','rclone','bash (limited)'],
+       skills:['SEO/AEO tracking','daily traffic reports','BrightMove marketing intel','Slack reporting','agent health checks','vault management']},
+      {name:'Lex',emoji:'💻',color:'#a855f7',runtime:'Cursor',modelKey:null,
+       modelFallback:'Claude Sonnet + GPT-4o (Cursor)',machine:'BrightMove-MBP — macOS',
+       focus:'Engineering',
+       tools:['code editor','file ops','bash/terminal','browser preview','Git','npm/node','Python','SQL'],
+       skills:['Next.js / React','HTML/CSS','BrightMove ATS','Here2Fish site','FTMarine site','BoatJobBoard','scripting & data analysis']},
+      {name:'Bill',emoji:'🐟',color:'#10b981',runtime:'Claude Cowork',modelKey:null,
+       modelFallback:'Claude Sonnet (Anthropic)',machine:'H2FClanker1 — Ubuntu',
+       focus:'Here2Fish Ops · BJB',
+       tools:['bash','vault write','web_search','rclone','Git','WP REST API'],
+       skills:['Here2Fish operations','BoatJobBoard management','FTM data pipelines','content publishing','WordPress automation']},
+    ];
 
-      /* ── Static agent tool profiles ── */
-      const AGENTS = [
-        {
-          name:'Spike', emoji:'🦞', color:'#f97316',
-          runtime:'OpenClaw', modelKey:'main',
-          modelFallback:'Claude Sonnet 4.6 (Bedrock)',
-          machine:'H2FClanker2 — Ubuntu 26.04',
-          focus:'Chief of Staff · Content · Sys Ops · Research',
-          tools:['exec/bash','web_search','web_fetch','memory_search','cron','sessions_spawn','image_generate','video_generate','vault read/write','GitHub','rclone','Bitwarden CLI'],
-          skills:['weather','browser-automation','notion','taskflow','gemini','meme-maker','diagram-maker','spike (prototype)','healthcheck','node-connect'],
-        },
-        {
-          name:'Steve', emoji:'📈', color:'#3b82f6',
-          runtime:'Claude Cowork', modelKey:null,
-          modelFallback:'Claude Sonnet (Anthropic)',
-          machine:'BrightMove-MBP — macOS',
-          focus:'Intelligence & Monitoring',
-          tools:['web_search','vault write','Slack API','Google Analytics','GitHub (read)','rclone','bash (limited)'],
-          skills:['SEO/AEO tracking','daily traffic reports','BrightMove marketing intel','Slack reporting','agent health checks','vault management'],
-        },
-        {
-          name:'Lex', emoji:'💻', color:'#a855f7',
-          runtime:'Cursor', modelKey:null,
-          modelFallback:'Claude Sonnet + GPT-4o (Cursor)',
-          machine:'BrightMove-MBP — macOS',
-          focus:'Engineering',
-          tools:['code editor','file ops','bash/terminal','browser preview','Git','npm/node','Python','SQL'],
-          skills:['Next.js / React','HTML/CSS','BrightMove ATS','Here2Fish site','FTMarine site','BoatJobBoard','scripting & data analysis'],
-        },
-        {
-          name:'Bill', emoji:'🐟', color:'#10b981',
-          runtime:'Claude Cowork', modelKey:null,
-          modelFallback:'Claude Sonnet (Anthropic)',
-          machine:'H2FClanker1 — Ubuntu',
-          focus:'Here2Fish Ops · BJB',
-          tools:['bash','vault write','web_search','rclone','Git','WP REST API'],
-          skills:['Here2Fish operations','BoatJobBoard management','FTM data pipelines','content publishing','WordPress automation'],
-        },
-      ];
+    function chipHtml(arr,cls=''){
+      const show=arr.slice(0,4);
+      const rest=arr.length-show.length;
+      return show.map(t=>`<span class="oc-chip-inline ${cls}">${t}</span>`).join('')
+        +(rest>0?`<span class="oc-chip-inline" style="color:#374151">+${rest}</span>`:'');
+    }
 
-      function chips(arr, cls) {
-        return arr.map(t => `<span class="tc-chip ${cls||''}">${t}</span>`).join('');
+    let rows=[], sortKey='name', sortDir=1, filterRuntime='', searchQ='';
+
+    function applyAndRender(){
+      let vis=rows.filter(r=>{
+        if(searchQ){
+          const h=[r.name,r.runtime,r.model,r.machine,r.focus,r.allText].join(' ').toLowerCase();
+          if(!h.includes(searchQ))return false;
+        }
+        if(filterRuntime && r.runtime!==filterRuntime)return false;
+        return true;
+      });
+      if(sortKey){
+        vis=[...vis].sort((a,b)=>{
+          const va=String(a[sortKey]||'').toLowerCase(),vb=String(b[sortKey]||'').toLowerCase();
+          return sortDir*va.localeCompare(vb);
+        });
       }
+      const tbody=document.getElementById('tools-tbody');
+      tbody.innerHTML=vis.length ? vis.map(r=>`
+        <tr>
+          <td><div class="oc-row-name">
+            <span style="font-size:1.1rem;color:${r.color}">${r.emoji}</span>
+            <span style="font-weight:700;color:${r.color}">${r.name}</span>
+          </div></td>
+          <td style="font-size:.75rem;color:#9ca3af">${r.runtime}</td>
+          <td style="font-size:.75rem;${r.modelLive?'color:#f59e0b':''}">${r.modelLive?'⚡ ':''}<span>${r.model}</span></td>
+          <td style="font-size:.73rem;color:#6b7280">${r.machine}</td>
+          <td style="font-size:.75rem;color:#cbd5e1;max-width:160px">${r.focus}</td>
+          <td style="max-width:200px">${r.toolsHtml}</td>
+          <td style="max-width:200px">${r.skillsHtml}</td>
+          <td><div class="oc-action-btns">
+            <a href="/activity?agent=${encodeURIComponent(r.name)}" class="oc-action-btn">📡 Activity</a>
+          </div></td>
+        </tr>`).join('')
+        : '<tr class="oc-empty-row"><td colspan="8">No agents match the current filters.</td></tr>';
+      document.getElementById('row-count').textContent=vis.length+' / '+rows.length;
+      document.querySelectorAll('#tools-tbl th[data-sort]').forEach(th=>{
+        th.classList.remove('sort-asc','sort-desc');
+        if(th.dataset.sort===sortKey)th.classList.add(sortDir>0?'sort-asc':'sort-desc');
+      });
+    }
 
-      async function getSpikeModel() {
-        try {
-          const d = await fetch('/api/agent-model-settings/main').then(r => r.json());
-          return d.agentSpecificModel || d.globalDefaultModel || null;
-        } catch { return null; }
-      }
+    document.addEventListener('click',e=>{
+      const th=e.target.closest('#tools-tbl th[data-sort]');
+      if(!th)return;
+      const k=th.dataset.sort;
+      if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}
+      applyAndRender();
+    });
+    document.getElementById('q').addEventListener('input',e=>{searchQ=e.target.value.toLowerCase().trim();applyAndRender();});
+    document.getElementById('f-runtime').addEventListener('change',e=>{filterRuntime=e.target.value;applyAndRender();});
 
-      async function render() {
-        const grid = document.getElementById('tools-grid');
-        const spikeModel = await getSpikeModel();
-
-        grid.innerHTML = AGENTS.map(a => {
-          const model = (a.name === 'Spike' && spikeModel) ? spikeModel : a.modelFallback;
-          const modelHtml = a.name === 'Spike' && spikeModel
-            ? `<div class="tc-model tc-model-live">⚡ ${model}</div>`
-            : `<div class="tc-model">${model}</div>`;
-          return `<div class="tool-card" style="--ac:${a.color}">
-            <div class="tc-header">
-              <span class="tc-emoji">${a.emoji}</span>
-              <div style="flex:1;min-width:0">
-                <div class="tc-name">${a.name}</div>
-                <div class="tc-runtime">${a.runtime}</div>
-              </div>
-            </div>
-            ${modelHtml}
-            <div class="tc-focus">${a.focus}</div>
-            <div class="tc-machine" style="font-size:.72rem;color:#6b7280">💻 ${a.machine}</div>
-            <div class="tc-section-label">Tools</div>
-            <div class="tc-chips">${chips(a.tools)}</div>
-            <div class="tc-section-label">Capabilities</div>
-            <div class="tc-chips">${chips(a.skills,'tc-chip-skill')}</div>
-            <div style="margin-top:.4rem">
-              <a href="/activity?agent=${encodeURIComponent(a.name)}" style="font-size:.7rem;color:#6b7280;text-decoration:none;border:1px solid #1f2937;border-radius:4px;padding:2px 7px;">📡 Activity →</a>
-            </div>
-          </div>`;
-        }).join('');
-      }
-      render();
-    </script>
+    async function load(){
+      let spikeModel=null;
+      try{
+        const d=await fetch('/api/agent-model-settings/main').then(r=>r.json());
+        spikeModel=d.agentSpecificModel||d.globalDefaultModel||null;
+      }catch{}
+      rows=AGENTS_STATIC.map(a=>{
+        const model=(a.name==='Spike'&&spikeModel)?spikeModel:a.modelFallback;
+        return{
+          name:a.name,emoji:a.emoji,color:a.color,
+          runtime:a.runtime,model,modelLive:a.name==='Spike'&&!!spikeModel,
+          machine:a.machine,focus:a.focus,
+          toolsHtml:chipHtml(a.tools),
+          skillsHtml:chipHtml(a.skills,'oc-chip-skill'),
+          allText:[...a.tools,...a.skills].join(' '),
+        };
+      });
+      applyAndRender();
+    }
+    load();
+  </script>
 </body>
 </html>

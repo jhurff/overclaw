@@ -1,159 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header class="oc-header">
-        <div class="logo">
-            <h1 class="main-title">OVERCLAW</h1>
-            <span class="tagline">AGENT DASHBOARD</span>
-        </div>
-        <div class="header-controls">
-            <button id="sidebar-toggle" class="control-button">☰</button>
-            <button id="theme-toggle" class="control-button">☀️</button>
-        </div>
-    </header>
-
-    <div class="oc-main-content">
-<%- include('partials/sidebar', { currentPath: '/nodes' }) %>
-
-        <main class="oc-dashboard-area">
-          <style>
-            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
-            .sw-section:first-of-type { margin-top:0; }
-
-            .nodes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.75rem; }
-            .node-card {
-              background:#111827; border:1px solid #1f2937; border-radius:10px;
-              padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.3rem;
-              border-top:3px solid var(--ac,#374151);
-            }
-            .nc-header { display:flex; align-items:center; gap:.5rem; }
-            .nc-name   { font-size:1rem; font-weight:800; color:#e2e8f0; flex:1; }
-            .nc-dot    { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-            .dot-green  { background:#22c55e; box-shadow:0 0 5px #22c55e; }
-            .dot-yellow { background:#eab308; box-shadow:0 0 5px #eab308; }
-            .dot-red    { background:#ef4444; box-shadow:0 0 5px #ef4444; }
-            .dot-gray   { background:#374151; }
-            .nc-os     { font-size:.72rem; color:#6b7280; }
-            .nc-ip     { font-size:.72rem; color:#374151; font-family:monospace; }
-            .nc-agents { font-size:.73rem; color:#9ca3af; margin-top:.1rem; }
-            .nc-hb     { font-size:.72rem; color:#94a3b8; margin-top:.2rem; }
-            .nc-hb-stale { color:#6b7280; }
-            .nc-hb-never { color:#374151; font-style:italic; }
-            .nc-footer { display:flex; gap:.35rem; margin-top:.45rem; }
-            .nc-link   { font-size:.69rem; color:#6b7280; text-decoration:none; padding:2px 6px; border-radius:4px; border:1px solid #1f2937; }
-            .nc-link:hover { color:#e2e8f0; border-color:#374151; }
-            #nodes-err { display:none; color:#f87171; font-size:.82rem; margin-bottom:.5rem; }
-          </style>
-
-          <div class="sw-section">🖥️ Swarm Nodes</div>
-          <div id="nodes-err"></div>
-          <div class="nodes-grid" id="nodes-grid">
-            <div style="color:#4b5563;font-size:.8rem;">Loading…</div>
-          </div>
-        </main>
+  <header class="oc-header">
+    <div class="logo"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
     </div>
+  </header>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/nodes' }) %>
+    <main class="oc-dashboard-area">
+      <div id="nodes-err" style="display:none;color:#f87171;font-size:.82rem;margin-bottom:.5rem"></div>
+      <div id="nodes-setup" style="display:none;color:#6b7280;font-size:.82rem;line-height:1.7;padding:.4rem 0;margin-bottom:.75rem">
+        <strong style="color:#9ca3af">No nodes configured.</strong><br>
+        Copy <code style="font-size:.75rem;color:#818cf8">config/instance.example.json</code>
+        to <code style="font-size:.75rem;color:#818cf8">config/instance.json</code>
+        and fill in your machine details.<br>
+        <span style="font-size:.72rem;color:#4b5563">That file is gitignored — safe to include IPs, Tailscale addresses, and ports.</span>
+      </div>
+      <div id="nodes-table-wrap" style="display:none">
+        <div class="oc-table-toolbar">
+          <input type="search" id="q" class="oc-search-input" placeholder="Search nodes…">
+          <span class="oc-count-badge" id="row-count">–</span>
+        </div>
+        <div class="oc-table-wrap">
+          <table class="oc-data-table" id="nodes-tbl">
+            <thead><tr>
+              <th data-sort="name">Name</th>
+              <th data-sort="os">OS</th>
+              <th data-sort="ip">IP</th>
+              <th data-sort="tailscale">Tailscale</th>
+              <th data-sort="agentsStr">Agents</th>
+              <th data-sort="hbDate">Heartbeat</th>
+              <th class="no-sort">Actions</th>
+            </tr></thead>
+            <tbody id="nodes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    /* ── sidebar/theme ── */
+    (function(){
+      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+      if(col)sb.classList.add('collapsed');
+      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+      const th=document.getElementById('theme-toggle');
+      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+    })();
 
-    <script>
-      /* ── sidebar/theme boilerplate ── */
-      (function(){
-        const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-        let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-        if(col)sb.classList.add('collapsed');
-        btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-        const th=document.getElementById('theme-toggle');
-        let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-        document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-        th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
-      })();
+    function timeAgo(d){
+      if(!d)return null;
+      const ms=Date.now()-new Date(d).getTime(),h=ms/3600000;
+      if(h<1)return Math.round(ms/60000)+'m ago';
+      if(h<24)return Math.round(h)+'h ago';
+      if(h<48)return 'yesterday';
+      if(h<168)return Math.round(h/24)+'d ago';
+      return Math.round(h/168)+'w ago';
+    }
+    function hbDot(d){
+      if(!d)return 'gray';
+      const h=(Date.now()-new Date(d).getTime())/3600000;
+      return h<24?'green':h<72?'yellow':'red';
+    }
 
-      /* ── Node config loaded from /api/instance-nodes (reads gitignored config/instance.json) ── */
+    let rows=[], sortKey='name', sortDir=1, searchQ='';
 
-      function timeAgo(d) {
-        if (!d) return null;
-        const ms = Date.now() - new Date(d).getTime();
-        const h  = ms / 3600000;
-        if (h < 1)   return Math.round(ms/60000) + 'm ago';
-        if (h < 24)  return Math.round(h) + 'h ago';
-        if (h < 48)  return 'yesterday';
-        if (h < 168) return Math.round(h/24) + 'd ago';
-        return Math.round(h/168) + 'w ago';
-      }
-
-      function dotCls(d) {
-        if (!d) return 'dot-gray';
-        const h = (Date.now() - new Date(d).getTime()) / 3600000;
-        if (h < 24)  return 'dot-green';
-        if (h < 72)  return 'dot-yellow';
-        return 'dot-red';
-      }
-
-      async function loadNodes() {
-        const grid = document.getElementById('nodes-grid');
-        const err  = document.getElementById('nodes-err');
-        try {
-          const [nodes, summary] = await Promise.all([
-            fetch('/api/instance-nodes').then(r => r.json()),
-            fetch('/api/swarm/summary').then(r => r.json()),
-          ]);
-          const hbMap = summary.lastHeartbeat || {};
-
-          if (!nodes.length) {
-            grid.innerHTML = `<div style="color:#6b7280;font-size:.82rem;line-height:1.7;padding:.4rem 0">
-              <strong style="color:#9ca3af">No nodes configured.</strong><br>
-              Copy <code style="font-size:.75rem;color:#818cf8">config/instance.example.json</code>
-              to <code style="font-size:.75rem;color:#818cf8">config/instance.json</code>
-              and fill in your machine details.<br>
-              <span style="font-size:.72rem;color:#4b5563">That file is gitignored — safe to include IPs, Tailscale addresses, and ports.</span>
-            </div>`;
-            return;
-          }
-
-          grid.innerHTML = nodes.map(n => {
-            const hb   = hbMap[n.hbKey] || null;
-            const date = hb ? (hb.date || null) : null;
-            const ago  = timeAgo(date);
-            let hbHtml;
-            if (!ago) {
-              hbHtml = `<div class="nc-hb nc-hb-never">💓 never recorded</div>`;
-            } else if (date && (Date.now() - new Date(date).getTime()) > 72*3600000) {
-              hbHtml = `<div class="nc-hb nc-hb-stale">💓 Last seen ${ago}</div>`;
-            } else {
-              hbHtml = `<div class="nc-hb">💓 Last seen ${ago}</div>`;
-            }
-            const ipLine = n.ip
-              ? `<div class="nc-ip">📍 ${n.ip}${n.tailscale ? ' · Tailscale ' + n.tailscale : ''}</div>`
-              : '';
-            return `<div class="node-card" style="--ac:${n.color || '#374151'}">
-              <div class="nc-header">
-                <span class="nc-name">${n.name}</span>
-                <span class="nc-dot ${dotCls(date)}" title="${date || 'no data'}"></span>
-              </div>
-              <div class="nc-os">🖥️ ${n.os || ''}</div>
-              ${ipLine}
-              <div class="nc-agents">🤖 ${(n.agents || []).join(' · ')}</div>
-              ${hbHtml}
-              <div style="font-size:.72rem;color:#4b5563;margin-top:.1rem;line-height:1.4">${n.desc || ''}</div>
-              <div class="nc-footer">
-                ${(n.links || []).map(l => `<a href="${l.href}" class="nc-link">${l.label}</a>`).join('')}
-              </div>
-            </div>`;
-          }).join('');
-        } catch(e) {
-          err.style.display = 'block';
-          err.textContent   = '⚠️ Failed to load: ' + e.message;
-          grid.innerHTML    = '';
+    function applyAndRender(){
+      let vis=rows.filter(r=>{
+        if(searchQ){
+          const h=[r.name,r.os,r.ip||'',r.tailscale||'',r.agentsStr].join(' ').toLowerCase();
+          if(!h.includes(searchQ))return false;
         }
+        return true;
+      });
+      if(sortKey){
+        vis=[...vis].sort((a,b)=>{
+          const va=String(a[sortKey]||'').toLowerCase(),vb=String(b[sortKey]||'').toLowerCase();
+          return sortDir*va.localeCompare(vb);
+        });
       }
-      loadNodes();
-    </script>
+      const tbody=document.getElementById('nodes-tbody');
+      tbody.innerHTML=vis.length ? vis.map(r=>`
+        <tr>
+          <td style="font-weight:700;color:${r.color||'#e2e8f0'}">${r.name}</td>
+          <td style="font-size:.75rem;color:#9ca3af">${r.os||'—'}</td>
+          <td class="${r.ip?'':'dim'}" style="font-family:monospace;font-size:.74rem">${r.ip||'—'}</td>
+          <td class="${r.tailscale?'':'dim'}" style="font-family:monospace;font-size:.74rem">${r.tailscale||'—'}</td>
+          <td style="font-size:.75rem;color:#9ca3af">${r.agentsStr||'—'}</td>
+          <td style="white-space:nowrap;font-size:.78rem">
+            <span class="oc-hb-dot ${r.hbDot}"></span>${r.hbAgo||'<span style="color:#374151;font-style:italic">never</span>'}
+          </td>
+          <td><div class="oc-action-btns">
+            ${r.links.map(l=>`<a href="${l.href}" class="oc-action-btn">${l.label}</a>`).join('')}
+          </div></td>
+        </tr>`).join('')
+        : '<tr class="oc-empty-row"><td colspan="7">No nodes match.</td></tr>';
+      document.getElementById('row-count').textContent=vis.length+' / '+rows.length;
+      document.querySelectorAll('#nodes-tbl th[data-sort]').forEach(th=>{
+        th.classList.remove('sort-asc','sort-desc');
+        if(th.dataset.sort===sortKey)th.classList.add(sortDir>0?'sort-asc':'sort-desc');
+      });
+    }
+
+    document.addEventListener('click',e=>{
+      const th=e.target.closest('#nodes-tbl th[data-sort]');
+      if(!th)return;
+      const k=th.dataset.sort;
+      if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}
+      applyAndRender();
+    });
+    document.getElementById('q').addEventListener('input',e=>{searchQ=e.target.value.toLowerCase().trim();applyAndRender();});
+
+    async function load(){
+      const err=document.getElementById('nodes-err');
+      const setup=document.getElementById('nodes-setup');
+      const wrap=document.getElementById('nodes-table-wrap');
+      try{
+        const [nodes,summary]=await Promise.all([
+          fetch('/api/instance-nodes').then(r=>r.json()),
+          fetch('/api/swarm/summary').then(r=>r.json()),
+        ]);
+        if(!nodes.length){setup.style.display='block';return;}
+        const hbMap=summary.lastHeartbeat||{};
+        rows=nodes.map(n=>{
+          const hb=hbMap[n.hbKey];
+          const hbDate=hb?hb.date||null:null;
+          return{
+            name:n.name,os:n.os||'',
+            ip:n.ip||null,tailscale:n.tailscale||null,
+            agentsStr:(n.agents||[]).join(', '),
+            color:n.color||'#e2e8f0',
+            hbDate:hbDate||'',hbAgo:timeAgo(hbDate)||null,hbDot:hbDot(hbDate),
+            links:n.links||[],
+          };
+        });
+        wrap.style.display='block';
+        applyAndRender();
+      }catch(e){
+        err.style.display='block';
+        err.textContent='⚠️ Failed to load: '+e.message;
+      }
+    }
+    load();
+  </script>
 </body>
 </html>

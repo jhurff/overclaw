@@ -1,145 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header class="oc-header">
-        <div class="logo">
-            <h1 class="main-title">OVERCLAW</h1>
-            <span class="tagline">AGENT DASHBOARD</span>
-        </div>
-        <div class="header-controls">
-            <button id="sidebar-toggle" class="control-button">☰</button>
-            <button id="theme-toggle" class="control-button">☀️</button>
-        </div>
-    </header>
-
-    <div class="oc-main-content">
-<%- include('partials/sidebar', { currentPath: '/agents' }) %>
-
-        <main class="oc-dashboard-area">
-          <style>
-            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
-            .sw-section:first-of-type { margin-top:0; }
-
-            .roster-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.75rem; }
-
-            .persona-card {
-              background:#111827; border:1px solid #1f2937; border-radius:10px;
-              padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.3rem;
-              border-top:3px solid var(--ac,#374151);
-            }
-            .pc-header { display:flex; align-items:flex-start; gap:.6rem; }
-            .pc-emoji  { font-size:1.6rem; line-height:1; flex-shrink:0; }
-            .pc-name   { font-size:1.05rem; font-weight:800; color:var(--ac,#e2e8f0); }
-            .pc-type   { font-size:.68rem; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; }
-            .pc-machine{ font-size:.74rem; color:#9ca3af; margin-top:.1rem; }
-            .pc-role-title  { font-size:.78rem; font-weight:600; color:#cbd5e1; margin-top:.25rem; }
-            .pc-role-detail { font-size:.73rem; color:#6b7280; line-height:1.4;
-              display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
-            .pc-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.3rem; margin-top:.45rem; }
-            .pc-reg    { font-size:.67rem; color:#374151; }
-            .pc-links  { display:flex; gap:.35rem; }
-            .pc-link   { font-size:.69rem; color:#6b7280; text-decoration:none; padding:2px 6px; border-radius:4px; border:1px solid #1f2937; }
-            .pc-link:hover { color:#e2e8f0; border-color:#374151; }
-            .pc-badge  { font-size:.64rem; font-weight:600; padding:1px 7px; border-radius:9999px; white-space:nowrap; margin-left:auto; flex-shrink:0; }
-            .badge-active   { background:#14532d; color:#86efac; }
-            .badge-inactive { background:#7f1d1d; color:#fca5a5; }
-            .badge-unknown  { background:#1f2937; color:#6b7280; }
-            #agents-err { display:none; color:#f87171; font-size:.82rem; margin-bottom:.5rem; }
-          </style>
-
-          <div class="sw-section">🤖 Swarm Roster</div>
-          <div id="agents-err"></div>
-          <div class="roster-grid" id="roster-grid">
-            <div style="color:#4b5563;font-size:.8rem;">Loading…</div>
-          </div>
-        </main>
+  <header class="oc-header">
+    <div class="logo"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
     </div>
+  </header>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/agents' }) %>
+    <main class="oc-dashboard-area">
+      <div class="oc-table-toolbar">
+        <input type="search" id="q" class="oc-search-input" placeholder="Search agents…">
+        <select id="f-type" class="oc-filter-select">
+          <option value="">All types</option>
+          <option value="OpenClaw">OpenClaw</option>
+          <option value="Claude Cowork">Claude Cowork</option>
+          <option value="Cursor">Cursor</option>
+          <option value="ChatGPT">ChatGPT</option>
+        </select>
+        <select id="f-status" class="oc-filter-select">
+          <option value="">All statuses</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+          <option value="Unknown">Unknown</option>
+        </select>
+        <span class="oc-count-badge" id="row-count">–</span>
+      </div>
+      <div class="oc-table-wrap">
+        <table class="oc-data-table" id="agents-tbl">
+          <thead><tr>
+            <th data-sort="name">Agent</th>
+            <th data-sort="type">Type</th>
+            <th data-sort="machine">Machine</th>
+            <th data-sort="role">Role</th>
+            <th data-sort="hbDate">Heartbeat</th>
+            <th data-sort="statusLabel">Status</th>
+            <th data-sort="since">Since</th>
+            <th class="no-sort">Actions</th>
+          </tr></thead>
+          <tbody id="agents-tbody">
+            <tr><td colspan="8" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+  <script>
+    /* ── sidebar/theme ── */
+    (function(){
+      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+      if(col)sb.classList.add('collapsed');
+      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+      const th=document.getElementById('theme-toggle');
+      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+    })();
 
-    <script>
-      /* ── sidebar/theme boilerplate ── */
-      (function(){
-        const sb = document.getElementById('oc-sidebar');
-        const btn = document.getElementById('sidebar-toggle');
-        let col = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if(col) sb.classList.add('collapsed');
-        btn.addEventListener('click',()=>{ col=!col; sb.classList.toggle('collapsed',col); localStorage.setItem('overclaw-sidebar-collapsed',col); });
-        const th = document.getElementById('theme-toggle');
-        let tm = localStorage.getItem('overclaw-theme') || (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
-        document.body.classList.add(tm+'-mode'); th.textContent = tm==='dark'?'🌙':'☀️';
-        th.addEventListener('click',()=>{ tm=tm==='light'?'dark':'light'; document.body.classList.toggle('light-mode',tm==='light'); document.body.classList.toggle('dark-mode',tm==='dark'); localStorage.setItem('overclaw-theme',tm); th.textContent=tm==='dark'?'🌙':'☀️'; });
-      })();
+    const AGENT_META = {
+      Spike:{emoji:'🦞',color:'#f97316'},
+      Steve:{emoji:'📈',color:'#3b82f6'},
+      Lex:  {emoji:'💻',color:'#a855f7'},
+      Bill: {emoji:'🐟',color:'#10b981'},
+    };
+    const HB_KEY = {Spike:'OpenClaw',Steve:'BrightMove-MBP',Lex:'BrightMove-MBP/Cursor',Bill:'H2FClanker1'};
 
-      /* ── Agents roster ── */
-      const AGENT_META = {
-        Spike: { emoji:'🦞', color:'#f97316' },
-        Steve: { emoji:'📈', color:'#3b82f6' },
-        Lex:   { emoji:'💻', color:'#a855f7' },
-        Bill:  { emoji:'🐟', color:'#10b981' },
-      };
+    function timeAgo(d){
+      if(!d)return null;
+      const ms=Date.now()-new Date(d).getTime(),h=ms/3600000;
+      if(h<1)return Math.round(ms/60000)+'m ago';
+      if(h<24)return Math.round(h)+'h ago';
+      if(h<48)return 'yesterday';
+      if(h<168)return Math.round(h/24)+'d ago';
+      return Math.round(h/168)+'w ago';
+    }
+    function hbDot(d){
+      if(!d)return 'gray';
+      const h=(Date.now()-new Date(d).getTime())/3600000;
+      return h<24?'green':h<72?'yellow':'red';
+    }
+    function badgeCls(s){
+      if(!s)return 'badge-unknown';
+      const l=s.toLowerCase();
+      if(l.includes('active'))return 'badge-active';
+      if(l.includes('inactive')||l.includes('offline'))return 'badge-inactive';
+      return 'badge-unknown';
+    }
 
-      function badgeCls(s) {
-        if (!s) return 'badge-unknown';
-        const l = s.toLowerCase();
-        if (l.includes('active')) return 'badge-active';
-        if (l.includes('inactive') || l.includes('offline')) return 'badge-inactive';
-        return 'badge-unknown';
-      }
-      function badgeText(s) {
-        return (s||'Unknown').replace(/^[^\w]*/,'').trim();
-      }
+    let rows=[], sortKey='name', sortDir=1, filterType='', filterStatus='', searchQ='';
 
-      async function loadRoster() {
-        const grid = document.getElementById('roster-grid');
-        const err  = document.getElementById('agents-err');
-        try {
-          const data = await fetch('/api/vault/agents').then(r => r.json());
-          if (!Array.isArray(data) || !data.length) {
-            grid.innerHTML = '<div style="color:#6b7280;font-size:.8rem;">No agents in registry.</div>';
-            return;
-          }
-          grid.innerHTML = data.map(a => {
-            const name    = a.nickname || a.agent || 'Agent';
-            const meta    = AGENT_META[name] || { emoji:'🤖', color:'#6b7280' };
-            const parts   = (a.primary_role || a.role || '').split(' — ');
-            const roleT   = parts[0] ? parts[0].trim() : '';
-            const roleD   = parts.slice(1).join(' — ').trim();
-            return `<div class="persona-card" style="--ac:${meta.color}">
-              <div class="pc-header">
-                <span class="pc-emoji">${meta.emoji}</span>
-                <div style="flex:1;min-width:0">
-                  <div class="pc-name">${name}</div>
-                  <div class="pc-type">${a.type || 'AI Agent'}</div>
-                </div>
-                <span class="pc-badge ${badgeCls(a.status)}">${badgeText(a.status)}</span>
-              </div>
-              <div class="pc-machine">💻 ${a.machine || '—'}</div>
-              ${roleT   ? `<div class="pc-role-title">${roleT}</div>` : ''}
-              ${roleD   ? `<div class="pc-role-detail">${roleD}</div>` : ''}
-              <div class="pc-footer">
-                <span class="pc-reg">Since ${a.registered || '—'}</span>
-                <div class="pc-links">
-                  <a href="/activity?agent=${encodeURIComponent(name)}" class="pc-link">📡 Activity</a>
-                  <a href="/vault/doc?path=${encodeURIComponent('03 - Agents/Agent Registry.md')}" class="pc-link">📋 Registry</a>
-                </div>
-              </div>
-            </div>`;
-          }).join('');
-        } catch(e) {
-          err.style.display = 'block';
-          err.textContent   = '⚠️ Failed to load agents: ' + e.message;
-          grid.innerHTML    = '';
+    function applyAndRender(){
+      let vis=rows.filter(r=>{
+        if(searchQ){
+          const h=[r.name,r.type,r.machine,r.role,r.statusLabel,r.since].join(' ').toLowerCase();
+          if(!h.includes(searchQ))return false;
         }
+        if(filterType && r.type!==filterType)return false;
+        if(filterStatus && r.statusLabel!==filterStatus)return false;
+        return true;
+      });
+      if(sortKey){
+        vis=[...vis].sort((a,b)=>{
+          const va=String(a[sortKey]||'').toLowerCase(),vb=String(b[sortKey]||'').toLowerCase();
+          return sortDir*va.localeCompare(vb);
+        });
       }
-      loadRoster();
-    </script>
+      const tbody=document.getElementById('agents-tbody');
+      tbody.innerHTML=vis.length ? vis.map(r=>`
+        <tr>
+          <td><div class="oc-row-name">
+            <span style="font-size:1.1rem;color:${r.color}">${r.emoji}</span>
+            <span style="font-weight:700;color:${r.color}">${r.name}</span>
+          </div></td>
+          <td class="${r.type?'':'dim'}">${r.type||'—'}</td>
+          <td style="font-size:.75rem;color:#9ca3af">${r.machine||'—'}</td>
+          <td style="max-width:180px;font-size:.75rem;color:#9ca3af">${r.role||'—'}</td>
+          <td style="white-space:nowrap;font-size:.78rem">
+            <span class="oc-hb-dot ${r.hbDot}"></span>${r.hbAgo||'<span style="color:#374151;font-style:italic">never</span>'}
+          </td>
+          <td><span class="oc-badge ${r.statusCls}">${r.statusLabel}</span></td>
+          <td class="dim" style="font-size:.73rem">${r.since||'—'}</td>
+          <td><div class="oc-action-btns">
+            <a href="/activity?agent=${encodeURIComponent(r.name)}" class="oc-action-btn">📡 Activity</a>
+            <a href="/vault/doc?path=${encodeURIComponent('03 - Agents/Agent Registry.md')}" class="oc-action-btn">📋 Registry</a>
+          </div></td>
+        </tr>`).join('')
+        : '<tr class="oc-empty-row"><td colspan="8">No agents match the current filters.</td></tr>';
+      document.getElementById('row-count').textContent=vis.length+' / '+rows.length;
+      document.querySelectorAll('#agents-tbl th[data-sort]').forEach(th=>{
+        th.classList.remove('sort-asc','sort-desc');
+        if(th.dataset.sort===sortKey)th.classList.add(sortDir>0?'sort-asc':'sort-desc');
+      });
+    }
+
+    document.addEventListener('click',e=>{
+      const th=e.target.closest('#agents-tbl th[data-sort]');
+      if(!th)return;
+      const k=th.dataset.sort;
+      if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}
+      applyAndRender();
+    });
+    document.getElementById('q').addEventListener('input',e=>{searchQ=e.target.value.toLowerCase().trim();applyAndRender();});
+    document.getElementById('f-type').addEventListener('change',e=>{filterType=e.target.value;applyAndRender();});
+    document.getElementById('f-status').addEventListener('change',e=>{filterStatus=e.target.value;applyAndRender();});
+
+    async function load(){
+      try{
+        const [agents,summary]=await Promise.all([
+          fetch('/api/vault/agents').then(r=>r.json()),
+          fetch('/api/swarm/summary').then(r=>r.json()),
+        ]);
+        const hbMap=summary.lastHeartbeat||{};
+        rows=agents.map(a=>{
+          const name=a.nickname||a.agent||'Agent';
+          const meta=AGENT_META[name]||{emoji:'🤖',color:'#6b7280'};
+          const hb=hbMap[HB_KEY[name]];
+          const hbDate=hb?hb.date||null:null;
+          const statusRaw=a.status||'';
+          const statusLabel=statusRaw.replace(/^[^\w]*/,'').trim()||'Unknown';
+          return{
+            name,emoji:meta.emoji,color:meta.color,
+            type:a.type||'',
+            machine:a.machine||'',
+            role:(a.primary_role||a.role||'').split(' — ')[0]||'',
+            statusLabel,statusCls:badgeCls(statusRaw),
+            hbDate:hbDate||'',hbAgo:timeAgo(hbDate)||null,hbDot:hbDot(hbDate),
+            since:a.registered||'',
+          };
+        });
+        applyAndRender();
+      }catch(e){
+        document.getElementById('agents-tbody').innerHTML=
+          `<tr><td colspan="8" style="color:#f87171;padding:1rem">⚠️ Failed to load: ${e.message}</td></tr>`;
+      }
+    }
+    load();
+  </script>
 </body>
 </html>
