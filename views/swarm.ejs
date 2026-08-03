@@ -59,21 +59,44 @@
     }
     .sw-section:first-of-type { margin-top: 0; }
 
-    /* ── Task board stat pills ── */
-    .stats-strip {
-      display: flex; gap: 0.6rem; flex-wrap: wrap;
+    /* ── Task board stat cards (2×2 mobile grid) ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
     }
-    .stat-pill {
+    .stat-card {
       background: var(--oc-card-bg, #111827);
       border: 1px solid var(--oc-border-color, #1f2937);
-      border-radius: 8px; padding: 0.6rem 1rem;
-      text-align: center; min-width: 88px;
-      text-decoration: none;
-      transition: border-color .15s;
+      border-radius: 8px; padding: 0.65rem 0.85rem;
+      text-decoration: none; display: flex;
+      flex-direction: column; gap: 0.15rem;
+      transition: border-color .15s, background .1s;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
     }
-    a.stat-pill:hover { border-color: #4b5563; }
-    .stat-num   { font-size: 1.5rem; font-weight: 800; color: var(--oc-text-dark, #e2e8f0); line-height: 1; }
-    .stat-label { font-size: 0.67rem; color: #6b7280; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat-card:hover { border-color: #4b5563; background: rgba(255,255,255,0.02); }
+    .sc-top   { display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem; }
+    .sc-num   { font-size: 1.75rem; font-weight: 800; line-height: 1; flex-shrink: 0; }
+    .sc-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase;
+                letter-spacing: 0.06em; text-align: right; line-height: 1.2; }
+    .sc-preview { font-size: 0.66rem; color: #6b7280; line-height: 1.35;
+                  display: -webkit-box; -webkit-line-clamp: 2;
+                  -webkit-box-orient: vertical; overflow: hidden;
+                  margin-top: 2px; }
+    /* column accent colors */
+    .sc-inbox   { border-top: 2px solid #7c3aed; }
+    .sc-inbox   .sc-num   { color: #c4b5fd; }
+    .sc-inbox   .sc-label { color: #a78bfa; }
+    .sc-wip     { border-top: 2px solid #2563eb; }
+    .sc-wip     .sc-num   { color: #93c5fd; }
+    .sc-wip     .sc-label { color: #60a5fa; }
+    .sc-blocked { border-top: 2px solid #dc2626; }
+    .sc-blocked .sc-num   { color: #fca5a5; }
+    .sc-blocked .sc-label { color: #f87171; }
+    .sc-done    { border-top: 2px solid #059669; }
+    .sc-done    .sc-num   { color: #a7f3d0; }
+    .sc-done    .sc-label { color: #6ee7b7; }
 
     /* ── Agent cards ── */
     .agent-grid {
@@ -245,28 +268,36 @@
       <!-- Error -->
       <div class="sw-error" id="vault-error"></div>
 
-      <!-- Task board stats -->
+      <!-- Task board stats (2×2 grid, each links to filtered board) -->
       <div class="sw-section">📋 Task Board</div>
-      <div class="stats-strip">
-        <div class="stat-pill">
-          <div class="stat-num" id="stat-inbox">—</div>
-          <div class="stat-label">Inbox</div>
-        </div>
-        <div class="stat-pill">
-          <div class="stat-num" id="stat-inprogress">—</div>
-          <div class="stat-label">In Progress</div>
-        </div>
-        <div class="stat-pill">
-          <div class="stat-num" id="stat-blocked" style="color:#f87171;">—</div>
-          <div class="stat-label">Blocked</div>
-        </div>
-        <div class="stat-pill">
-          <div class="stat-num" id="stat-done" style="color:#6ee7b7;">—</div>
-          <div class="stat-label">Done</div>
-        </div>
-        <a href="/task-board" class="stat-pill" style="border-color:#374151;">
-          <div class="stat-num" style="font-size:1.1rem; color:#6b7280;">→</div>
-          <div class="stat-label">View Board</div>
+      <div class="stats-grid">
+        <a href="/task-board?filter=inbox" class="stat-card sc-inbox">
+          <div class="sc-top">
+            <span class="sc-num" id="stat-inbox">—</span>
+            <span class="sc-label">📥 Inbox</span>
+          </div>
+          <div class="sc-preview" id="stat-inbox-preview">Loading…</div>
+        </a>
+        <a href="/task-board?filter=inprogress" class="stat-card sc-wip">
+          <div class="sc-top">
+            <span class="sc-num" id="stat-inprogress">—</span>
+            <span class="sc-label">🔄 In Progress</span>
+          </div>
+          <div class="sc-preview" id="stat-wip-preview">Loading…</div>
+        </a>
+        <a href="/task-board?filter=blocked" class="stat-card sc-blocked">
+          <div class="sc-top">
+            <span class="sc-num" id="stat-blocked">—</span>
+            <span class="sc-label">🔴 Blocked</span>
+          </div>
+          <div class="sc-preview" id="stat-blocked-preview">Loading…</div>
+        </a>
+        <a href="/task-board?filter=done" class="stat-card sc-done">
+          <div class="sc-top">
+            <span class="sc-num" id="stat-done">—</span>
+            <span class="sc-label">✅ Done</span>
+          </div>
+          <div class="sc-preview" id="stat-done-preview">Loading…</div>
         </a>
       </div>
 
@@ -376,11 +407,34 @@
         err.style.display = 'none';
 
         /* stats */
-        const s = data.taskBoardStats || {};
+        const s  = data.taskBoardStats || {};
+        const tb = data.taskBoard || {};
         document.getElementById('stat-inbox').textContent      = s.inbox      ?? '—';
         document.getElementById('stat-inprogress').textContent = s.inProgress ?? '—';
         document.getElementById('stat-blocked').textContent    = s.blocked    ?? '—';
         document.getElementById('stat-done').textContent       = s.done       ?? '—';
+
+        /* stat card previews */
+        function scPreview(items, emptyText) {
+          if (!items || !items.length) return emptyText || '—';
+          const t = (items[0].title || '').replace(/\*\*/g,'').replace(/—.*$/,'').trim();
+          return t.length > 80 ? t.slice(0,80)+'…' : (t||'—');
+        }
+        document.getElementById('stat-inbox-preview').textContent =
+          scPreview(tb.inbox, 'Nothing to assign');
+        document.getElementById('stat-wip-preview').textContent =
+          scPreview(tb.inProgress, 'Nothing active');
+        document.getElementById('stat-blocked-preview').textContent = (() => {
+          if (!tb.blocked || !tb.blocked.length) return '✅ Clear';
+          const b = tb.blocked[0];
+          const text = (b.reason || b.title || '').replace(/\*\*/g,'').trim();
+          return text.length > 80 ? text.slice(0,80)+'…' : (text||'—');
+        })();
+        document.getElementById('stat-done-preview').textContent = (() => {
+          if (!tb.done || !tb.done.length) return 'None yet';
+          const t = (tb.done[0].title || '').replace(/\*\*/g,'').replace(/—.*$/,'').trim();
+          return t.length > 75 ? t.slice(0,75)+'…' : (t||'—');
+        })();
 
         /* agents */
         const agents = data.agents || [];

@@ -216,6 +216,37 @@
     }
     .show-more-btn:hover { border-color: #4a5568; color: #e2e8f0; }
 
+    /* ── Next-step / action strip ── */
+    .task-action {
+      font-size: 0.71rem;
+      line-height: 1.35;
+      padding: 0.28rem 0.45rem;
+      border-radius: 4px;
+      margin: 4px 0 3px;
+    }
+    /* blocked: red tint, prominent Jimmy-action line */
+    .blocked-action {
+      background: rgba(127,29,29,0.22);
+      border-left: 2px solid #b91c1c;
+      color: #fca5a5;
+    }
+    .action-context { color: #9ca3af; font-size: 0.67rem; margin-bottom: 2px; }
+    .action-jimmy   { color: #fbbf24; font-weight: 600; }
+    /* in-progress: quiet dates */
+    .progress-action { color: #6b7280; font-size: 0.69rem; }
+    /* inbox: subtle due-date hint */
+    .inbox-action { color: #a78bfa; font-size: 0.69rem; }
+    /* done: muted output summary */
+    .done-action {
+      background: rgba(5,150,105,0.08);
+      border-left: 2px solid #059669;
+      color: #6b7280;
+    }
+    /* title line-clamp per status */
+    .kb-card.st-blocked    .task-title { -webkit-line-clamp: 2; }
+    .kb-card.st-inProgress .task-title { -webkit-line-clamp: 4; }
+    .kb-card.st-done       .task-title { -webkit-line-clamp: 2; }
+
     /* ── Empty state ── */
     .kb-empty {
       color: #374151;
@@ -448,13 +479,49 @@
       const idBadge = task.taskId && docPath
         ? `<a href="/vault/doc?path=${encodeURIComponent(docPath)}" class="task-id" target="_blank">${task.taskId}</a>`
         : task.taskId ? `<div class="task-id">${task.taskId}</div>` : '';
+
+      /* ── Next-step / action section ── */
+      let actionEl = '';
+      const st = task.status || '';
+      if (st === 'blocked' && task.reason) {
+        const r = task.reason.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const jiIdx = r.search(/Jimmy:/i);
+        if (jiIdx >= 0) {
+          const pre = r.slice(0, jiIdx).trim();
+          const ji  = r.slice(jiIdx);
+          const jiShort = ji.length > 180 ? ji.slice(0,180)+'…' : ji;
+          actionEl = `<div class="task-action blocked-action">`
+            + (pre ? `<div class="action-context">${pre.length>100?pre.slice(0,100)+'…':pre}</div>` : '')
+            + `<div class="action-jimmy">→ ${jiShort}</div></div>`;
+        } else {
+          const s = r.length > 180 ? r.slice(0,180)+'…' : r;
+          actionEl = `<div class="task-action blocked-action">${s}</div>`;
+        }
+      } else if (st === 'inProgress') {
+        const parts = [];
+        if (task.created && task.created !== '—') parts.push('Started ' + task.created);
+        if (task.deadline && task.deadline !== '—') parts.push('Due ' + task.deadline);
+        if (parts.length) actionEl = `<div class="task-action progress-action">${parts.join(' · ')}</div>`;
+      } else if (st === 'inbox') {
+        const parts = [];
+        if (task.deadline && task.deadline !== '—') parts.push('Due: ' + task.deadline.replace(/</g,'&lt;'));
+        if (parts.length) actionEl = `<div class="task-action inbox-action">${parts.join(' · ')}</div>`;
+      } else if (st === 'done' && task.output) {
+        const out = task.output.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const s = out.length > 120 ? out.slice(0,120)+'…' : out;
+        actionEl = `<div class="task-action done-action">${s}</div>`;
+      }
+
+      const stCls  = { inbox:'st-inbox', inProgress:'st-wip', blocked:'st-blocked', done:'st-done' };
       const agentEl = task.agent
         ? `<span class="chip chip-agent" style="${agentColor(task.agent)}">${task.agent}</span>` : '';
       const pri = priorityChip(task.priority);
-      const date = (task.created || task.deadline || '').replace(/</g,'&lt;');
+      /* avoid double-showing date when actionEl already has it */
+      const rawDate = (st === 'inProgress') ? '' : (task.deadline || task.created || '');
+      const date = rawDate.replace(/</g,'&lt;');
       const dateEl = date && date !== '—' ? `<span class="kb-date">${date}</span>` : '';
-      return `<div class="kb-card ${extraCls||''}">
-        ${idBadge}${titleEl}
+      return `<div class="kb-card ${extraCls||''} ${stCls[st]||''}">
+        ${idBadge}${titleEl}${actionEl}
         <div class="task-footer">${agentEl}${pri}${dateEl}</div>
       </div>`;
     }
@@ -564,6 +631,39 @@
         setActive(Math.max(0, Math.min(tabs.length - 1, idx)));
       }, { passive: true });
     })();
+    /* ── Filter from URL param (?filter=inbox|inprogress|blocked|done) ── */
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var filter = (params.get('filter') || '').toLowerCase();
+      if (!filter) return;
+      var colOrder = ['inbox', 'inprogress', 'blocked', 'done'];
+      var idx = colOrder.indexOf(filter);
+      if (idx < 0) return;
+      var board = document.getElementById('kanban-board');
+      // Mobile: snap to column + activate tab
+      if (board && window.innerWidth <= 820) {
+        setTimeout(function () {
+          board.scrollTo({ left: idx * board.clientWidth, behavior: 'instant' });
+          colOrder.forEach(function (k, i) {
+            var t = document.getElementById('ktab-' + k);
+            if (t) t.classList.toggle('active', i === idx);
+          });
+        }, 120);
+      }
+      // Desktop: briefly glow the target column
+      if (window.innerWidth > 820) {
+        setTimeout(function () {
+          var cls = filter === 'inprogress' ? '.col-inprogress' : '.col-' + filter;
+          var col = document.querySelector(cls);
+          if (col) {
+            col.style.transition = 'box-shadow 0.4s';
+            col.style.boxShadow  = '0 0 0 2px rgba(96,165,250,0.55)';
+            setTimeout(function () { col.style.boxShadow = ''; }, 1800);
+          }
+        }, 600);
+      }
+    })();
+
     fetch('/api/vault/status').then(r=>r.json()).then(d=>{
       if (d.lastSyncAt)
         document.getElementById('tb-sync-ts').textContent =
