@@ -177,46 +177,35 @@
       width: 11px; height: 11px; border-radius: 2px; display: inline-block;
     }
 
-    /* ── Pipeline styles ── */
-    .pipeline-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.7rem;
+    /* ── Agent health grid ── */
+    .health-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;
     }
-    .pipe-col { }
-    .pipe-col-header {
-      font-size: 0.68rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.07em;
-      display: flex; align-items: center; gap: 6px;
-      margin-bottom: 0.45rem;
-    }
-    .pipe-count {
-      background: #1f2937; border-radius: 9999px;
-      padding: 0px 6px; font-size: 0.65rem; color: #9ca3af;
-    }
-    .pipe-inbox    .pipe-col-header { color: #9ca3af; }
-    .pipe-wip      .pipe-col-header { color: #60a5fa; }
-    .pipe-blocked  .pipe-col-header { color: #f87171; }
-    .pipe-done     .pipe-col-header { color: #6ee7b7; }
-    .pipe-task {
+    .health-card {
       background: #111827; border: 1px solid #1f2937;
-      border-radius: 5px; padding: 0.5rem 0.65rem;
-      margin-bottom: 0.4rem; font-size: 0.75rem;
+      border-radius: 8px; padding: 0.65rem 0.85rem;
+      display: flex; flex-direction: column; gap: 0.22rem;
+      text-decoration: none;
+      transition: border-color .15s, background .1s;
+      -webkit-tap-highlight-color: transparent;
     }
-    .pipe-task-id { font-size: 0.62rem; color: #4b5563; font-family: monospace; margin-bottom: 2px; }
-    .pipe-task-title { color: #d1d5db; line-height: 1.35; }
-    .pipe-task-agent {
-      margin-top: 5px; font-size: 0.62rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .ta-spike { color: #f97316; } .ta-steve { color: #60a5fa; }
-    .ta-lex   { color: #c084fc; } .ta-bill  { color: #6ee7b7; }
-    .ta-jimmy { color: #fbbf24; } .ta-other { color: #9ca3af; }
-    .pipe-empty { font-size: 0.75rem; color: #374151; padding: 4px 0; }
+    .health-card:hover { border-color: #4b5563; background: rgba(255,255,255,.02); }
+    .hc-top     { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+    .hc-name    { font-size: 0.95rem; font-weight: 700; }
+    .hc-machine { font-size: 0.67rem; color: #6b7280; }
+    .hc-hb      { font-size: 0.7rem;  color: #9ca3af; }
+    .hc-footer  { display: flex; align-items: center; justify-content: space-between; margin-top: 3px; }
+    .hc-alert   { font-size: 0.67rem; font-weight: 700; color: #f87171; }
+    .hc-link    { font-size: 0.67rem; color: #6b7280; }
+    .health-card:hover .hc-link { color: #e2e8f0; }
+    .hc-dot        { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .hc-dot-green  { background: #22c55e; box-shadow: 0 0 5px #22c55e55; }
+    .hc-dot-yellow { background: #eab308; }
+    .hc-dot-red    { background: #ef4444; }
+    .hc-dot-gray   { background: #374151; }
     @media (max-width: 700px) {
-      .pipeline-grid { grid-template-columns: repeat(2, 1fr); }
-      .heatmap-grid  { grid-template-columns: 44px repeat(7, 1fr); }
-    } display: flex; flex-direction: column; gap: 0.45rem; }
+      .heatmap-grid { grid-template-columns: 44px repeat(7, 1fr); }
+    }
     .alert-item {
       background: rgba(194,65,12,0.12);
       border: 1px solid #9a3412;
@@ -330,9 +319,12 @@
         </div>
       </div>
 
-      <!-- Pipeline -->
-      <div class="sw-section">🗂️ Task Pipeline</div>
-      <div class="pipeline-grid" id="pipeline-grid">
+      <!-- Agent Health -->
+      <div class="sw-section" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🏥 Agent Health</span>
+        <a href="/activity" style="font-size:0.72rem;color:#6b7280;text-decoration:none;font-weight:500;">Full Activity Log →</a>
+      </div>
+      <div class="health-grid" id="health-grid">
         <div style="color:#4b5563;font-size:.75rem;">Loading…</div>
       </div>
 
@@ -491,8 +483,8 @@
         /* heatmap */
         renderHeatmap(data.heatmap || { days: [], agents: [] });
 
-        /* pipeline */
-        renderPipeline(data.taskBoard || {});
+        /* agent health */
+        renderHealth(data);
 
         document.getElementById('sw-refresh-note').textContent =
           'Updated ' + new Date().toLocaleTimeString();
@@ -567,41 +559,58 @@
       grid.innerHTML = html;
     }
 
-    /* ── Pipeline renderer ── */
-    function agentClass(a) {
-      if (!a) return 'ta-other';
-      const s = a.toLowerCase();
-      if (s.includes('spike')) return 'ta-spike';
-      if (s.includes('steve')) return 'ta-steve';
-      if (s.includes('lex'))   return 'ta-lex';
-      if (s.includes('bill'))  return 'ta-bill';
-      if (s.includes('jimmy')) return 'ta-jimmy';
-      return 'ta-other';
-    }
-    function taskCard(t) {
-      const title = (t.title || t.description || '').replace(/\*\*/g,'').replace(/—.*$/,'').trim();
-      const short = title.length > 70 ? title.slice(0,70)+'…' : title;
-      const id = t.id || t.taskId || '';
-      const agent = t.assignedTo || t.agent || '';
-      return `<div class="pipe-task">
-        ${id ? `<div class="pipe-task-id">${id}</div>` : ''}
-        <div class="pipe-task-title">${short}</div>
-        ${agent ? `<div class="pipe-task-agent ${agentClass(agent)}">${agent.toUpperCase()}</div>` : ''}
-      </div>`;
-    }
-    function renderPipeline({ inbox=[], inProgress=[], blocked=[], done=[] }) {
-      const cols = [
-        { key:'pipe-inbox',   label:'📥 Inbox',       items: inbox },
-        { key:'pipe-wip',     label:'🔄 In Progress', items: inProgress },
-        { key:'pipe-blocked', label:'🔴 Blocked',     items: blocked },
-        { key:'pipe-done',    label:'✅ Done',        items: done },
+    /* ── Agent health renderer ── */
+    function renderHealth(data) {
+      const grid  = document.getElementById('health-grid');
+      const hbMap = data.lastHeartbeat || {};
+      const alts  = data.alerts || [];
+
+      const AGENTS = [
+        { name:'Spike', machine:'OpenClaw',            color:'#f97316', keys:['OpenClaw'] },
+        { name:'Steve', machine:'BrightMove-MBP',       color:'#3b82f6', keys:['BrightMove-MBP'] },
+        { name:'Lex',   machine:'BrightMove (Cursor)',   color:'#a855f7', keys:['BrightMove-MBP/Cursor'] },
+        { name:'Bill',  machine:'H2FClanker1',           color:'#10b981', keys:['H2FClanker1'] },
       ];
-      document.getElementById('pipeline-grid').innerHTML = cols.map(col => `
-        <div class="pipe-col ${col.key}">
-          <div class="pipe-col-header">${col.label} <span class="pipe-count">${col.items.length}</span></div>
-          ${col.items.length ? col.items.map(taskCard).join('') : '<div class="pipe-empty">Empty</div>'}
-        </div>`
-      ).join('');
+
+      function timeAgo(d) {
+        if (!d) return 'never';
+        const ms = Date.now() - new Date(d).getTime();
+        const h  = ms / 3600000;
+        if (h < 1)  return Math.round(ms / 60000) + 'm ago';
+        if (h < 24) return Math.round(h) + 'h ago';
+        if (h < 48) return 'yesterday';
+        return Math.round(h / 24) + 'd ago';
+      }
+
+      function dotCls(d) {
+        if (!d) return 'hc-dot-gray';
+        const h = (Date.now() - new Date(d).getTime()) / 3600000;
+        if (h < 24) return 'hc-dot-green';
+        if (h < 72) return 'hc-dot-yellow';
+        return 'hc-dot-red';
+      }
+
+      grid.innerHTML = AGENTS.map(ag => {
+        const hb   = ag.keys.map(k => hbMap[k]).find(Boolean) || null;
+        const date = hb ? (hb.date || null) : null;
+        const cnt  = alts.filter(a =>
+          ag.keys.some(k => (a.machine || '').toLowerCase().startsWith(k.split('/')[0].toLowerCase()))
+        ).length;
+        return `<a href="/activity?agent=${encodeURIComponent(ag.name)}" class="health-card">
+          <div class="hc-top">
+            <span class="hc-name" style="color:${ag.color}">${ag.name}</span>
+            <span class="hc-dot ${dotCls(date)}"></span>
+          </div>
+          <div class="hc-machine">${ag.machine}</div>
+          <div class="hc-hb">💓 ${timeAgo(date)}</div>
+          <div class="hc-footer">
+            ${cnt > 0
+              ? `<span class="hc-alert">⚠️ ${cnt} alert${cnt > 1 ? 's' : ''}</span>`
+              : '<span style="font-size:.67rem;color:#4b5563;">No alerts</span>'}
+            <span class="hc-link">Activity →</span>
+          </div>
+        </a>`;
+      }).join('');
     }
     fetch('/api/vault/status').then(r=>r.json()).then(d => {
       if (d.lastSyncAt)
