@@ -32,6 +32,7 @@
           Fields marked ⚠️ require a service restart to take effect.
         </p>
         <form id="settings-form" class="oc-settings-form">
+          <div class="oc-settings-section">📁 Vault &amp; Brain</div>
           <div class="oc-field">
             <label for="brainPath">Brain Path — Obsidian Vault Location</label>
             <input type="text" id="brainPath" name="brainPath"
@@ -39,6 +40,7 @@
               placeholder="~/My-AI-Brain">
             <div class="hint warn">⚠️ Requires service restart</div>
           </div>
+          <div class="oc-settings-section">🌐 Runtime</div>
           <div class="oc-field">
             <label for="port">Listen Port</label>
             <input type="number" id="port" name="port"
@@ -46,6 +48,7 @@
               min="1024" max="65535" style="max-width:140px">
             <div class="hint warn">⚠️ Requires service restart</div>
           </div>
+          <div class="oc-settings-section">⚡ Behavior</div>
           <div class="oc-field">
             <label for="scanFrequencySeconds">Vault Scan Frequency</label>
             <select id="scanFrequencySeconds" name="scanFrequencySeconds" style="max-width:220px">

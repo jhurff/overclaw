@@ -1017,3 +1017,30 @@ a:hover {
   .oc-action-btn { padding: 6px 10px; font-size: .73rem; min-height: 34px; }
   .oc-settings-form { max-width: 100%; }
 }
+
+/* ── Table-in-card: toolbar attached above column headers ── */
+.oc-data-wrap {
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.oc-data-wrap .oc-table-toolbar {
+  padding: .55rem .75rem;
+  background: #0a0e1a;
+  border-bottom: 1px solid #1f2937;
+  margin-bottom: 0;
+}
+.oc-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Settings form section group headers */
+.oc-settings-section {
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: #4b5563;
+  padding: .45rem 0 .3rem;
+  border-bottom: 1px solid #1f2937;
+  margin: 1.1rem 0 .75rem;
+}
+.oc-settings-section:first-child { margin-top: 0; }

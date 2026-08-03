@@ -1,217 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header class="oc-header">
-        <div class="logo">
-            <h1 class="main-title">OVERCLAW</h1>
-            <span class="tagline">AGENT DASHBOARD</span>
-        </div>
-        <div class="header-controls">
-            <button id="sidebar-toggle" class="control-button">☰</button>
-            <button id="theme-toggle" class="control-button">☀️</button>
-        </div>
-    </header>
-
-    <div class="oc-main-content">
-<%- include('partials/sidebar', { currentPath: '/scheduled-tasks' }) %>
-
-        <main class="oc-dashboard-area">
-          <style>
-            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
-            .sw-section:first-of-type { margin-top:0; }
-
-            /* Agent filter strip */
-            .agent-filter { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.9rem; }
-            .agent-pill { padding:.28rem .75rem; border:1px solid #2d3548; border-radius:9999px; cursor:pointer; font-size:.78rem; font-weight:600; color:#8892a4; background:none; font-family:inherit; transition:all .15s; -webkit-tap-highlight-color:transparent; }
-            .agent-pill.active { background:var(--ac,#374151); color:#e2e8f0; border-color:var(--ac,#4b5563); }
-            .agent-pill:hover:not(.active) { border-color:#6b7280; color:#e2e8f0; }
-
-            /* Task table */
-            .task-table { width:100%; border-collapse:collapse; font-size:.78rem; }
-            .task-table th { text-align:left; font-size:.62rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#4b5563; padding:.4rem .6rem; border-bottom:1px solid #1f2937; }
-            .task-table td { padding:.55rem .6rem; border-bottom:1px solid #111827; vertical-align:top; }
-            .task-table tr:hover td { background:#0f172a; }
-
-            .tt-name    { color:#e2e8f0; font-weight:600; }
-            .tt-sched   { color:#94a3b8; font-family:monospace; font-size:.72rem; }
-            .tt-agent   { font-size:.7rem; font-weight:600; padding:1px 6px; border-radius:9999px; white-space:nowrap; }
-            .tt-enabled { font-size:.68rem; }
-            .tag-enabled  { color:#86efac; }
-            .tag-disabled { color:#f87171; }
-            .tag-spike  { background:#431407; color:#fb923c; }
-            .tag-steve  { background:#172554; color:#60a5fa; }
-            .tag-lex    { background:#2e1065; color:#c084fc; }
-            .tag-bill   { background:#022c22; color:#34d399; }
-            .tag-system { background:#1c1917; color:#a8a29e; }
-            .empty-row  { color:#4b5563; font-size:.8rem; padding:.8rem; text-align:center; }
-
-            #st-error   { display:none; color:#f87171; font-size:.82rem; margin-bottom:.5rem; }
-            #st-spinner { color:#4b5563; font-size:.8rem; }
-          </style>
-
-          <div class="sw-section" style="display:flex;align-items:center;justify-content:space-between;">
-            <span>🔁 Scheduled Tasks</span>
-            <a href="/vault/doc?path=06%20-%20Loops" style="font-size:.7rem;color:#6b7280;text-decoration:none;">Vault Loops →</a>
-          </div>
-
-          <div class="agent-filter">
-            <button class="agent-pill active" data-agent="all"   onclick="setFilter('all',this)">All Agents</button>
-            <button class="agent-pill" data-agent="Spike" onclick="setFilter('Spike',this)" style="--ac:#f97316">🦞 Spike</button>
-            <button class="agent-pill" data-agent="Steve" onclick="setFilter('Steve',this)" style="--ac:#3b82f6">📈 Steve</button>
-            <button class="agent-pill" data-agent="Lex"   onclick="setFilter('Lex',this)"   style="--ac:#a855f7">💻 Lex</button>
-            <button class="agent-pill" data-agent="Bill"  onclick="setFilter('Bill',this)"  style="--ac:#10b981">🐟 Bill</button>
-          </div>
-
-          <div id="st-error"></div>
-          <div id="st-spinner">Loading…</div>
-
-          <table class="task-table" id="task-table" style="display:none">
-            <thead>
-              <tr>
-                <th>Task</th>
-                <th>Schedule</th>
-                <th>Agent</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="task-tbody"></tbody>
-          </table>
-        </main>
+  <header class="oc-header">
+    <div class="logo"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
     </div>
+  </header>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/scheduled-tasks' }) %>
+    <main class="oc-dashboard-area">
+      <style>
+        .agent-filter { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.75rem; }
+        .agent-pill { padding:.28rem .75rem; border:1px solid #2d3548; border-radius:9999px; cursor:pointer; font-size:.78rem; font-weight:600; color:#8892a4; background:none; font-family:inherit; transition:all .15s; -webkit-tap-highlight-color:transparent; }
+        .agent-pill.active { background:var(--ac,#374151); color:#e2e8f0; border-color:var(--ac,#4b5563); }
+        .agent-pill:hover:not(.active) { border-color:#6b7280; color:#e2e8f0; }
+        .tt-name  { font-weight:600; color:#e2e8f0; }
+        .tt-desc  { font-size:.7rem; color:#6b7280; margin-top:.15rem; }
+        .tt-sched { font-family:monospace; font-size:.72rem; color:#94a3b8; }
+        .tt-agent { font-size:.7rem; font-weight:600; padding:1px 7px; border-radius:9999px; white-space:nowrap; }
+        .tag-spike  { background:#431407; color:#fb923c; }
+        .tag-steve  { background:#172554; color:#60a5fa; }
+        .tag-lex    { background:#2e1065; color:#c084fc; }
+        .tag-bill   { background:#022c22; color:#34d399; }
+        .tag-system { background:#1c1917; color:#a8a29e; }
+        .tt-enabled { font-size:.72rem; }
+        .tt-on  { color:#86efac; }
+        .tt-off { color:#f87171; }
+      </style>
 
-    <script>
-      /* ── sidebar/theme boilerplate ── */
-      (function(){
-        const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-        let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-        if(col)sb.classList.add('collapsed');
-        btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-        const th=document.getElementById('theme-toggle');
-        let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-        document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-        th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
-      })();
+      <div class="sw-section" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <span>🔁 Scheduled Tasks</span>
+        <a href="/vault/doc?path=06%20-%20Loops" style="font-size:.7rem;color:#6b7280;text-decoration:none;">Vault Loops →</a>
+      </div>
 
-      /* ── Known recurring tasks for non-Spike agents (vault-documented) ── */
-      const KNOWN_TASKS = [
-        { name:'Daily SEO/Traffic Report',     schedule:'08:00 daily',    agent:'Steve',  enabled:true,  desc:'BrightMove SEO ranking + GA traffic report → Slack' },
-        { name:'Agent Health Check',           schedule:'Every 4h',       agent:'Steve',  enabled:true,  desc:'Heartbeat sweep; writes vault health summary' },
-        { name:'Vault Auto-Push',              schedule:'Hourly',         agent:'Steve',  enabled:true,  desc:'git pull + push My-AI-Brain repo' },
-        { name:'FTMarine Traffic Report',      schedule:'08:30 daily',    agent:'Steve',  enabled:true,  desc:'ftmarine.com GA traffic → Slack' },
-        { name:'Here2Fish Ops Check',          schedule:'On-demand',      agent:'Bill',   enabled:false, desc:'Bill silent — last heartbeat Jul 2026' },
-        { name:'BoatJobBoard Content Push',    schedule:'On-demand',      agent:'Bill',   enabled:false, desc:'WP REST API post queue; currently paused' },
-      ];
+      <div class="agent-filter">
+        <button class="agent-pill active" data-agent="all"   onclick="setAgent('all',this)">All Agents</button>
+        <button class="agent-pill" data-agent="Spike" onclick="setAgent('Spike',this)" style="--ac:#f97316">🦞 Spike</button>
+        <button class="agent-pill" data-agent="Steve" onclick="setAgent('Steve',this)" style="--ac:#3b82f6">📈 Steve</button>
+        <button class="agent-pill" data-agent="Lex"   onclick="setAgent('Lex',this)"   style="--ac:#a855f7">💻 Lex</button>
+        <button class="agent-pill" data-agent="Bill"  onclick="setAgent('Bill',this)"  style="--ac:#10b981">🐟 Bill</button>
+      </div>
 
-      let allTasks = [];
-      let currentFilter = 'all';
+      <div class="oc-data-wrap">
+        <div class="oc-table-toolbar">
+          <input type="search" id="q" class="oc-search-input" placeholder="Search tasks…">
+          <span class="oc-count-badge" id="row-count">–</span>
+        </div>
+        <div class="oc-table-scroll">
+          <table class="oc-data-table" id="task-tbl">
+            <thead><tr>
+              <th data-sort="name">Task</th>
+              <th data-sort="schedStr">Schedule</th>
+              <th data-sort="agent">Agent</th>
+              <th data-sort="enabledSort">Status</th>
+            </tr></thead>
+            <tbody id="task-tbody">
+              <tr><td colspan="4" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
 
-      function agentTag(name) {
-        const cls = { Spike:'tag-spike', Steve:'tag-steve', Lex:'tag-lex', Bill:'tag-bill' }[name] || 'tag-system';
-        return `<span class="tt-agent ${cls}">${name}</span>`;
-      }
+  <script>
+    /* ── sidebar/theme ── */
+    (function(){
+      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+      if(col)sb.classList.add('collapsed');
+      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+      const th=document.getElementById('theme-toggle');
+      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+    })();
 
-      function schedFmt(j) {
-        if (!j) return '—';
-        if (j.schedule) {
-          const s = j.schedule;
-          if (s.kind === 'cron') return `cron: <code>${s.expr || ''}</code>${s.tz ? ' ' + s.tz : ''}`;
-          if (s.kind === 'every') {
-            const ms = s.everyMs || 0;
-            if (ms < 60000) return `every ${ms/1000}s`;
-            if (ms < 3600000) return `every ${Math.round(ms/60000)}m`;
-            return `every ${Math.round(ms/3600000)}h`;
-          }
-          if (s.kind === 'at') return `once: ${s.at || ''}`;
+    /* ── Known tasks for non-Spike agents ── */
+    const KNOWN_TASKS = [
+      { name:'Daily SEO/Traffic Report',  schedStr:'08:00 daily',  agent:'Steve', enabled:true,  desc:'BrightMove SEO + GA traffic → Slack' },
+      { name:'Agent Health Check',        schedStr:'Every 4h',     agent:'Steve', enabled:true,  desc:'Heartbeat sweep; writes vault health summary' },
+      { name:'Vault Auto-Push',           schedStr:'Hourly',       agent:'Steve', enabled:true,  desc:'git pull + push My-AI-Brain repo' },
+      { name:'FTMarine Traffic Report',   schedStr:'08:30 daily',  agent:'Steve', enabled:true,  desc:'GA traffic → Slack' },
+      { name:'Here2Fish Ops Check',       schedStr:'On-demand',    agent:'Bill',  enabled:false, desc:'Bill silent — last heartbeat Jul 2026' },
+      { name:'BoatJobBoard Content Push', schedStr:'On-demand',    agent:'Bill',  enabled:false, desc:'WP REST API post queue; currently paused' },
+    ];
+
+    let allTasks=[], agentFilter='all', sortKey='agent', sortDir=1, searchQ='';
+
+    function schedFmt(j){
+      if(!j)return '—';
+      if(j.schedule){
+        const s=j.schedule;
+        if(s.kind==='cron')   return `cron: ${s.expr||''}${s.tz?' '+s.tz:''}`;
+        if(s.kind==='every'){
+          const ms=s.everyMs||0;
+          if(ms<60000)return `every ${ms/1000}s`;
+          if(ms<3600000)return `every ${Math.round(ms/60000)}m`;
+          return `every ${Math.round(ms/3600000)}h`;
         }
-        return j.scheduleLabel || '—';
+        if(s.kind==='at')return `once: ${s.at||''}`;
       }
+      return j.schedStr||j.scheduleLabel||'—';
+    }
 
-      function setFilter(agent, btn) {
-        currentFilter = agent;
-        document.querySelectorAll('.agent-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderTable();
+    function agentTag(name){
+      const cls={Spike:'tag-spike',Steve:'tag-steve',Lex:'tag-lex',Bill:'tag-bill'}[name]||'tag-system';
+      return `<span class="tt-agent ${cls}">${name}</span>`;
+    }
+
+    function applyAndRender(){
+      let vis=allTasks.filter(t=>{
+        if(agentFilter!=='all'&&(t.agent||'').toLowerCase()!==agentFilter.toLowerCase())return false;
+        if(searchQ){
+          const h=[t.name,t.schedStr,t.agent,t.desc||''].join(' ').toLowerCase();
+          if(!h.includes(searchQ))return false;
+        }
+        return true;
+      });
+      if(sortKey){
+        vis=[...vis].sort((a,b)=>{
+          const va=String(a[sortKey]||'').toLowerCase(),vb=String(b[sortKey]||'').toLowerCase();
+          return sortDir*va.localeCompare(vb);
+        });
       }
-
-      function renderTable() {
-        const tbody = document.getElementById('task-tbody');
-        let rows = allTasks;
-        if (currentFilter !== 'all') {
-          rows = rows.filter(t => (t.agent||'').toLowerCase() === currentFilter.toLowerCase());
-        }
-        if (!rows.length) {
-          tbody.innerHTML = `<tr><td colspan="4" class="empty-row">No scheduled tasks for ${currentFilter === 'all' ? 'any agent' : currentFilter}.</td></tr>`;
-          return;
-        }
-        tbody.innerHTML = rows.map(t => `<tr>
+      const tbody=document.getElementById('task-tbody');
+      tbody.innerHTML=vis.length ? vis.map(t=>`
+        <tr>
           <td>
-            <div class="tt-name">${t.name || t.displayName || t.id || '(unnamed)'}</div>
-            ${t.desc ? `<div style="font-size:.7rem;color:#6b7280;margin-top:.15rem">${t.desc}</div>` : ''}
+            <div class="tt-name">${t.name||'(unnamed)'}</div>
+            ${t.desc?`<div class="tt-desc">${t.desc}</div>`:''}
           </td>
-          <td class="tt-sched">${t.scheduleLabel || schedFmt(t)}</td>
-          <td>${agentTag(t.agent || 'Spike')}</td>
-          <td class="tt-enabled ${t.enabled !== false ? 'tag-enabled' : 'tag-disabled'}">${t.enabled !== false ? '● On' : '○ Off'}</td>
-        </tr>`).join('');
+          <td class="tt-sched">${t.schedStr}</td>
+          <td>${agentTag(t.agent||'Spike')}</td>
+          <td class="tt-enabled ${t.enabled!==false?'tt-on':'tt-off'}">${t.enabled!==false?'● On':'○ Off'}</td>
+        </tr>`).join('')
+        : `<tr class="oc-empty-row"><td colspan="4">No tasks for ${agentFilter==='all'?'any agent':agentFilter}.</td></tr>`;
+
+      document.getElementById('row-count').textContent=vis.length+' / '+allTasks.length;
+      document.querySelectorAll('#task-tbl th[data-sort]').forEach(th=>{
+        th.classList.remove('sort-asc','sort-desc');
+        if(th.dataset.sort===sortKey)th.classList.add(sortDir>0?'sort-asc':'sort-desc');
+      });
+    }
+
+    function setAgent(agent,btn){
+      agentFilter=agent;
+      document.querySelectorAll('.agent-pill').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      applyAndRender();
+    }
+
+    document.addEventListener('click',e=>{
+      const th=e.target.closest('#task-tbl th[data-sort]');
+      if(!th)return;
+      const k=th.dataset.sort;
+      if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}
+      applyAndRender();
+    });
+    document.getElementById('q').addEventListener('input',e=>{searchQ=e.target.value.toLowerCase().trim();applyAndRender();});
+
+    async function load(){
+      try{
+        let cronTasks=[];
+        try{
+          const raw=await fetch('/api/cron-jobs').then(r=>r.json());
+          const list=Array.isArray(raw)?raw:(raw.jobs||raw.data||[]);
+          cronTasks=list.map(j=>({
+            name:    j.name||j.displayName||j.id||'(unnamed)',
+            schedStr:schedFmt(j),
+            agent:   'Spike',
+            enabled: j.enabled!==false,
+            desc:    j.description||'',
+            id:      j.id,
+            enabledSort: j.enabled!==false?'0':'1',
+          }));
+        }catch(e){ console.warn('Cron API unavailable:',e.message); }
+
+        allTasks=[
+          ...cronTasks,
+          ...KNOWN_TASKS.map(t=>({...t, enabledSort:t.enabled!==false?'0':'1'})),
+        ];
+        applyAndRender();
+      }catch(e){
+        document.getElementById('task-tbody').innerHTML=
+          `<tr><td colspan="4" style="color:#f87171;padding:1rem">⚠️ Failed: ${e.message}</td></tr>`;
       }
+    }
 
-      async function load() {
-        const spinner = document.getElementById('st-spinner');
-        const err     = document.getElementById('st-error');
-        const table   = document.getElementById('task-table');
+    /* Pre-select agent from URL ?agent=Name */
+    (function(){
+      const a=new URLSearchParams(window.location.search).get('agent');
+      if(!a)return;
+      const btn=document.querySelector(`.agent-pill[data-agent="${a}"]`);
+      if(btn){agentFilter=a;document.querySelectorAll('.agent-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+    })();
 
-        try {
-          /* Spike's OpenClaw cron jobs */
-          let cronTasks = [];
-          try {
-            const raw = await fetch('/api/cron-jobs').then(r => r.json());
-            const list = Array.isArray(raw) ? raw : (raw.jobs || raw.data || []);
-            cronTasks = list.map(j => ({
-              name:    j.name || j.displayName || j.id,
-              schedule:j.schedule,
-              scheduleLabel: null,
-              agent:   'Spike',
-              enabled: j.enabled !== false,
-              desc:    j.description || '',
-              id:      j.id,
-            }));
-          } catch(e) {
-            console.warn('Cron API unavailable:', e.message);
-          }
-
-          /* Merge with known tasks for other agents */
-          allTasks = [
-            ...cronTasks,
-            ...KNOWN_TASKS,
-          ];
-
-          spinner.style.display = 'none';
-          table.style.display   = 'table';
-          renderTable();
-        } catch(e) {
-          spinner.style.display = 'none';
-          err.style.display     = 'block';
-          err.textContent       = '⚠️ Failed to load tasks: ' + e.message;
-        }
-      }
-
-      /* Pre-select agent from URL ?agent=Name */
-      (function(){
-        const a = new URLSearchParams(window.location.search).get('agent');
-        if (!a) return;
-        const btn = document.querySelector(`.agent-pill[data-agent="${a}"]`);
-        if (btn) { currentFilter = a; btn.classList.remove('active'); setTimeout(()=>setFilter(a,btn),0); }
-      })();
-
-      load();
-    </script>
+    load();
+  </script>
 </body>
 </html>
