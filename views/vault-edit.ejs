@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- CodeMirror 5 -->
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.css">
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/theme/dracula.css">
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/theme/eclipse.css">
+  <link  rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/hint/show-hint.css">
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/lib/codemirror.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/yaml/yaml.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/javascript/javascript.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/python/python.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/css/css.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/clike/clike.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/mode/shell/shell.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/edit/continuelist.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.17/addon/hint/show-hint.js"></script>
+  <!-- Preview renderer -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link  rel="stylesheet" id="hljs-theme" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+
+  <style>
+    /* ── Full-height layout (mirrors vault-doc overrides) ── */
+    .oc-main-content { overflow: hidden; height: calc(100vh - 60px); }
+    .oc-dashboard-area {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: unset !important;
+      overflow: hidden !important;
+      padding: 0.75rem 1.25rem 0 !important;
+      gap: 0 !important;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    /* ── Top bar ── */
+    .ve-topbar {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding-bottom: 0.55rem; flex-shrink: 0; flex-wrap: wrap;
+    }
+    .ve-back { font-size:.78rem; color:#6b7280; text-decoration:none;
+               padding:2px 8px; border:1px solid #1f2937; border-radius:4px; white-space:nowrap; }
+    .ve-back:hover { color:#e2e8f0; border-color:#374151; }
+    .ve-breadcrumb { font-size:.78rem; color:#9ca3af; flex:1; min-width:0;
+                     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ve-dirty { font-size:.74rem; color:#f59e0b; font-weight:600; white-space:nowrap; min-width:72px; text-align:right; }
+    .ve-save-btn {
+      font-size:.78rem; padding:3px 12px; cursor:pointer; white-space:nowrap;
+      border:1px solid #4f46e5; background:#4f46e511; color:#818cf8;
+      border-radius:4px; transition:background .15s;
+    }
+    .ve-save-btn:hover:not(:disabled) { background:#4f46e522; }
+    .ve-save-btn:disabled { opacity:.5; cursor:default; }
+
+    /* ── Toolbar ── */
+    .ve-toolbar {
+      display:flex; align-items:center; gap:2px; flex-shrink:0;
+      padding:4px 0 5px; border-bottom:1px solid #1f2937; flex-wrap:wrap;
+    }
+    .ve-tb-btn {
+      font-size:.73rem; padding:2px 7px; cursor:pointer; white-space:nowrap;
+      border:1px solid transparent; background:transparent; color:#9ca3af;
+      border-radius:3px; font-family:inherit; line-height:1.4;
+    }
+    .ve-tb-btn:hover { background:#1f2937; color:#e2e8f0; border-color:#374151; }
+    .ve-tb-sep { width:1px; height:16px; background:#1f2937; margin:0 3px; flex-shrink:0; align-self:center; }
+
+    /* ── Split panes ── */
+    .ve-panes {
+      display:flex; flex:1; min-height:0;
+      border:1px solid #1f2937; border-radius:6px; overflow:hidden;
+      margin-bottom:0;
+    }
+    .ve-pane   { flex:1; min-width:0; overflow:auto; }
+    .ve-source { border-right:1px solid #1f2937; overflow:hidden; display:flex; flex-direction:column; }
+
+    /* CodeMirror fills source pane */
+    .ve-source .CodeMirror {
+      flex:1; height:100%;
+      font-family:'JetBrains Mono',monospace !important;
+      font-size:.86rem !important;
+      line-height:1.6 !important;
+      border-radius:0;
+    }
+    .ve-source .CodeMirror-scroll { min-height: 100%; }
+
+    /* ── Preview ── */
+    .ve-preview { padding:1.2rem 1.5rem; background:#0f1117; color:#d1d5db; font-size:.9rem; line-height:1.75; }
+    .ve-preview h1,.ve-preview h2,.ve-preview h3 { color:#e2e8f0; margin:.75em 0 .3em; }
+    .ve-preview h1 { font-size:1.5rem; border-bottom:1px solid #1f2937; padding-bottom:.3em; }
+    .ve-preview h2 { font-size:1.2rem; }
+    .ve-preview h3 { font-size:1rem; }
+    .ve-preview a  { color:#818cf8; }
+    .ve-preview code { font-family:'JetBrains Mono',monospace; font-size:.82em;
+                       background:#1f2937; padding:.1em .35em; border-radius:3px; }
+    .ve-preview pre  { background:#1a1f2e; border:1px solid #1f2937; border-radius:6px;
+                       padding:.75rem 1rem; overflow-x:auto; }
+    .ve-preview pre code { background:none; padding:0; font-size:.82em; }
+    .ve-preview blockquote { border-left:3px solid #4f46e5; margin:.5rem 0;
+                             padding:.35rem .8rem; background:#4f46e508; color:#9ca3af; }
+    .ve-preview hr { border:none; border-top:1px solid #1f2937; margin:1.2em 0; }
+    .ve-preview table { border-collapse:collapse; width:100%; margin:1em 0; }
+    .ve-preview th,.ve-preview td { border:1px solid #1f2937; padding:.35rem .65rem; }
+    .ve-preview th { background:#1a1f2e; color:#e2e8f0; }
+    .ve-preview ul,.ve-preview ol { padding-left:1.5em; }
+    .ve-preview li { margin:.15em 0; }
+    .ve-preview input[type=checkbox] { margin-right:.35em; }
+    .ve-preview .frontmatter {
+      background:#1a1f2e; border:1px solid #2d3748; border-radius:6px;
+      padding:.55rem 1rem; margin-bottom:1rem; font-size:.81em;
+      font-family:'JetBrains Mono',monospace; color:#6b7280;
+    }
+    .ve-preview .frontmatter .fm-key { color:#818cf8; }
+    .ve-preview .wiki-link { color:#a78bfa; border-bottom:1px dashed #a78bfa55; cursor:pointer; }
+    .ve-preview .wiki-link:hover { color:#c4b5fd; }
+    .ve-preview .callout { border-radius:6px; padding:.65rem 1rem; margin:.8rem 0;
+                           border-left:4px solid #4f46e5; background:#4f46e508; }
+    .ve-preview .callout-note    { border-color:#3b82f6; background:#3b82f608; }
+    .ve-preview .callout-warning { border-color:#f59e0b; background:#f59e0b08; }
+    .ve-preview .callout-danger  { border-color:#ef4444; background:#ef444408; }
+    .ve-preview .callout-tip     { border-color:#10b981; background:#10b98108; }
+    .ve-preview .callout-title   { font-weight:600; font-size:.85rem; margin-bottom:.3rem; }
+
+    /* ── Status bar ── */
+    .ve-statusbar { font-size:.7rem; color:#4b5563; padding:3px 0 5px;
+                    flex-shrink:0; display:flex; align-items:center; gap:.6rem; }
+    .ve-statusbar .sync-ok   { color:#059669; }
+    .ve-statusbar .sync-warn { color:#f59e0b; }
+    .ve-statusbar .sync-err  { color:#dc2626; }
+
+    /* ── Light mode overrides ── */
+    body.light-mode .ve-back    { color:#475569; border-color:#e2e8f0; }
+    body.light-mode .ve-back:hover { color:#1e293b; border-color:#94a3b8; }
+    body.light-mode .ve-breadcrumb { color:#64748b; }
+    body.light-mode .ve-topbar  { border-bottom-color:#e2e8f0; }
+    body.light-mode .ve-toolbar { border-bottom-color:#e2e8f0; background:#f8fafc; }
+    body.light-mode .ve-tb-btn  { color:#475569; }
+    body.light-mode .ve-tb-btn:hover { background:#e2e8f0; color:#1e293b; border-color:#cbd5e1; }
+    body.light-mode .ve-tb-sep  { background:#e2e8f0; }
+    body.light-mode .ve-panes   { border-color:#e2e8f0; }
+    body.light-mode .ve-source  { border-right-color:#e2e8f0; }
+    body.light-mode .ve-preview { background:#fff; color:#374151; }
+    body.light-mode .ve-preview h1,
+    body.light-mode .ve-preview h2,
+    body.light-mode .ve-preview h3 { color:#111827; }
+    body.light-mode .ve-preview h1 { border-bottom-color:#e2e8f0; }
+    body.light-mode .ve-preview a  { color:#4f46e5; }
+    body.light-mode .ve-preview code { background:#f1f5f9; color:#1e293b; }
+    body.light-mode .ve-preview pre  { background:#f8fafc; border-color:#e2e8f0; }
+    body.light-mode .ve-preview blockquote { background:#eef2ff; color:#475569; }
+    body.light-mode .ve-preview hr  { border-top-color:#e2e8f0; }
+    body.light-mode .ve-preview th  { background:#f1f5f9; color:#111827; }
+    body.light-mode .ve-preview th,
+    body.light-mode .ve-preview td  { border-color:#e2e8f0; }
+    body.light-mode .ve-preview .frontmatter { background:#f8fafc; border-color:#e2e8f0; color:#6b7280; }
+    body.light-mode .ve-preview .frontmatter .fm-key { color:#4f46e5; }
+    body.light-mode .ve-preview .wiki-link  { color:#6d28d9; border-bottom-color:#c4b5fd; }
+    body.light-mode .ve-preview .callout    { background:#eef2ff; }
+    body.light-mode .ve-preview .callout-warning { background:#fffbeb; }
+    body.light-mode .ve-preview .callout-danger  { background:#fef2f2; }
+    body.light-mode .ve-preview .callout-tip     { background:#f0fdf4; }
+    body.light-mode .ve-save-btn { color:#4f46e5; border-color:#c7d2fe; background:#eef2ff; }
+    body.light-mode .ve-dirty   { color:#b45309; }
+    body.light-mode .ve-statusbar { color:#94a3b8; }
+
+    /* ── Mobile ── */
+    @media (max-width:700px) {
+      .ve-panes { flex-direction:column; }
+      .ve-source { border-right:none; border-bottom:1px solid #1f2937; max-height:50vh; }
+    }
+  </style>
+</head>
+<body>
+  <header class="oc-header">
+    <div class="logo">
+      <h1 class="main-title">OVERCLAW</h1>
+      <span class="tagline">VAULT EDIT</span>
+    </div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle"   class="control-button">🌙</button>
+    </div>
+  </header>
+
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/vault/doc' }) %>
+
+    <main class="oc-dashboard-area">
+
+      <!-- Top bar -->
+      <div class="ve-topbar">
+        <a href="/vault/doc?path=<%= encodeURIComponent(filePath) %>" class="ve-back">← View</a>
+        <div class="ve-breadcrumb"><%= filePath %></div>
+        <span class="ve-dirty" id="ve-dirty"></span>
+        <button class="ve-save-btn" id="ve-save" onclick="saveFile()">💾 Save</button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="ve-toolbar">
+        <button class="ve-tb-btn" onclick="tb('bold')"      title="Bold (Ctrl+B)"><b>B</b></button>
+        <button class="ve-tb-btn" onclick="tb('italic')"    title="Italic (Ctrl+I)"><i>I</i></button>
+        <button class="ve-tb-btn" onclick="tb('strike')"    title="Strikethrough">~~S~~</button>
+        <div class="ve-tb-sep"></div>
+        <button class="ve-tb-btn" onclick="tb('h1')"        >H1</button>
+        <button class="ve-tb-btn" onclick="tb('h2')"        >H2</button>
+        <button class="ve-tb-btn" onclick="tb('h3')"        >H3</button>
+        <div class="ve-tb-sep"></div>
+        <button class="ve-tb-btn" onclick="tb('link')"      title="Link">🔗</button>
+        <button class="ve-tb-btn" onclick="tb('wikilink')"  title="Wiki link">[[…]]</button>
+        <button class="ve-tb-btn" onclick="tb('image')"     title="Image">🖼</button>
+        <div class="ve-tb-sep"></div>
+        <button class="ve-tb-btn" onclick="tb('code')"      title="Inline code">`code`</button>
+        <button class="ve-tb-btn" onclick="tb('codeblock')" title="Code block">```</button>
+        <div class="ve-tb-sep"></div>
+        <button class="ve-tb-btn" onclick="tb('checklist')" title="Task item">☑</button>
+        <button class="ve-tb-btn" onclick="tb('bullet')"    title="Bullet list">•—</button>
+        <button class="ve-tb-btn" onclick="tb('table')"     title="Insert table">⊞</button>
+        <button class="ve-tb-btn" onclick="tb('hr')"        title="Horizontal rule">—</button>
+        <div class="ve-tb-sep"></div>
+        <button class="ve-tb-btn" id="ve-preview-toggle" onclick="togglePreview()">⬜ Split</button>
+      </div>
+
+      <!-- Editor + preview -->
+      <div class="ve-panes" id="ve-panes">
+        <div class="ve-pane ve-source" id="ve-editor"></div>
+        <div class="ve-pane ve-preview" id="ve-preview">
+          <div style="color:#4b5563;padding:2rem">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="ve-statusbar">
+        <span id="ve-stat-chars">0 chars</span>
+        <span id="ve-stat-sync"></span>
+      </div>
+
+    </main>
+  </div><!-- /.oc-main-content -->
+
+  <script>
+    var VAULT_PATH = '<%= filePath.replace(/\\/g, "\\\\").replace(/'/g, "\\'") %>';
+    var cm = null, isDirty = false, previewTimer = null, wikiCache = null;
+    var previewVisible = true;
+
+    // ── Sidebar collapse ─────────────────────────────────────────────────────
+    (function () {
+      var toggle  = document.getElementById('sidebar-toggle');
+      var sidebar = document.getElementById('oc-sidebar');
+      if (toggle && sidebar) {
+        var collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if (collapsed) sidebar.classList.add('collapsed');
+        toggle.addEventListener('click', function () {
+          collapsed = !collapsed;
+          sidebar.classList.toggle('collapsed', collapsed);
+          localStorage.setItem('overclaw-sidebar-collapsed', collapsed.toString());
+          if (cm) setTimeout(function(){ cm.refresh(); }, 300);
+        });
+      }
+    })();
+
+    // ── Theme ─────────────────────────────────────────────────────────────────
+    var _currentTheme = 'dark';
+    (function () {
+      var prefer = window.matchMedia('(prefers-color-scheme: dark)');
+      _currentTheme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+      applyTheme(_currentTheme, false); // false = don't try to set cm yet (it doesn't exist)
+
+      var btn = document.getElementById('theme-toggle');
+      if (btn) {
+        btn.addEventListener('click', function () {
+          _currentTheme = _currentTheme === 'dark' ? 'light' : 'dark';
+          applyTheme(_currentTheme, true);
+          localStorage.setItem('overclaw-theme', _currentTheme);
+        });
+      }
+    })();
+
+    function applyTheme(theme, updateCm) {
+      document.body.classList.toggle('dark-mode',  theme === 'dark');
+      document.body.classList.toggle('light-mode', theme === 'light');
+      var btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+      // Swap hljs stylesheet
+      var hl = document.getElementById('hljs-theme');
+      if (hl) hl.href = theme === 'dark'
+        ? 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css'
+        : 'https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github.min.css';
+      // Swap CM theme if already created
+      if (updateCm && cm) {
+        cm.setOption('theme', theme === 'dark' ? 'dracula' : 'eclipse');
+        if (previewVisible) renderPreview(cm.getValue());
+      }
+    }
+
+    // ── Boot — load file then build editor ────────────────────────────────────
+    (function init() {
+      if (!VAULT_PATH) {
+        document.getElementById('ve-preview').innerHTML =
+          '<p style="color:#f87171">No file path specified.</p>';
+        return;
+      }
+      fetch('/api/vault/file?path=' + encodeURIComponent(VAULT_PATH))
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+          if (data.error) throw new Error(data.error);
+          buildEditor(data.content || '');
+          renderPreview(data.content || '');
+          document.getElementById('ve-stat-chars').textContent =
+            (data.content || '').length.toLocaleString() + ' chars';
+        })
+        .catch(function(err) {
+          document.getElementById('ve-preview').innerHTML =
+            '<p style="color:#f87171">Error loading: ' + esc(err.message) + '</p>';
+        });
+    })();
+
+    // ── Build CodeMirror 5 ────────────────────────────────────────────────────
+    function buildEditor(content) {
+      var cmTheme = _currentTheme === 'dark' ? 'dracula' : 'eclipse';
+      cm = CodeMirror(document.getElementById('ve-editor'), {
+        value:       content,
+        mode:        { name: 'markdown', fencedCodeBlockDefaultMode: 'javascript' },
+        theme:       cmTheme,
+        lineNumbers: true,
+        lineWrapping: true,
+        autofocus:   true,
+        tabSize:     2,
+        extraKeys: {
+          'Ctrl-S': saveFile,
+          'Cmd-S':  saveFile,
+          'Ctrl-B': function(){ tb('bold'); },
+          'Cmd-B':  function(){ tb('bold'); },
+          'Ctrl-I': function(){ tb('italic'); },
+          'Cmd-I':  function(){ tb('italic'); },
+          'Enter':  'newlineAndIndentContinueMarkdownList',
+        },
+      });
+      cm.on('change', function(instance) {
+        setDirty(true);
+        schedulePreview(instance.getValue());
+        document.getElementById('ve-stat-chars').textContent =
+          instance.getValue().length.toLocaleString() + ' chars';
+        // Wiki-link autocomplete trigger
+        var cursor = instance.getCursor();
+        var line   = instance.getLine(cursor.line) || '';
+        if (line.slice(0, cursor.ch).endsWith('[[')) triggerWikiHint(instance);
+      });
+      // Force full height after render
+      cm.setSize('100%', '100%');
+      cm.refresh();
+    }
+
+    // ── Wiki-link hint ────────────────────────────────────────────────────────
+    function triggerWikiHint(instance) {
+      if (!wikiCache) {
+        fetch('/api/vault/graph').then(function(r){ return r.json(); }).then(function(g) {
+          wikiCache = (g.nodes || []).map(function(n){ return n.name; }).sort();
+          showWikiHint(instance);
+        }).catch(function(){ wikiCache = []; });
+      } else {
+        showWikiHint(instance);
+      }
+    }
+    function showWikiHint(instance) {
+      CodeMirror.registerHelper('hint', 'wikilink', function(cm) {
+        var cursor = cm.getCursor();
+        var line   = cm.getLine(cursor.line) || '';
+        var before = line.slice(0, cursor.ch);
+        var match  = before.match(/\[\[([^\]]*)$/);
+        if (!match) return null;
+        var typed  = match[1].toLowerCase();
+        var from   = { line: cursor.line, ch: cursor.ch - match[1].length };
+        var list   = (wikiCache || [])
+          .filter(function(n){ return n.toLowerCase().indexOf(typed) >= 0; })
+          .slice(0, 20)
+          .map(function(label){ return { text: label + ']]', displayText: label }; });
+        return { list: list, from: from, to: cursor, completeSingle: false };
+      });
+      instance.showHint({ hint: CodeMirror.hint.wikilink, completeSingle: false });
+    }
+
+    // ── Toolbar ───────────────────────────────────────────────────────────────
+    function tb(action) {
+      if (!cm) return;
+      var sel = cm.getSelection();
+      var wraps = { bold:'**', italic:'_', strike:'~~', code:'`' };
+      var pfx   = { h1:'# ', h2:'## ', h3:'### ', bullet:'- ', checklist:'- [ ] ' };
+      if (wraps[action]) {
+        var w = wraps[action], txt = sel || action;
+        cm.replaceSelection(w + txt + w, 'around');
+      } else if (pfx[action]) {
+        cm.replaceSelection(pfx[action] + (sel || ''));
+      } else if (action === 'link')      { cm.replaceSelection('[' + (sel||'link text') + '](url)'); }
+      else if (action === 'wikilink')    { cm.replaceSelection('[[' + (sel||'Note Name') + ']]'); }
+      else if (action === 'image')       { cm.replaceSelection('![' + (sel||'alt text') + '](url)'); }
+      else if (action === 'codeblock')   { cm.replaceSelection('```\n' + (sel||'') + '\n```'); }
+      else if (action === 'table') {
+        cm.replaceSelection('\n| Col 1 | Col 2 |\n|-------|-------|\n| Cell  | Cell  |\n');
+      } else if (action === 'hr')        { cm.replaceSelection('\n---\n'); }
+      cm.focus();
+    }
+
+    // ── Preview ───────────────────────────────────────────────────────────────
+    function schedulePreview(text) {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(function(){ renderPreview(text); }, 200);
+    }
+
+    function renderPreview(text) {
+      var el = document.getElementById('ve-preview');
+      if (!previewVisible) return;
+      var body = text, fmHtml = '';
+      var fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+      if (fm) {
+        body = text.slice(fm[0].length);
+        var rows = fm[1].split('\n').map(function(line) {
+          var m = line.match(/^([^:]+):\s*(.*)/);
+          return m ? '<span class="fm-key">' + esc(m[1]) + ':</span> ' + esc(m[2]) : esc(line);
+        });
+        fmHtml = '<div class="frontmatter">' + rows.join('<br>') + '</div>';
+      }
+      var html = marked.parse(body, { breaks: false, gfm: true });
+      // Syntax-highlight code blocks
+      html = html.replace(/<code class="language-(\w+)">([\s\S]*?)<\/code>/g, function(_, lang, code) {
+        var raw = code.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+        try { return '<code class="language-' + lang + '">' + hljs.highlight(raw, { language:lang, ignoreIllegals:true }).value + '</code>'; }
+        catch(e) { return '<code class="language-' + lang + '">' + code + '</code>'; }
+      });
+      // Wiki links
+      html = html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, function(_, target, label) {
+        return '<a class="wiki-link" onclick="openWikiLink(\'' + encodeURIComponent(target) + '\')" href="javascript:void(0)">' + esc(label||target) + '</a>';
+      });
+      // Obsidian callouts
+      html = html.replace(/<blockquote>\s*<p>\[!(NOTE|TIP|WARNING|DANGER|CAUTION|INFO|IMPORTANT)\](.*?)<\/p>([\s\S]*?)<\/blockquote>/gi, function(_, type, title, rest) {
+        var cls = type.toLowerCase().replace('caution','warning').replace('important','warning').replace('info','note');
+        return '<div class="callout callout-' + cls + '"><div class="callout-title">' + esc(title.trim()||type) + '</div>' + rest + '</div>';
+      });
+      // Checkboxes
+      html = html.replace(/\[ \]/g, '<input type="checkbox" disabled>');
+      html = html.replace(/\[x\]/gi, '<input type="checkbox" disabled checked>');
+      el.innerHTML = fmHtml + html;
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Wiki link navigation ──────────────────────────────────────────────────
+    window.openWikiLink = function(enc) {
+      var name = decodeURIComponent(enc);
+      fetch('/api/vault/resolve?name=' + encodeURIComponent(name.toLowerCase()))
+        .then(function(r){ return r.json(); })
+        .then(function(d) {
+          if (d.path) window.open('/vault/doc?path=' + encodeURIComponent(d.path), '_blank');
+          else alert('Note not found: ' + name);
+        })
+        .catch(function(){ alert('Could not resolve: ' + name); });
+    };
+
+    // ── Toggle preview pane ───────────────────────────────────────────────────
+    function togglePreview() {
+      previewVisible = !previewVisible;
+      var pane = document.getElementById('ve-preview');
+      var btn  = document.getElementById('ve-preview-toggle');
+      pane.style.display = previewVisible ? '' : 'none';
+      btn.textContent = previewVisible ? '⬜ Split' : '⬛ Edit only';
+      if (previewVisible && cm) renderPreview(cm.getValue());
+      if (cm) cm.refresh();
+    }
+
+    // ── Dirty state ───────────────────────────────────────────────────────────
+    function setDirty(d) {
+      isDirty = d;
+      document.getElementById('ve-dirty').textContent = d ? '● Unsaved' : '';
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────────
+    function saveFile() {
+      if (!cm) return;
+      var content = cm.getValue();
+      var btn  = document.getElementById('ve-save');
+      var stat = document.getElementById('ve-stat-sync');
+      btn.disabled = true; btn.textContent = '↻ Saving…';
+      fetch('/api/vault/file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: VAULT_PATH, content: content,
+          commitMessage: 'vault: edit ' + VAULT_PATH.split('/').pop() }),
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(r) {
+        if (!r.ok) throw new Error(r.error || 'Save failed');
+        setDirty(false);
+        btn.textContent = '✓ Saved'; btn.style.color = '#34d399';
+        stat.innerHTML = r.synced
+          ? '<span class="sync-ok">✓ synced ' + new Date().toLocaleTimeString() + '</span>'
+          : '<span class="sync-warn">⚠ saved locally (vault-sync failed)</span>';
+        setTimeout(function(){ btn.textContent = '💾 Save'; btn.style.color = ''; btn.disabled = false; }, 2000);
+      })
+      .catch(function(err) {
+        btn.textContent = '⚠ Error'; btn.disabled = false;
+        stat.innerHTML = '<span class="sync-err">✗ ' + esc(err.message) + '</span>';
+        setTimeout(function(){ btn.textContent = '💾 Save'; }, 3000);
+      });
+    }
+
+    // ── Unsaved guard ─────────────────────────────────────────────────────────
+    window.addEventListener('beforeunload', function(e) {
+      if (isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+  </script>
+</body>
+</html>

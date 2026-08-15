@@ -79,6 +79,13 @@
       flex-shrink: 0;
     }
     .vd-graph-link:hover { color: #a5b4fc; border-color: #4338ca; }
+    .vd-edit-btn {
+      font-size: 0.75rem; color: #818cf8; text-decoration: none;
+      padding: 2px 8px; border: 1px solid #312e5f; border-radius: 4px;
+      white-space: nowrap; flex-shrink: 0; background: none;
+    }
+    .vd-edit-btn:hover { color: #a5b4fc; border-color: #4338ca; background: #4f46e511; }
+
 
     /* ── Error / loading banners ── */
     .vd-error {
@@ -231,6 +238,7 @@
         <a href="javascript:history.back()" class="vd-back">← Back</a>
         <div class="vd-breadcrumb" id="vd-breadcrumb"></div>
         <a href="/vault/graph" class="vd-graph-link">🕸️ Graph</a>
+        <a id="vd-edit-btn" class="vd-edit-btn" style="display:none">✏️ Edit</a>
       </div>
 
       <!-- Error banner -->
@@ -439,6 +447,8 @@
 
     /* ── Main load ── */
     async function loadDoc(filePath) {
+      const editBtn = document.getElementById('vd-edit-btn');
+      if (editBtn && filePath) { editBtn.href = '/vault/edit?path=' + encodeURIComponent(filePath); editBtn.style.display = ''; }
       // empty = vault root directory
       renderBreadcrumb(filePath || '');
 

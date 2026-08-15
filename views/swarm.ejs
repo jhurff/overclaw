@@ -226,6 +226,15 @@
     .al-open    { font-size: 0.67rem; color: #6b7280; white-space: nowrap; opacity: .7; }
     a.alert-item:hover .al-open { opacity: 1; color: #9ca3af; }
     .no-alerts  { font-size: 0.82rem; color: #374151; padding: 0.5rem 0; }
+
+    /* ── Agent heartbeat sparkline ── */
+    .ac-sparkline { margin-top: 7px; }
+    .ac-sparkline-hdr {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 0.6rem; color: #4b5563; margin-bottom: 3px;
+    }
+    .ac-sparkline-total { font-weight: 700; font-size: 0.7rem; }
+    .ac-sparkline svg { overflow: visible; }
   </style>
 </head>
 <body>
@@ -273,6 +282,7 @@
             <span class="sc-num" id="stat-inprogress">—</span>
             <span class="sc-label">🔄 In Progress</span>
           </div>
+          <div id="stat-stuck" style="display:none;font-size:.63rem;font-weight:700;color:#f97316;margin-bottom:1px"></div>
           <div class="sc-preview" id="stat-wip-preview">Loading…</div>
         </a>
         <a href="/task-board?filter=blocked" class="stat-card sc-blocked">
@@ -382,7 +392,10 @@
     async function loadSummary() {
       const err = document.getElementById('vault-error');
       try {
-        const data = await fetch('/api/swarm/summary').then(r => r.json());
+        const [data, hbHistory] = await Promise.all([
+          fetch('/api/swarm/summary').then(r => r.json()),
+          fetch('/api/heartbeat-history').then(r => r.json()).catch(() => ({})),
+        ]);
 
         if (data.error) {
           err.style.display = 'block';
@@ -400,6 +413,9 @@
         const tb = data.taskBoard || {};
         document.getElementById('stat-inbox').textContent      = s.inbox      ?? '—';
         document.getElementById('stat-inprogress').textContent = s.inProgress ?? '—';
+        const stuckEl = document.getElementById('stat-stuck');
+        if ((s.stuck || 0) > 0) { stuckEl.textContent = '\u26a0\ufe0f ' + s.stuck + ' stuck'; stuckEl.style.display = 'block'; }
+        else { stuckEl.style.display = 'none'; }
         document.getElementById('stat-blocked').textContent    = s.blocked    ?? '—';
         document.getElementById('stat-done').textContent       = s.done       ?? '—';
 
@@ -426,7 +442,7 @@
         })();
 
         /* agents + health */
-        renderAgents(data);
+        renderAgents(data, hbHistory);
 
         /* alerts */
         const alerts = data.alerts || [];
@@ -528,8 +544,58 @@
       grid.innerHTML = html;
     }
 
+    /* ── Sparkline renderer (per-agent heartbeat history) ── */
+    function renderSparkline(hist, color) {
+      const days   = (hist && hist.days)   ? hist.days   : Array(7).fill('');
+      const counts = (hist && hist.counts) ? hist.counts : Array(7).fill(0);
+      const n      = days.length;
+      const max    = Math.max(...counts, 1);
+      const total  = counts.reduce((a, b) => a + b, 0);
+      const W = 100, H = 20, barW = W / n;
+
+      let rects = '';
+      for (let i = 0; i < n; i++) {
+        const c  = counts[i];
+        const bh = c > 0 ? Math.max(3, (c / max) * H) : 2;
+        const bx = (i * barW + 0.5).toFixed(1);
+        const by = (H - bh).toFixed(1);
+        const op = c > 0 ? (0.35 + 0.65 * (c / max)).toFixed(2) : '0.07';
+        let tipEl = '/>';
+        if (days[i]) {
+          try {
+            const lbl = new Date(days[i] + 'T12:00:00')
+              .toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+            tipEl = '><title>' + lbl + ': ' + c + ' check-in' + (c !== 1 ? 's' : '') + '</title></rect>';
+          } catch { tipEl = '/>'; }
+        }
+        rects += '<rect x="' + bx + '" y="' + by + '" width="' + (barW - 1.5).toFixed(1)
+          + '" height="' + bh.toFixed(1) + '" fill="' + color + '" opacity="' + op + '" rx="1.5"' + tipEl;
+      }
+      // subtle baseline
+      rects += '<line x1="0" y1="' + H + '" x2="' + W + '" y2="' + H
+        + '" stroke="' + color + '" stroke-opacity="0.15" stroke-width="0.75"/>';
+
+      // day-of-week labels
+      const dayLabels = days.map(function(d) {
+        try { return new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'narrow' }); }
+        catch  { return '\u00b7'; }
+      });
+      const lblRow = dayLabels.map(function(l, i) {
+        return '<span style="font-size:.55rem;color:' + (i === n - 1 ? color : '#374151')
+          + ';font-weight:' + (i === n - 1 ? '700' : '400') + '">' + l + '</span>';
+      }).join('');
+
+      return '<div class="ac-sparkline">'
+        + '<div class="ac-sparkline-hdr"><span>\u{1F493} 7d history</span>'
+        + '<span class="ac-sparkline-total" style="color:' + color + '">' + total + '</span></div>'
+        + '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="20" preserveAspectRatio="none" style="display:block;margin-bottom:2px">'
+        + rects + '</svg>'
+        + '<div style="display:flex;justify-content:space-around">' + lblRow + '</div>'
+        + '</div>';
+    }
+
     /* ── Agent + health renderer ── */
-    function renderAgents(data) {
+    function renderAgents(data, hbHistory = {}) {
       const grid  = document.getElementById('agent-grid');
       const hbMap = data.lastHeartbeat || {};
       const alts  = data.alerts || [];
@@ -583,6 +649,7 @@
               ? `<span class="hc-alert">⚠️ ${cnt} alert${cnt > 1 ? 's' : ''}</span>`
               : '<span class="ac-clear">✓ clear</span>'}
           </div>
+          ${renderSparkline(hbHistory[ag.name], ag.color)}
           <div class="ac-links">
             <a href="/vault/graph" class="ac-link">🕸️ Graph</a>
             <a href="/vault/doc?path=${encodeURIComponent('03 - Agents/Agent Registry.md')}" class="ac-link">📋 Registry</a>

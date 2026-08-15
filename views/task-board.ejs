@@ -329,6 +329,171 @@
       }
       .tb-title { font-size: 0.95rem; }
     }
+
+    /* ── Stuck tasks (stale / overdue in-progress) ── */
+    .kb-card.is-stuck { border-left: 2px solid #f97316 !important; background: rgba(249,115,22,0.07) !important; }
+    .stuck-action {
+      background: rgba(249,115,22,0.12); border-left: 2px solid #f97316;
+      padding: 0.3rem 0.5rem; border-radius: 4px; margin: 4px 0 3px;
+    }
+    .stuck-action-label { font-size: 0.7rem; font-weight: 600; color: #fb923c; margin-bottom: 4px; }
+    .escalate-btn {
+      display: inline-block; background: transparent;
+      border: 1px solid #f97316; color: #f97316;
+      font-size: 0.68rem; border-radius: 4px; padding: 2px 9px;
+      cursor: pointer; font-family: inherit;
+      transition: background .12s, color .12s;
+    }
+    .escalate-btn:hover  { background: #f97316; color: #111827; }
+    .escalate-btn.confirm-state { background: #f97316; color: #111827; font-weight: 700; }
+    .escalate-btn:disabled { opacity: 0.5; cursor: default; }
+    .stuck-count-badge {
+      font-size: 0.63rem; background: rgba(249,115,22,0.22);
+      color: #f97316; border-radius: 9999px;
+      padding: 1px 6px; font-weight: 700; margin-left: 4px;
+    }
+
+    /* ── Assign task to agent ── */
+    .assign-row {
+      display: flex; align-items: center; gap: 0.4rem;
+      margin-top: 0.45rem; flex-wrap: wrap;
+    }
+    .assign-select {
+      font-size: 0.74rem; background: #1a1f2e; color: #9ca3af;
+      border: 1px solid #2d3748; border-radius: 4px; padding: 2px 6px;
+      flex: 1; min-width: 100px; max-width: 150px; cursor: pointer;
+    }
+    .assign-select:focus { outline: none; border-color: #4f46e5; }
+    .assign-btn, .reassign-btn {
+      font-size: 0.74rem; padding: 2px 8px;
+      border: 1px solid #4f46e5; background: transparent; color: #818cf8;
+      border-radius: 4px; cursor: pointer; white-space: nowrap; transition: background .15s;
+    }
+    .assign-btn:hover, .reassign-btn:hover { background: #4f46e511; }
+    .assign-btn.confirm-state, .reassign-btn.confirm-state {
+      border-color: #f59e0b; color: #fbbf24; background: #f59e0b11;
+    }
+    .assign-btn:disabled, .reassign-btn:disabled { opacity:.5; cursor:default; }
+    .reassign-section { border-top: 1px solid #1f2937; margin-top: 0.45rem; padding-top: 0.45rem; }
+
+
+
+    /* ── Light mode overrides ── */
+    body.light-mode .tb-topbar { border-bottom-color: #e2e8f0; }
+    body.light-mode .tb-sync-btn { color: #475569; border-color: #e2e8f0; }
+    body.light-mode .tb-sync-btn:hover { color: #1e293b; border-color: #94a3b8; }
+    body.light-mode .tb-meta { color: #64748b; }
+    body.light-mode .kb-col {
+      background: #ffffff;
+      border-color: #e2e8f0;
+    }
+    body.light-mode .kb-col-header {
+      color: #1e293b;
+      border-bottom-color: #e2e8f0;
+    }
+    body.light-mode .kb-col-body::-webkit-scrollbar-thumb { background: #cbd5e1; }
+    body.light-mode .kb-card {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+    body.light-mode .kb-card:hover { border-color: #94a3b8; background: #ffffff; }
+    body.light-mode .kb-card.is-blocked {
+      border-color: #fca5a5;
+      background: rgba(220,38,38,0.04);
+    }
+    body.light-mode .kb-card .task-title,
+    body.light-mode .kb-card a.task-title { color: #1e293b; }
+    body.light-mode .kb-card a.task-title:hover { color: #4f46e5; }
+    body.light-mode .kb-card .task-id,
+    body.light-mode .kb-card a.task-id { color: #4f46e5; }
+    body.light-mode .kb-date { color: #64748b; }
+    body.light-mode .task-action { color: #475569; }
+    body.light-mode .blocked-action { color: #b91c1c; }
+    body.light-mode .action-context { color: #64748b; }
+    body.light-mode .action-jimmy   { color: #b45309; }
+    body.light-mode .progress-action { color: #64748b; }
+    body.light-mode .inbox-action { color: #6d28d9; }
+    body.light-mode .done-action { color: #047857; background: rgba(5,150,105,0.06); }
+    body.light-mode .kb-empty { color: #94a3b8; }
+    body.light-mode .show-more-btn { color: #64748b; border-color: #e2e8f0; background: #f8fafc; }
+    body.light-mode .show-more-btn:hover { border-color: #94a3b8; color: #1e293b; }
+    body.light-mode .chip-default { background: #f1f5f9; color: #475569; }
+    body.light-mode .chip-agent   { background: #eff6ff; color: #1d4ed8; }
+    body.light-mode .chip-high    { background: #fef2f2; color: #b91c1c; }
+    body.light-mode .chip-medium  { background: #fffbeb; color: #b45309; }
+    body.light-mode .chip-low     { background: #f0fdf4; color: #15803d; }
+    body.light-mode .stuck-action-label { color: #c2410c; }
+    body.light-mode .escalate-btn { border-color: #f97316; color: #c2410c; }
+    body.light-mode .kb-card.is-stuck {
+      border-left-color: #f97316 !important;
+      background: rgba(249,115,22,0.05) !important;
+    }
+    body.light-mode .assign-select { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+    body.light-mode .assign-btn, body.light-mode .reassign-btn {
+      color: #4f46e5; border-color: #c7d2fe; background: transparent;
+    }
+    body.light-mode .assign-btn:hover, body.light-mode .reassign-btn:hover { background: #eef2ff; }
+    body.light-mode .reassign-section { border-top-color: #e2e8f0; }
+    body.light-mode .vault-error { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+    body.light-mode .col-inbox    { border-top-color: #7c3aed; }
+    body.light-mode .col-inbox    .kb-col-header { color: #6d28d9; border-bottom-color: #ddd6fe; }
+    body.light-mode .col-inprogress { border-top-color: #2563eb; }
+    body.light-mode .col-inprogress .kb-col-header { color: #1d4ed8; border-bottom-color: #bfdbfe; }
+    body.light-mode .col-blocked  { border-top-color: #dc2626; }
+    body.light-mode .col-blocked  .kb-col-header { color: #b91c1c; border-bottom-color: #fecaca; }
+    body.light-mode .col-done     { border-top-color: #059669; }
+    body.light-mode .col-done     .kb-col-header { color: #047857; border-bottom-color: #a7f3d0; }
+    body.light-mode .stuck-count-badge { background: rgba(249,115,22,0.15); color: #c2410c; }
+
+
+    /* ── Drag and drop ── */
+    .kb-card[draggable] { cursor: grab; }
+    .kb-card[draggable]:active { cursor: grabbing; }
+    .kb-card.is-dragging { opacity: 0.35; pointer-events: none; }
+    .kb-col-body.drag-over {
+      outline: 2px dashed #4f46e5;
+      outline-offset: -3px;
+      background: rgba(79,70,229,0.06);
+    }
+    .kb-col-body.drag-over-blocked {
+      outline-color: #dc2626;
+      background: rgba(220,38,38,0.06);
+    }
+    /* Drop action panel */
+    #drop-panel {
+      position: fixed; z-index: 9999;
+      background: #1a1f2e; border: 1px solid #374151; border-radius: 8px;
+      padding: 0.8rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      min-width: 230px; max-width: 280px;
+      display: none;
+    }
+    #drop-panel.open { display: block; }
+    #drop-panel h4 { font-size: 0.78rem; color: #e2e8f0; margin: 0 0 0.55rem; }
+    #drop-panel select, #drop-panel textarea {
+      width: 100%; font-size: 0.78rem; background: #0f1117; color: #d1d5db;
+      border: 1px solid #374151; border-radius: 4px; padding: 4px 7px;
+      box-sizing: border-box; font-family: inherit;
+    }
+    #drop-panel textarea { resize: none; height: 60px; margin-top: 0.4rem; }
+    #drop-panel .dp-actions { display: flex; gap: 0.4rem; margin-top: 0.55rem; }
+    #drop-panel .dp-confirm {
+      flex: 1; font-size: 0.78rem; padding: 3px 8px;
+      background: #4f46e5; color: #fff; border: none; border-radius: 4px; cursor: pointer;
+    }
+    #drop-panel .dp-confirm:hover { background: #4338ca; }
+    #drop-panel .dp-cancel {
+      font-size: 0.78rem; padding: 3px 8px;
+      background: transparent; color: #6b7280; border: 1px solid #374151; border-radius: 4px; cursor: pointer;
+    }
+    body.light-mode #drop-panel {
+      background: #ffffff; border-color: #e2e8f0; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    body.light-mode #drop-panel h4 { color: #1e293b; }
+    body.light-mode #drop-panel select, body.light-mode #drop-panel textarea {
+      background: #f8fafc; color: #1e293b; border-color: #e2e8f0;
+    }
+    body.light-mode #drop-panel .dp-cancel { color: #64748b; border-color: #e2e8f0; }
+
   </style>
 </head>
 <body>
@@ -376,7 +541,7 @@
             <span>📥 Inbox</span>
             <span class="kb-count" id="count-inbox">—</span>
           </div>
-          <div class="kb-col-body" id="col-inbox-cards">
+          <div class="kb-col-body" id="col-inbox-cards" data-section="inbox">
             <div class="kb-empty">Loading…</div>
           </div>
         </div>
@@ -386,7 +551,7 @@
             <span>🔄 In Progress</span>
             <span class="kb-count" id="count-inprogress">—</span>
           </div>
-          <div class="kb-col-body" id="col-inprogress-cards">
+          <div class="kb-col-body" id="col-inprogress-cards" data-section="inProgress">
             <div class="kb-empty">Loading…</div>
           </div>
         </div>
@@ -396,7 +561,7 @@
             <span>🚫 Blocked</span>
             <span class="kb-count" id="count-blocked">—</span>
           </div>
-          <div class="kb-col-body" id="col-blocked-cards">
+          <div class="kb-col-body" id="col-blocked-cards" data-section="blocked">
             <div class="kb-empty">Loading…</div>
           </div>
         </div>
@@ -406,7 +571,7 @@
             <span>✅ Done</span>
             <span class="kb-count" id="count-done">—</span>
           </div>
-          <div class="kb-col-body" id="col-done-cards">
+          <div class="kb-col-body" id="col-done-cards" data-section="done">
             <div class="kb-empty">Loading…</div>
           </div>
         </div>
@@ -483,29 +648,66 @@
       /* ── Next-step / action section ── */
       let actionEl = '';
       const st = task.status || '';
-      if (st === 'blocked' && task.reason) {
-        const r = task.reason.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        const jiIdx = r.search(/Jimmy:/i);
-        if (jiIdx >= 0) {
-          const pre = r.slice(0, jiIdx).trim();
-          const ji  = r.slice(jiIdx);
-          const jiShort = ji.length > 180 ? ji.slice(0,180)+'…' : ji;
-          actionEl = `<div class="task-action blocked-action">`
-            + (pre ? `<div class="action-context">${pre.length>100?pre.slice(0,100)+'…':pre}</div>` : '')
-            + `<div class="action-jimmy">→ ${jiShort}</div></div>`;
-        } else {
-          const s = r.length > 180 ? r.slice(0,180)+'…' : r;
-          actionEl = `<div class="task-action blocked-action">${s}</div>`;
+      if (st === 'blocked') {
+        let blockedBody = '';
+        if (task.reason) {
+          const r = task.reason.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          const jiIdx = r.search(/Jimmy:/i);
+          if (jiIdx >= 0) {
+            const pre = r.slice(0, jiIdx).trim();
+            const ji  = r.slice(jiIdx);
+            const jiShort = ji.length > 180 ? ji.slice(0,180)+'…' : ji;
+            blockedBody = `<div class="task-action blocked-action">`
+              + (pre ? `<div class="action-context">${pre.length>100?pre.slice(0,100)+'…':pre}</div>` : '')
+              + `<div class="action-jimmy">→ ${jiShort}</div></div>`;
+          } else {
+            const s = r.length > 180 ? r.slice(0,180)+'…' : r;
+            blockedBody = `<div class="task-action blocked-action">${s}</div>`;
+          }
         }
+        const tid2 = (task.taskId||'').replace(/[^A-Z0-9\-]/g,'');
+        actionEl = blockedBody +
+          `<div class="reassign-section assign-row">` +
+          `<select class="assign-select" id="rsel-${tid2}">` +
+          `<option value="">↻ Reassign to…</option>` +
+          `<option value="spike">Spike</option>` +
+          `<option value="steve">Steve</option>` +
+          `<option value="lex">Lex</option>` +
+          `<option value="bill">Bill</option>` +
+          `</select>` +
+          `<button class="reassign-btn" data-task-id="${tid2}" data-from="blocked" onclick="assignTask(this)">↻ Reassign</button>` +
+          `</div>`;
       } else if (st === 'inProgress') {
-        const parts = [];
-        if (task.created && task.created !== '—') parts.push('Started ' + task.created);
-        if (task.deadline && task.deadline !== '—') parts.push('Due ' + task.deadline);
-        if (parts.length) actionEl = `<div class="task-action progress-action">${parts.join(' · ')}</div>`;
+        if (task.isStuck) {
+          const icon  = task.isOverdue ? '\u23f0' : '\u23f1';
+          const label = task.isOverdue ? `Overdue ${task.overdueDays}d` : `Stale ${task.staleDays}d`;
+          const sub   = task.created && task.created !== '\u2014' ? ' \u00b7 Started ' + task.created : '';
+          actionEl = `<div class="task-action stuck-action">`
+            + `<div class="stuck-action-label">${icon} ${label}${sub}</div>`
+            + `<button class="escalate-btn" data-task-id="${task.taskId}" onclick="escalateTask(this.dataset.taskId,this)">→ Move to Blocked</button>`
+            + `</div>`;
+        } else {
+          const parts = [];
+          if (task.created && task.created !== '\u2014') parts.push('Started ' + task.created);
+          if (task.deadline && task.deadline !== '\u2014') parts.push('Due ' + task.deadline);
+          if (parts.length) actionEl = `<div class="task-action progress-action">${parts.join(' \u00b7 ')}</div>`;
+        }
       } else if (st === 'inbox') {
         const parts = [];
         if (task.deadline && task.deadline !== '—') parts.push('Due: ' + task.deadline.replace(/</g,'&lt;'));
-        if (parts.length) actionEl = `<div class="task-action inbox-action">${parts.join(' · ')}</div>`;
+        const dueHtml = parts.length ? `<div class="task-action inbox-action">${parts.join(' · ')}</div>` : '';
+        const tid = (task.taskId||'').replace(/[^A-Z0-9\-]/g,'');
+        actionEl = dueHtml +
+          `<div class="assign-row">` +
+          `<select class="assign-select" id="asel-${tid}">` +
+          `<option value="">Assign &amp; start…</option>` +
+          `<option value="spike">Spike</option>` +
+          `<option value="steve">Steve</option>` +
+          `<option value="lex">Lex</option>` +
+          `<option value="bill">Bill</option>` +
+          `</select>` +
+          `<button class="assign-btn" data-task-id="${tid}" data-from="inbox" onclick="assignTask(this)">→ Start</button>` +
+          `</div>`;
       } else if (st === 'done' && task.output) {
         const out = task.output.replace(/</g,'&lt;').replace(/>/g,'&gt;');
         const s = out.length > 120 ? out.slice(0,120)+'…' : out;
@@ -520,7 +722,8 @@
       const rawDate = (st === 'inProgress') ? '' : (task.deadline || task.created || '');
       const date = rawDate.replace(/</g,'&lt;');
       const dateEl = date && date !== '—' ? `<span class="kb-date">${date}</span>` : '';
-      return `<div class="kb-card ${extraCls||''} ${stCls[st]||''}">
+      const draggable = (st !== 'done') ? 'draggable="true"' : '';
+      return `<div class="kb-card ${extraCls||''} ${stCls[st]||''} ${task.isStuck ? 'is-stuck' : ''}" ${draggable} data-task-id="${task.taskId||''}" data-section="${st}">
         ${idBadge}${titleEl}${actionEl}
         <div class="task-footer">${agentEl}${pri}${dateEl}</div>
       </div>`;
@@ -547,6 +750,47 @@
     function expandDone()  { doneExpanded = true;  if (currentData) renderCol('col-done-cards', currentData.done, false, true); }
     function collapseDone(){ doneExpanded = false; if (currentData) renderCol('col-done-cards', currentData.done, false, true); }
 
+    /* ── Escalate stuck task → Blocked ── */
+    async function escalateTask(taskId, btn) {
+      if (!taskId) return;
+      const orig = btn.textContent;
+      if (btn.dataset.confirming) {
+        // Second click: execute
+        btn.disabled = true; btn.textContent = '\u2026';
+        try {
+          const r = await fetch('/api/vault/task-board/escalate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId }),
+          }).then(res => res.json());
+          if (r.ok) {
+            btn.textContent = '\u2713 Moved';
+            setTimeout(loadBoard, 1200);
+          } else {
+            btn.textContent = orig; btn.disabled = false; delete btn.dataset.confirming;
+            btn.classList.remove('confirm-state');
+            alert('\u26a0\ufe0f ' + (r.details || r.error || 'Escalation failed'));
+          }
+        } catch (e) {
+          btn.textContent = orig; btn.disabled = false; delete btn.dataset.confirming;
+          btn.classList.remove('confirm-state');
+        }
+      } else {
+        // First click: enter confirm state, auto-revert after 3s
+        btn.textContent = 'Confirm \u2192';
+        btn.classList.add('confirm-state');
+        btn.dataset.confirming = '1';
+        setTimeout(() => {
+          if (btn.dataset.confirming) {
+            btn.textContent = orig;
+            btn.classList.remove('confirm-state');
+            delete btn.dataset.confirming;
+          }
+        }, 3000);
+      }
+    }
+
+
     /* ── Load board ── */
     async function loadBoard() {
       const err = document.getElementById('vault-error');
@@ -562,7 +806,11 @@
         err.style.display = 'none';
         currentData = data;
         document.getElementById('count-inbox').textContent      = data.inbox.length;
-        document.getElementById('count-inprogress').textContent = data.inProgress.length;
+        const stuckCount = (data.inProgress || []).filter(t => t.isStuck).length;
+        const wipCountEl  = document.getElementById('count-inprogress');
+        wipCountEl.innerHTML = stuckCount > 0
+          ? data.inProgress.length + ' <span class="stuck-count-badge">\u26a0\ufe0f\u2009' + stuckCount + ' stuck</span>'
+          : String(data.inProgress.length);
         document.getElementById('count-blocked').textContent    = data.blocked.length;
         document.getElementById('count-done').textContent       = data.done.length;
         // Sync mobile tab counts
@@ -601,6 +849,210 @@
     }
 
     /* ── Boot ── */
+
+    /* ── Assign / start a task ── */
+    async function assignTask(btn) {
+      const taskId      = btn.dataset.taskId;
+      const fromSection = btn.dataset.from;
+      const selId       = (fromSection === 'inbox' ? 'asel-' : 'rsel-') + taskId;
+      const agentKey    = document.getElementById(selId)?.value;
+      if (!agentKey) { alert('Pick an agent first.'); return; }
+      const origLabel = btn.textContent;
+      if (btn.dataset.confirming) {
+        btn.disabled = true; btn.textContent = '…';
+        try {
+          const r = await fetch('/api/vault/task-board/assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId, agentKey, fromSection }),
+          }).then(res => res.json());
+          if (r.ok) {
+            btn.textContent = '✓ Done';
+            setTimeout(loadBoard, 1200);
+          } else {
+            btn.textContent = origLabel; btn.disabled = false;
+            delete btn.dataset.confirming; btn.classList.remove('confirm-state');
+            alert('⚠️ ' + (r.details || r.error || 'Assign failed'));
+          }
+        } catch (e) {
+          btn.textContent = origLabel; btn.disabled = false;
+          delete btn.dataset.confirming; btn.classList.remove('confirm-state');
+        }
+      } else {
+        btn.textContent = 'Confirm →';
+        btn.classList.add('confirm-state');
+        btn.dataset.confirming = '1';
+        setTimeout(() => {
+          if (btn.dataset.confirming) {
+            btn.textContent = origLabel;
+            btn.classList.remove('confirm-state');
+            delete btn.dataset.confirming;
+          }
+        }, 3000);
+      }
+    }
+
+
+    /* ── Drag and drop ── */
+    let _dragState = null;
+
+    function initDragDrop() {
+      // Drag start on cards
+      document.getElementById('kanban-board').addEventListener('dragstart', e => {
+        const card = e.target.closest('.kb-card[draggable]');
+        if (!card) return;
+        _dragState = { taskId: card.dataset.taskId, section: card.dataset.section };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.taskId);
+        setTimeout(() => card.classList.add('is-dragging'), 0);
+      });
+
+      document.getElementById('kanban-board').addEventListener('dragend', e => {
+        document.querySelectorAll('.kb-card.is-dragging').forEach(c => c.classList.remove('is-dragging'));
+        document.querySelectorAll('.kb-col-body.drag-over, .kb-col-body.drag-over-blocked').forEach(c => {
+          c.classList.remove('drag-over', 'drag-over-blocked');
+        });
+      });
+
+      // Delegated dragover/dragleave/drop on column bodies
+      // (must use delegation — column bodies are created dynamically by loadBoard)
+      const board = document.getElementById('kanban-board');
+
+      // Resolve the nearest .kb-col-body from any element inside a column
+      // (handles drops on column headers, gaps, cards, or the body itself)
+      function nearestColBody(target) {
+        const body = target.closest('.kb-col-body');
+        if (body) return body;
+        const col = target.closest('.kb-col');
+        return col ? col.querySelector('.kb-col-body') : null;
+      }
+
+      board.addEventListener('dragover', e => {
+        if (!_dragState) return;
+        e.preventDefault(); // Must always prevent to allow drop anywhere in the board
+        const col = nearestColBody(e.target);
+        document.querySelectorAll('.kb-col-body').forEach(c => c.classList.remove('drag-over', 'drag-over-blocked'));
+        if (!col) return;
+        const target = col.dataset.section;
+        col.classList.toggle('drag-over-blocked', target === 'blocked');
+        col.classList.toggle('drag-over', target !== 'blocked');
+      });
+
+      board.addEventListener('dragleave', e => {
+        const col = e.target.closest('.kb-col-body');
+        if (!col) return;
+        if (!e.relatedTarget || !col.contains(e.relatedTarget)) {
+          col.classList.remove('drag-over', 'drag-over-blocked');
+        }
+      });
+
+      board.addEventListener('drop', e => {
+        e.preventDefault();
+        document.querySelectorAll('.kb-col-body').forEach(c => c.classList.remove('drag-over', 'drag-over-blocked'));
+        const col = nearestColBody(e.target);
+        if (!col) return;
+        if (!_dragState) return;
+        const { taskId, section: from } = _dragState;
+        const to = col.dataset.section;
+        _dragState = null;
+        if (from === to || to === 'done') return;
+        showDropPanel(taskId, from, to, e.clientX, e.clientY);
+      });
+    }
+
+    function showDropPanel(taskId, from, to, cx, cy) {
+      const panel     = document.getElementById('drop-panel');
+      const title     = document.getElementById('dp-title');
+      const agentSel  = document.getElementById('dp-agent-select');
+      const reasonTA  = document.getElementById('dp-reason');
+      const confirmBtn= document.getElementById('dp-confirm');
+
+      agentSel.style.display  = 'none';
+      reasonTA.style.display  = 'none';
+      agentSel.value = '';
+      reasonTA.value = '';
+      confirmBtn.disabled    = false;
+      confirmBtn.textContent = 'Confirm';
+
+      let action = null;
+
+      if (to === 'inProgress') {
+        title.textContent = from === 'inbox'
+          ? '\u2192 Assign & start: ' + taskId
+          : '\u21bb Reassign: ' + taskId;
+        agentSel.style.display = '';
+        action = async () => {
+          const agentKey = agentSel.value;
+          if (!agentKey) { agentSel.focus(); return; }
+          const r = await fetch('/api/vault/task-board/assign', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId, agentKey, fromSection: from }),
+          }).then(r => r.json());
+          if (!r.ok) throw new Error(r.details || r.error);
+          closeDropPanel(); setTimeout(loadBoard, 800);
+        };
+      } else if (to === 'blocked') {
+        title.textContent = '\u{1F6A7} Block: ' + taskId;
+        reasonTA.style.display = '';
+        reasonTA.focus();
+        action = async () => {
+          const reason = reasonTA.value.trim() || 'Manually moved to Blocked';
+          const r = await fetch('/api/vault/task-board/escalate', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId, reason }),
+          }).then(r => r.json());
+          if (!r.ok) throw new Error(r.details || r.error);
+          closeDropPanel(); setTimeout(loadBoard, 800);
+        };
+      } else if (to === 'inbox') {
+        title.textContent = '\u21a9 Return to Inbox: ' + taskId;
+        action = async () => {
+          const r = await fetch('/api/vault/task-board/return-to-inbox', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId, fromSection: from }),
+          }).then(r => r.json());
+          if (!r.ok) throw new Error(r.details || r.error);
+          closeDropPanel(); setTimeout(loadBoard, 800);
+        };
+      } else {
+        return; // unsupported transition
+      }
+
+      confirmBtn.onclick = async () => {
+        confirmBtn.disabled = true; confirmBtn.textContent = '\u2026';
+        try {
+          await action();
+        } catch (err) {
+          confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm';
+          alert('\u26a0\ufe0f ' + err.message);
+        }
+      };
+
+      // Position panel near drop point, keep inside viewport
+      const W = window.innerWidth, H = window.innerHeight;
+      let left = cx + 8, top = cy - 20;
+      panel.style.display = 'block'; // temp show to measure
+      const pw = panel.offsetWidth || 260, ph = panel.offsetHeight || 150;
+      panel.style.display = '';
+      if (left + pw > W - 12) left = W - pw - 12;
+      if (top + ph > H - 12) top = H - ph - 12;
+      if (top < 8) top = 8;
+      panel.style.left = left + 'px';
+      panel.style.top  = top  + 'px';
+      panel.classList.add('open');
+    }
+
+    function closeDropPanel() {
+      document.getElementById('drop-panel').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDropPanel(); });
+    document.addEventListener('mousedown', e => {
+      const panel = document.getElementById('drop-panel');
+      if (panel.classList.contains('open') && !panel.contains(e.target)) closeDropPanel();
+    });
+
+    initDragDrop();
     loadBoard();
     setInterval(loadBoard, 60000);
 
@@ -670,5 +1122,20 @@
           '· synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
     }).catch(()=>{});
   </script>
+<div id="drop-panel">
+    <h4 id="dp-title"></h4>
+    <select id="dp-agent-select" style="display:none">
+      <option value="">Pick agent…</option>
+      <option value="spike">Spike</option>
+      <option value="steve">Steve</option>
+      <option value="lex">Lex</option>
+      <option value="bill">Bill</option>
+    </select>
+    <textarea id="dp-reason" placeholder="Reason for blocking…" style="display:none"></textarea>
+    <div class="dp-actions">
+      <button class="dp-confirm" id="dp-confirm">Confirm</button>
+      <button class="dp-cancel" onclick="closeDropPanel()">Cancel</button>
+    </div>
+  </div>
 </body>
 </html>
