@@ -64,15 +64,275 @@ app.use(express.json());
 function getAgentIdFromSessionKey(sessionKey) {
     const parts = sessionKey.split(':');
     if (parts.length > 1 && parts[0] === 'agent') {
-        return parts[1]; // e.g., 'main', 'sheeba-m', 'buster-mcthunderstick'
+        return parts[1];
     }
-    return null; 
+    return null;
+}
+
+// ---------------------------------------------------------------------------
+// Stuck task detection helpers
+// ---------------------------------------------------------------------------
+const STUCK_DAYS_DEFAULT = parseInt(ocConfig.stuckDaysThreshold || '5', 10);
+
+/** Parse a date string that may include trailing time / timezone text. */
+function parseTaskDate(str) {
+  if (!str || str === '\u2014' || str === '-') return null;
+  let d = new Date(str);
+  if (!isNaN(d.getTime())) return d;
+  const m = str.match(/(\d{4}-\d{2}-\d{2})/);
+  if (m) { d = new Date(m[1]); if (!isNaN(d.getTime())) return d; }
+  return null;
+}
+
+/**
+ * Mutates a task object with isStuck / isOverdue / isStale / staleDays / stuckReason.
+ * Call on any in-progress task before returning it to the client.
+ */
+function flagStuckTask(task, now = Date.now(), stuckDays = STUCK_DAYS_DEFAULT) {
+  // 1. Past deadline?
+  if (task.deadline && task.deadline !== '\u2014') {
+    const dl = parseTaskDate(task.deadline);
+    if (dl && dl.getTime() < now) {
+      const d = Math.floor((now - dl.getTime()) / 86400000);
+      task.isStuck     = true;
+      task.isOverdue   = true;
+      task.overdueDays = d;
+      task.stuckReason = `Overdue by ${d}d (deadline was ${task.deadline})`;
+      return;
+    }
+  }
+  // 2. Stale (started too long ago)?
+  if (task.created && task.created !== '\u2014') {
+    const started = parseTaskDate(task.created);
+    if (started) {
+      const days = (now - started.getTime()) / 86400000;
+      if (days > stuckDays) {
+        task.isStuck    = true;
+        task.isStale    = true;
+        task.staleDays  = Math.floor(days);
+        task.stuckReason = `No activity for ${Math.floor(days)}d (in progress since ${task.created})`;
+      }
+    }
+  }
+}
+
+/**
+ * Parse Task Board.md and move one in-progress row to the blocked section.
+ * Returns updated file content (does NOT write or commit).
+ */
+function moveTaskToBlocked(content, taskId, reason) {
+  const today = new Date().toISOString().slice(0, 10);
+  const lines  = content.split('\n');
+  let sec = null, taskRowIdx = -1, taskRowCells = null, blockedSepIdx = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const t  = lines[i].trim();
+    const hm = t.match(/^##\s+(.*)/);
+    if (hm) { sec = hm[1].toLowerCase(); continue; }
+
+    // In-progress section — find the task row by ID
+    if (sec && sec.includes('progress') && t.startsWith('|')) {
+      if (t.includes(taskId) && !/^\|[\s\-:]+\|/.test(t)) {
+        taskRowIdx   = i;
+        taskRowCells = t.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+      }
+    }
+    // Blocked section — track separator row position so we can insert after it
+    if (sec && sec.includes('blocked') && /^\|[\s\-:]+\|/.test(t)) {
+      blockedSepIdx = i;
+    }
+  }
+
+  if (taskRowIdx === -1) throw new Error(`Task ${taskId} not found in In Progress section`);
+
+  // Build the blocked row
+  // In Progress columns: TaskId | Title | Agent | Started  | Deadline
+  // Blocked columns:     TaskId | Title | Agent | Blocked Since | Reason
+  const idCell    = taskRowCells[0] || taskId;
+  const titleCell = taskRowCells[1] || '';
+  const agentCell = taskRowCells[2] || '';
+  const blockedRow = `| ${idCell} | ${titleCell} | ${agentCell} | ${today} | ${reason} |`;
+
+  // Remove from in-progress
+  const newLines = lines.filter((_, i) => i !== taskRowIdx);
+
+  // Adjust blocked separator index after the removal
+  const adjSepIdx = blockedSepIdx > taskRowIdx ? blockedSepIdx - 1 : blockedSepIdx;
+
+  if (adjSepIdx >= 0) {
+    // Insert immediately after the blocked table's separator row
+    newLines.splice(adjSepIdx + 1, 0, blockedRow);
+  } else {
+    // Blocked table has no separator (empty / absent) — bootstrap it
+    let hdrIdx = -1, s2 = null;
+    for (let i = 0; i < newLines.length; i++) {
+      const hm = newLines[i].trim().match(/^##\s+(.*)/);
+      if (hm) s2 = hm[1].toLowerCase();
+      if (s2 && s2.includes('blocked') && hdrIdx === -1) hdrIdx = i;
+    }
+    const tableLines = [
+      '',
+      '| Task ID | Title | Agent | Blocked Since | Reason |',
+      '|---------|-------|-------|---------------|--------|',
+      blockedRow,
+    ];
+    if (hdrIdx >= 0) {
+      newLines.splice(hdrIdx + 1, 0, ...tableLines);
+    } else {
+      newLines.push('', '## \ud83d\udea7 Blocked', ...tableLines);
+    }
+  }
+
+  return newLines.join('\n');
+}
+
+
+// ---------------------------------------------------------------------------
+// Task Board — assignment helpers
+// ---------------------------------------------------------------------------
+
+/** Move an Inbox row → In Progress. newAgent = vault shortname (lowercase). */
+function moveTaskToInProgress(content, taskId, newAgent) {
+  const today  = new Date().toISOString().slice(0, 10);
+  const lines  = content.split('\n');
+  let sec = null, rowIdx = -1, rowCells = null, ipSepIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const t  = lines[i].trim();
+    const hm = t.match(/^##\s+(.*)/);
+    if (hm) { sec = hm[1].toLowerCase(); continue; }
+    if (sec && sec.includes('inbox') && t.startsWith('|') && t.includes(taskId) && !/^\|[\s\-:]+\|/.test(t)) {
+      rowIdx   = i;
+      rowCells = t.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+    }
+    if (sec && sec.includes('progress') && /^\|[\s\-:]+\|/.test(t)) ipSepIdx = i;
+  }
+  if (rowIdx === -1) throw new Error(`Task ${taskId} not found in Inbox section`);
+  // Inbox: TaskId | Title | AssignedTo | Priority | Deadline | Created
+  const ipRow = `| ${rowCells[0]||taskId} | ${rowCells[1]||''} | ${newAgent} | ${today} | ${rowCells[4]||'\u2014'} |`;
+  const nl    = lines.filter((_, i) => i !== rowIdx);
+  const adj   = ipSepIdx > rowIdx ? ipSepIdx - 1 : ipSepIdx;
+  if (adj >= 0) {
+    nl.splice(adj + 1, 0, ipRow);
+  } else {
+    let hi = -1, s2 = null;
+    for (let i = 0; i < nl.length; i++) {
+      const hm = nl[i].trim().match(/^##\s+(.*)/);
+      if (hm) s2 = hm[1].toLowerCase();
+      if (s2 && s2.includes('progress') && hi === -1) hi = i;
+    }
+    const tbl = ['', '| Task ID | Title | Agent | Started | Deadline |', '|---------|-------|-------|---------|----------|', ipRow];
+    if (hi >= 0) nl.splice(hi + 1, 0, ...tbl); else nl.push('', '## \ud83d\udd04 In Progress', ...tbl);
+  }
+  return nl.join('\n');
+}
+
+/** Update Agent cell on a Blocked row (keep status/reason). */
+function updateBlockedTaskAgent(content, taskId, newAgent) {
+  const lines = content.split('\n');
+  let sec = null;
+  for (let i = 0; i < lines.length; i++) {
+    const t  = lines[i].trim();
+    const hm = t.match(/^##\s+(.*)/);
+    if (hm) { sec = hm[1].toLowerCase(); continue; }
+    if (sec && sec.includes('blocked') && t.startsWith('|') && t.includes(taskId) && !/^\|[\s\-:]+\|/.test(t)) {
+      const cells = lines[i].replace(/^\|/, '').replace(/\|$/, '').split('|');
+      if (cells.length >= 3) cells[2] = ` ${newAgent} `;
+      lines[i] = '|' + cells.join('|') + '|';
+      return lines.join('\n');
+    }
+  }
+  throw new Error(`Task ${taskId} not found in Blocked section`);
+}
+
+/** Move an In-Progress or Blocked row back to Inbox (unassign). */
+function moveTaskToInbox(content, taskId, fromSection) {
+  const today   = new Date().toISOString().slice(0, 10);
+  const lines   = content.split('\n');
+  let sec = null, rowIdx = -1, rowCells = null, inboxSepIdx = -1;
+  const fromKey = fromSection === 'inProgress' ? 'progress' : 'blocked';
+
+  for (let i = 0; i < lines.length; i++) {
+    const t  = lines[i].trim();
+    const hm = t.match(/^##\s+(.*)/);
+    if (hm) { sec = hm[1].toLowerCase(); continue; }
+    if (sec && sec.includes(fromKey) && t.startsWith('|') &&
+        t.includes(taskId) && !/^\|[\s\-:]+\|/.test(t)) {
+      rowIdx   = i;
+      rowCells = t.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+    }
+    if (sec && sec.includes('inbox') && /^\|[\s\-:]+\|/.test(t)) inboxSepIdx = i;
+  }
+
+  if (rowIdx === -1) throw new Error(`Task ${taskId} not found in ${fromSection} section`);
+
+  // InProgress cols: TaskId | Title | Agent | Started  | Deadline
+  // Blocked cols:    TaskId | Title | Agent | Blocked Since | Reason
+  // Inbox cols:      TaskId | Title | Assigned To | Priority | Deadline | Created
+  const idCell    = rowCells[0] || taskId;
+  const titleCell = rowCells[1] || '';
+  const deadline  = fromSection === 'inProgress' ? (rowCells[4] || '\u2014') : '\u2014';
+  const inboxRow  = `| ${idCell} | ${titleCell} | \u2014 | \u2014 | ${deadline} | ${today} |`;
+
+  const newLines  = lines.filter((_, i) => i !== rowIdx);
+  const adjSepIdx = inboxSepIdx > rowIdx ? inboxSepIdx - 1 : inboxSepIdx;
+
+  if (adjSepIdx >= 0) {
+    newLines.splice(adjSepIdx + 1, 0, inboxRow);
+  } else {
+    let hdrIdx = -1, s2 = null;
+    for (let i = 0; i < newLines.length; i++) {
+      const hm = newLines[i].trim().match(/^##\s+(.*)/);
+      if (hm) s2 = hm[1].toLowerCase();
+      if (s2 && s2.includes('inbox') && hdrIdx === -1) hdrIdx = i;
+    }
+    const tbl = ['', '| Task ID | Title | Assigned To | Priority | Deadline | Created |',
+      '|---------|-------|-------------|----------|----------|---------|', inboxRow];
+    if (hdrIdx >= 0) newLines.splice(hdrIdx + 1, 0, ...tbl);
+    else newLines.push('', '## \ud83d\udce5 Inbox', ...tbl);
+  }
+
+  return newLines.join('\n');
+}
+
+/** Reusable vault-sync push. */
+async function vaultSync(message) {
+  const { execFile } = require('child_process');
+  const bin = require('path').join(process.env.HOME, '.local', 'bin', 'vault-sync');
+  return new Promise(resolve =>
+    execFile(bin, ['push', message], { timeout: 30000 },
+      (err, stdout, stderr) => resolve({ ok: !err, stdout, stderr })
+    )
+  );
+}
+
+/** Write a Tier-2 notification .md for any agent. */
+async function writeNotificationFile(agentKey, taskId, title, fromSection) {
+  const cap = { spike:'Spike', steve:'Steve', lex:'Lex', bill:'Bill', jimmy:'Jimmy' };
+  const agentName = cap[agentKey.toLowerCase()] || agentKey;
+  const now   = new Date();
+  const stamp = now.toISOString().slice(0, 16).replace('T', '-').replace(':', '-');
+  const dir   = require('path').join(VAULT_PATH, '03 - Agents', 'Notifications', agentName);
+  await require('fs').promises.mkdir(dir, { recursive: true });
+  const body = [
+    '---',
+    'type: task-assigned',
+    `taskId: ${taskId}`,
+    `assignedAt: ${now.toISOString()}`,
+    `fromSection: ${fromSection}`,
+    '---', '',
+    `# Task Assignment: ${taskId}`, '',
+    `You have been assigned **${taskId}** from the Task Board.`, '',
+    `**Title:** ${title}`,
+    `**From:** ${fromSection === 'inbox' ? 'Inbox \u2192 In Progress' : 'Blocked (agent reassigned)'}`,
+    `**Assigned at:** ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })} ET`, '',
+    'Check the Task Board for full details.', '',
+  ].join('\n');
+  await require('fs').promises.writeFile(require('path').join(dir, stamp + '-task-assigned.md'), body, 'utf-8');
+  return { agentName };
 }
 
 // Root route - Dashboard
-app.get('/', (req, res) => {
-  res.render('index', { title: 'OverClaw Gateway Dashboard' });
-});
+app.get('/', (req, res) => res.redirect(301, '/swarm'));
 
 // Agents screen route — swarm personas from vault registry
 app.get('/agents', (req, res) => {
@@ -160,6 +420,14 @@ app.get('/vault/doc', (req, res) => {
   res.render('vault-doc', { title: 'Vault Doc', filePath, currentPath: '/vault/doc' });
 });
 
+// Vault markdown editor page
+app.get('/vault/edit', (req, res) => {
+  const filePath = (req.query.path || '').replace(/\.\./g, '');
+  if (!filePath) return res.redirect('/vault/doc');
+  const fname = filePath.split('/').pop();
+  res.render('vault-edit', { title: 'Edit: ' + fname, filePath, currentPath: '/vault/edit' });
+});
+
 // Vault graph explorer page
 app.get('/vault/graph', (req, res) => {
   res.render('vault-graph', { title: 'Vault Graph', currentPath: '/vault/graph' });
@@ -204,6 +472,10 @@ app.get('/api/vault/task-board', async (req, res) => {
     const status = await vaultReader.isAvailable();
     if (!status.available) return vaultUnavailable(res, status.error);
     const data = await vaultReader.getTaskBoard();
+    // Annotate in-progress tasks with stuck flags before sending to client
+    const now = Date.now();
+    (data.inProgress || []).forEach(t => flagStuckTask(t, now));
+    if (data.stats) data.stats.stuck = (data.inProgress || []).filter(t => t.isStuck).length;
     res.json(data);
   } catch (err) {
     console.error(`Error reading task board: ${err.message}`);
@@ -260,6 +532,27 @@ app.get('/api/vault/graph', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to build graph', details: err.message });
   }
+});
+
+
+// POST /api/vault/file — write a vault .md file and vault-sync push
+app.post('/api/vault/file', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { path: filePath, content, commitMessage } = req.body || {};
+  if (!filePath || typeof filePath !== 'string') return res.status(400).json({ error: 'path required' });
+  if (content === undefined || content === null)  return res.status(400).json({ error: 'content required' });
+  try {
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const abs      = path.resolve(vaultAbs, filePath);
+    if (!abs.startsWith(vaultAbs + path.sep)) return res.status(403).json({ error: 'Path traversal denied' });
+    if (!abs.endsWith('.md')) return res.status(400).json({ error: 'Only .md files can be written' });
+    await fs.writeFile(abs, content, 'utf-8');
+    const synced = await vaultSync((commitMessage || 'vault: edit ' + path.basename(filePath)).slice(0, 200));
+    if (!synced.ok)
+      return res.status(207).json({ ok: true, synced: false, path: filePath,
+        warning: 'Saved locally but vault-sync failed', details: synced.stderr });
+    res.json({ ok: true, synced: true, path: filePath, savedAt: new Date().toISOString() });
+  } catch (err) { res.status(500).json({ error: 'Write failed', details: err.message }); }
 });
 
 // API: resolve wiki link name to vault path
@@ -333,6 +626,12 @@ app.get('/api/swarm/summary', async (req, res) => {
 
     // NEEDS-ATTENTION alerts (not handled)
     const alerts = heartbeats.filter(h => h.isAlert && !h.isHandled).slice(0, 20);
+
+    // Flag stuck in-progress tasks and surface count in stats
+    const nowMs = Date.now();
+    (taskBoard.inProgress || []).forEach(t => flagStuckTask(t, nowMs));
+    const stuckCount = (taskBoard.inProgress || []).filter(t => t.isStuck).length;
+    if (taskBoard.stats) taskBoard.stats.stuck = stuckCount;
 
     res.json({
       vaultPath: VAULT_PATH,
@@ -1086,6 +1385,315 @@ app.delete('/api/projects/:id', async (req, res) => {
   } catch (error) {
     console.error(`Error deleting project ${req.params.id}: ${error.message}`);
     res.status(500).json({ error: 'Failed to delete project', details: error.message });
+  }
+});
+
+// POST /api/vault/task-board/escalate — promote a stuck in-progress task to blocked
+app.post('/api/vault/task-board/escalate', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { taskId, reason } = req.body || {};
+  if (!taskId || typeof taskId !== 'string') return res.status(400).json({ error: 'taskId required' });
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+
+    const today         = new Date().toISOString().slice(0, 10);
+    const escalateReason = (reason || '').trim()
+      || `Auto-escalated by OverClaw on ${today}: stuck in progress with no recent activity`;
+
+    const taskBoardPath = path.join(VAULT_PATH, '03 - Agents', 'Coordination', 'Task Board.md');
+    const content       = await fs.readFile(taskBoardPath, 'utf-8');
+    const newContent    = moveTaskToBlocked(content, taskId, escalateReason);
+
+    await fs.writeFile(taskBoardPath, newContent, 'utf-8');
+    console.log(`Escalated ${taskId} to Blocked in Task Board.md`);
+
+    // Commit via vault-sync
+    const { execFile } = require('child_process');
+    const vaultSyncBin = path.join(process.env.HOME, '.local', 'bin', 'vault-sync');
+    const syncResult = await new Promise(resolve =>
+      execFile(vaultSyncBin, ['push', `task: escalate ${taskId} \u2192 blocked`],
+        { timeout: 30000 },
+        (err, stdout, stderr) => resolve({ err, stdout, stderr })
+      )
+    );
+
+    if (syncResult.err) {
+      console.warn(`vault-sync after escalation of ${taskId}: ${syncResult.stderr}`);
+      return res.status(207).json({
+        ok: true, synced: false, taskId,
+        warning: 'Task moved locally but vault-sync failed — run a manual Sync',
+        details: syncResult.stderr,
+      });
+    }
+
+    res.json({ ok: true, synced: true, taskId, reason: escalateReason, escalatedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error(`Escalation failed for ${taskId}: ${err.message}`);
+    res.status(500).json({ error: 'Escalation failed', details: err.message });
+  }
+});
+
+// POST /api/vault/task-board/return-to-inbox — move an in-progress or blocked task back to inbox
+app.post('/api/vault/task-board/return-to-inbox', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { taskId, fromSection } = req.body || {};
+  if (!taskId || typeof taskId !== 'string') return res.status(400).json({ error: 'taskId required' });
+  if (!['inProgress', 'blocked'].includes(fromSection))
+    return res.status(400).json({ error: 'fromSection must be inProgress or blocked' });
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+
+    const taskBoardPath = path.join(VAULT_PATH, '03 - Agents', 'Coordination', 'Task Board.md');
+    const content       = await fs.readFile(taskBoardPath, 'utf-8');
+    const newContent    = moveTaskToInbox(content, taskId, fromSection);
+
+    await fs.writeFile(taskBoardPath, newContent, 'utf-8');
+    console.log(`Moved ${taskId} back to Inbox from ${fromSection}`);
+
+    const syncResult = await vaultSync(`task: return ${taskId} \u2192 inbox`);
+    if (!syncResult.ok) {
+      console.warn(`vault-sync after return-to-inbox of ${taskId}: ${syncResult.stderr}`);
+      return res.status(207).json({
+        ok: true, synced: false, taskId,
+        warning: 'Task moved locally but vault-sync failed \u2014 run a manual Sync',
+        details: syncResult.stderr,
+      });
+    }
+
+    res.json({ ok: true, synced: true, taskId, fromSection, returnedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error(`Return-to-inbox failed for ${taskId}: ${err.message}`);
+    res.status(500).json({ error: 'Return to inbox failed', details: err.message });
+  }
+});
+
+
+// GET /api/vault/notifications/:agentName — unread notification files for an agent
+app.get('/api/vault/notifications/:agentName', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const notifications = await vaultReader.getNotifications(req.params.agentName);
+    res.json({ notifications });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/vault/task-board/assign — assign+start (Inbox→InProgress) or reassign blocked agent
+app.post('/api/vault/task-board/assign', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { taskId, agentKey, fromSection } = req.body || {};
+  if (!taskId   || typeof taskId   !== 'string') return res.status(400).json({ error: 'taskId required' });
+  if (!agentKey || typeof agentKey !== 'string') return res.status(400).json({ error: 'agentKey required' });
+  if (!['inbox','blocked'].includes(fromSection))
+    return res.status(400).json({ error: 'fromSection must be inbox or blocked' });
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+    const tbPath = path.join(VAULT_PATH, '03 - Agents', 'Coordination', 'Task Board.md');
+    const raw    = await fs.readFile(tbPath, 'utf-8');
+    // Best-effort title extraction for the notification message
+    let taskTitle = taskId;
+    const tm = raw.match(new RegExp('\\|[^|]*' + taskId.replace(/-/g,'\\-') + '[^|]*\\|\\s*([^|]+)\\|'));
+    if (tm) taskTitle = tm[1].replace(/\*+/g,'').trim().slice(0, 80);
+    const newContent = fromSection === 'inbox'
+      ? moveTaskToInProgress(raw, taskId, agentKey.toLowerCase())
+      : updateBlockedTaskAgent(raw, taskId, agentKey.toLowerCase());
+    await fs.writeFile(tbPath, newContent, 'utf-8');
+    // Tier 2 — vault notification file
+    let notified = false;
+    if (agentKey.toLowerCase() !== 'jimmy') {
+      try { await writeNotificationFile(agentKey, taskId, taskTitle, fromSection); notified = true; }
+      catch (ne) { console.warn('Notification file write failed:', ne.message); }
+    }
+    // vault-sync commit
+    const syncRes = await vaultSync('task: assign ' + taskId + ' \u2192 ' + agentKey);
+    // Tier 1 — live wake for Spike (same gateway, non-fatal if it fails)
+    let wake = null;
+    if (agentKey.toLowerCase() === 'spike' && clawBridge) {
+      try {
+        await clawBridge.wakeAgent('\ud83d\udccb Task assigned: ' + taskId + ' \u2014 ' + taskTitle + '. Check Task Board.');
+        wake = 'sent';
+      } catch (we) { console.warn('Tier-1 wake (non-fatal):', we.message); wake = 'failed: ' + we.message; }
+    }
+    if (!syncRes.ok)
+      return res.status(207).json({ ok: true, synced: false, taskId, agentKey, fromSection,
+        notified, wake, warning: 'Updated locally but vault-sync failed', details: syncRes.stderr });
+    res.json({ ok: true, synced: true, taskId, agentKey, fromSection, notified, wake, assignedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('Assign failed for ' + taskId + ': ' + err.message);
+    res.status(500).json({ error: 'Assign failed', details: err.message });
+  }
+});
+
+// GET /api/heartbeat-history — per-agent heartbeat check-in counts for the last N days
+app.get('/api/heartbeat-history', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  try {
+    const status = await vaultReader.isAvailable();
+    if (!status.available) return vaultUnavailable(res, status.error);
+
+    const days = Math.min(parseInt(req.query.days || '7', 10), 30);
+    const heartbeats = await vaultReader.getHeartbeats({ limit: 1000 });
+
+    // Build list of last N calendar days, oldest first
+    const dayList = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dayList.push(d.toISOString().slice(0, 10));
+    }
+
+    // Agent → vault machine-key mapping (matches swarm summary keys)
+    const agentDefs = {
+      Spike: ['OpenClaw'],
+      Steve: ['BrightMove-MBP'],
+      Lex:   ['BrightMove-MBP/Cursor'],
+      Bill:  ['H2FClanker1'],
+    };
+
+    const history = {};
+    for (const [name, keys] of Object.entries(agentDefs)) {
+      const agentHBs = heartbeats.filter(hb => {
+        const key = hb.subAgent ? `${hb.machine}/${hb.subAgent}` : hb.machine;
+        return keys.includes(key);
+      });
+      const counts = dayList.map(day =>
+        agentHBs.filter(hb => hb.date && hb.date.startsWith(day)).length
+      );
+      history[name] = { days: dayList, counts };
+    }
+
+    res.json(history);
+  } catch (err) {
+    console.error(`Error fetching heartbeat history: ${err.message}`);
+    res.status(500).json({ error: 'Failed to fetch heartbeat history', details: err.message });
+  }
+});
+
+// Security page
+app.get('/security', (req, res) => {
+  res.render('security', { title: 'Vault Security', currentPath: '/security' });
+});
+
+// GET /api/security/summary
+app.get('/api/security/summary', async (req, res) => {
+  const KNOWN_FP_RULES   = new Set(['curl-auth-user']);
+  const KNOWN_FP_SECRETS = new Set(['Kwa/JGHl4v0AlYFQyuGWtg']); // Ahrefs BKS analytics embed
+
+  const out = {
+    lastScan: null, gitleaksVersion: '8.26.0',
+    commitCount: null, totalFindings: 0, realFindings: 0, falsePositives: 0,
+    findings: [], auditHistory: [], auditLog: null, policy: null,
+    nextScanSchedule: 'Every Sunday at 9:00 AM ET',
+  };
+
+  // 1. Most recent gitleaks JSON in /tmp
+  try {
+    const tmpFiles = await fs.readdir('/tmp');
+    const reports  = tmpFiles
+      .filter(f => f.startsWith('gitleaks-report-') && f.endsWith('.json'))
+      .sort().reverse();
+    if (reports.length > 0) {
+      const raw   = JSON.parse(await fs.readFile(path.join('/tmp', reports[0]), 'utf-8'));
+      const dateM = reports[0].match(/(\d{4}-\d{2}-\d{2})/);
+      if (dateM) out.lastScan = dateM[1];
+      out.totalFindings = raw.length;
+      const real = raw.filter(f => !KNOWN_FP_RULES.has(f.RuleID) && !KNOWN_FP_SECRETS.has(f.Secret));
+      out.falsePositives = raw.length - real.length;
+      out.realFindings   = real.length;
+      const byRule = {};
+      for (const f of real) (byRule[f.RuleID] = byRule[f.RuleID] || []).push(f);
+      const RULE_META = {
+        'slack-webhook-url': {
+          label: 'Slack Webhook URL', severity: 'high',
+          remediation: 'Rotate at api.slack.com → BrightMove app → Incoming Webhooks. Store new URL in Bitwarden (slack-webhook-brightmove-agent-monitoring) — never paste in vault files.',
+        },
+        'generic-api-key': {
+          label: 'Generic API Key', severity: 'medium',
+          remediation: 'Verify: check view-source on the site. If it is a public analytics embed key (like Ahrefs), add to suppression list. If a real secret, rotate and move to Bitwarden.',
+        },
+        'private-key': { label: 'Private Key', severity: 'high',
+          remediation: 'Rotate immediately and remove from repo history.' },
+      };
+      out.findings = Object.entries(byRule).map(([ruleId, items]) => {
+        const meta = RULE_META[ruleId] || {};
+        const uniqueFiles = [...new Set(items.map(i => i.File))];
+        return {
+          ruleId, label: meta.label || ruleId,
+          severity:    meta.severity || 'medium',
+          count:       items.length, fileCount: uniqueFiles.length,
+          files:       uniqueFiles.slice(0, 3),
+          firstDate:   items[0]?.Date?.slice(0, 10),
+          firstCommit: items[0]?.Commit?.slice(0, 8),
+          author:      items[0]?.Author,
+          remediation: meta.remediation || 'Review and rotate if sensitive.',
+          status: 'open',
+        };
+      }).sort((a, b) => ({ high:0, medium:1, low:2 }[a.severity]||2) - ({ high:0, medium:1, low:2 }[b.severity]||2));
+    }
+  } catch (e) { console.warn('Security summary: gitleaks parse failed:', e.message); }
+
+  // 2. Commit count
+  try {
+    const { execSync } = require('child_process');
+    out.commitCount = parseInt(execSync('git rev-list --count --all HEAD', { cwd: VAULT_PATH, timeout: 5000 }).toString().trim(), 10) || null;
+  } catch {}
+
+  // 3. Vault files
+  if (vaultReader) {
+    try {
+      const txt = await vaultReader.getFile('08 - QA-and-Monitoring/Security/Security-Audit-Log.md');
+      out.auditLog = txt;
+      const sections = txt.split(/\n(?=## \d{4}-\d{2}-\d{2})/);
+      out.auditHistory = sections.map(s => {
+        const hdr   = s.match(/^## (\d{4}-\d{2}-\d{2}) — (.+)/);
+        if (!hdr) return null;
+        const totalM = s.match(/Total findings[:\s]+(\d+)/i);
+        const realM  = s.match(/Real findings[:\s]+(\d+)/i) || s.match(/(\d+) real\b/i);
+        const fpM    = s.match(/FP suppressed[:\s]+(\d+)/i) || s.match(/false positive[s]?[:\s]+(\d+)/i);
+        const commM  = s.match(/([\d,]+) commits/i);
+        return {
+          date: hdr[1], label: hdr[2].trim().slice(0, 60),
+          total:   totalM ? parseInt(totalM[1])                   : null,
+          real:    realM  ? parseInt(realM[1])                    : null,
+          fps:     fpM    ? parseInt(fpM[1])                      : null,
+          commits: commM  ? commM[1]                              : null,
+        };
+      }).filter(Boolean).reverse();
+    } catch {}
+    try { out.policy = await vaultReader.getFile('SECURITY.md'); } catch {}
+  }
+
+  res.json(out);
+});
+
+// POST /api/security/scan — trigger a fresh gitleaks scan (~5s)
+app.post('/api/security/scan', async (req, res) => {
+  const gitleaksBin = path.join(process.env.HOME, '.local', 'bin', 'gitleaks');
+  try { await fs.access(gitleaksBin); } catch {
+    return res.status(503).json({ error: 'gitleaks binary not found', hint: gitleaksBin });
+  }
+  const today      = new Date().toISOString().slice(0, 10);
+  const reportPath = `/tmp/gitleaks-report-${today}.json`;
+  const { execFile } = require('child_process');
+  try {
+    await new Promise((resolve, reject) =>
+      execFile(gitleaksBin, [
+        'detect', '--source', VAULT_PATH,
+        '--log-opts', '--all',
+        '--report-format', 'json',
+        '--report-path', reportPath,
+      ], { timeout: 90000 },
+      (err, stdout, stderr) => {
+        if (err && err.code !== 1) return reject(err); // code 1 = leaks found, not an error
+        resolve();
+      })
+    );
+    res.json({ ok: true, reportPath, scanDate: today });
+  } catch (err) {
+    console.error('Security scan failed:', err.message);
+    res.status(500).json({ error: 'Scan failed', details: err.message });
   }
 });
 

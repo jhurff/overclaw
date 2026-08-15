@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .oc-main-content { overflow: hidden !important; height: calc(100vh - 60px); }
+    .oc-dashboard-area {
+      display: flex !important; flex-direction: column !important;
+      grid-template-columns: unset !important;
+      overflow-y: auto !important; overflow-x: hidden !important;
+      padding: 1rem 1.25rem !important; gap: 0 !important;
+    }
+    /* Top bar */
+    .sec-topbar { display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap; }
+    .sec-title   { font-size: 1.1rem; font-weight: 700; color: var(--oc-text-dark, #e2e8f0); margin: 0; }
+    .sec-meta    { font-size: 0.73rem; color: #6b7280; display: flex; align-items: center; gap: 0.75rem; }
+    .sec-btn     { font-size: 0.72rem; padding: 0.18rem 0.6rem; border-radius: 4px; border: 1px solid #374151; background: transparent; color: #9ca3af; cursor: pointer; transition: border-color .15s, color .15s; }
+    .sec-btn:hover     { border-color: #6b7280; color: #e2e8f0; }
+    .sec-btn:disabled  { opacity: .45; cursor: default; }
+
+    /* Section labels */
+    .sw-section { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin: 1.1rem 0 0.55rem; display: flex; align-items: center; gap: 0.5rem; }
+    .sw-section:first-of-type { margin-top: 0; }
+
+    /* Error / progress banners */
+    .sec-error    { display: none; background: #1c1917; border: 1px solid #78350f; border-radius: 6px; padding: 0.6rem 1rem; color: #fde68a; font-size: 0.82rem; margin-bottom: 1rem; }
+    .sec-progress { display: none; background: rgba(99,102,241,0.1); border: 1px solid #4f46e5; border-radius: 6px; padding: 0.55rem 0.9rem; color: #a5b4fc; font-size: 0.78rem; margin-bottom: 0.75rem; }
+    .sec-progress.active { display: block; }
+
+    /* Stat cards */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .stat-card  { background: var(--oc-card-bg, #111827); border: 1px solid var(--oc-border-color, #1f2937); border-radius: 8px; padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.15rem; }
+    .sc-top     { display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem; }
+    .sc-num     { font-size: 1.75rem; font-weight: 800; line-height: 1; }
+    .sc-label   { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; text-align: right; line-height: 1.2; }
+    .sc-sub     { font-size: 0.66rem; color: #6b7280; margin-top: 2px; }
+    .sc-scan    { border-top: 2px solid #7c3aed; }
+    .sc-scan    .sc-num { color: #c4b5fd; } .sc-scan    .sc-label { color: #a78bfa; }
+    .sc-total   { border-top: 2px solid #475569; }
+    .sc-total   .sc-num { color: #94a3b8; } .sc-total   .sc-label { color: #64748b; }
+    .sc-real    { border-top: 2px solid #dc2626; }
+    .sc-real    .sc-num { color: #fca5a5; } .sc-real    .sc-label { color: #f87171; }
+    .sc-fp      { border-top: 2px solid #059669; }
+    .sc-fp      .sc-num { color: #a7f3d0; } .sc-fp      .sc-label { color: #6ee7b7; }
+
+    /* Findings */
+    .finding-card { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 0.8rem 0.95rem; margin-bottom: 0.55rem; transition: border-color .15s; }
+    .finding-card:hover { border-color: #374151; }
+    .finding-header { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.45rem; flex-wrap: wrap; }
+    .finding-name   { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; }
+    .finding-count  { font-size: 0.7rem; color: #6b7280; background: #1f2937; border-radius: 9999px; padding: 1px 8px; }
+    .finding-date   { font-size: 0.67rem; color: #4b5563; }
+    .finding-files  { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; }
+    .finding-file   { font-size: 0.65rem; color: #6b7280; background: #0f172a; border: 1px solid #1f2937; border-radius: 4px; padding: 1px 7px; font-family: monospace; }
+    .finding-fix    { margin-top: 0.45rem; font-size: 0.72rem; color: #fbbf24; background: rgba(251,191,36,0.07); border-left: 2px solid #d97706; padding: 0.3rem 0.6rem; border-radius: 0 4px 4px 0; line-height: 1.45; }
+
+    /* Severity badges */
+    .sev        { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.67rem; font-weight: 700; white-space: nowrap; }
+    .sev-high   { background: #7f1d1d; color: #fca5a5; }
+    .sev-medium { background: #78350f; color: #fde68a; }
+    .sev-low    { background: #1e3a5f; color: #93c5fd; }
+
+    /* Recommendations */
+    .rec-item  { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.6rem 0.8rem; border-radius: 7px; margin-bottom: 0.4rem; background: #111827; border: 1px solid #1f2937; font-size: 0.78rem; }
+    .rec-icon  { flex-shrink: 0; margin-top: 1px; }
+    .rec-title { font-weight: 600; color: #e2e8f0; }
+    .rec-desc  { color: #6b7280; font-size: 0.71rem; margin-top: 3px; line-height: 1.45; }
+
+    /* History */
+    .history-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 7px; background: #111827; border: 1px solid #1f2937; margin-bottom: 0.35rem; font-size: 0.75rem; flex-wrap: wrap; }
+    .hi-date    { font-weight: 700; color: #c4b5fd; min-width: 90px; }
+    .hi-stats   { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .hi-real    { color: #fca5a5; font-weight: 600; }
+    .hi-fp      { color: #6ee7b7; }
+    .hi-total   { color: #6b7280; }
+    .hi-label   { color: #4b5563; font-size: 0.67rem; margin-left: auto; }
+
+    /* GitHub features grid */
+    .gh-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .gh-feature { background: #111827; border: 1px solid #1f2937; border-radius: 7px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; }
+    .gh-label   { color: #e2e8f0; font-weight: 600; flex: 1; }
+    .gh-on      { font-size: 0.68rem; font-weight: 700; color: #86efac; white-space: nowrap; }
+    .gh-off     { font-size: 0.68rem; font-weight: 700; color: #fca5a5; white-space: nowrap; }
+
+    /* Next scan pill */
+    .next-scan-bar { margin-top: 0.6rem; font-size: 0.72rem; color: #6b7280; background: #111827; border: 1px solid #1f2937; border-radius: 7px; padding: 0.5rem 0.85rem; display: none; }
+    .next-scan-bar span { color: #a78bfa; font-weight: 600; }
+
+    /* Policy viewer */
+    .policy-toggle { font-size: 0.7rem; color: #6b7280; background: none; border: 1px solid #1f2937; border-radius: 4px; padding: 2px 8px; cursor: pointer; margin-left: auto; }
+    .policy-toggle:hover { color: #e2e8f0; border-color: #374151; }
+    .policy-box    { background: #0a0e17; border: 1px solid #1f2937; border-radius: 8px; padding: 1rem 1.1rem; font-size: 0.75rem; color: #9ca3af; line-height: 1.65; white-space: pre-wrap; font-family: monospace; max-height: 420px; overflow-y: auto; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header class="oc-header">
+    <div class="logo">
+      <h1 class="main-title">OVERCLAW</h1>
+      <span class="tagline">VAULT SECURITY</span>
+    </div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
+  </header>
+
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/security' }) %>
+
+    <main class="oc-dashboard-area">
+
+      <!-- Top bar -->
+      <div class="sec-topbar">
+        <h1 class="sec-title">🔒 Vault Security</h1>
+        <div class="sec-meta">
+          <span id="sec-last">Loading…</span>
+          <a class="sec-btn" href="https://github.com/jhurff/My-Ai-Brain/blob/main/08%20-%20QA-and-Monitoring/Security/Security-Audit-Log.md" target="_blank" style="text-decoration:none;">📋 Full Report</a>
+          <button class="sec-btn" id="scan-btn" onclick="runScan()">⚡ Run Scan</button>
+        </div>
+      </div>
+
+      <div class="sec-error"    id="sec-error"></div>
+      <div class="sec-progress" id="sec-progress">⚡ Scanning full commit history… (~5s)</div>
+
+      <!-- Stat cards -->
+      <div class="sw-section">📊 Scan Summary</div>
+      <div class="stats-grid">
+        <div class="stat-card sc-scan">
+          <div class="sc-top"><span class="sc-num" id="s-date">—</span></div>
+          <div class="sc-label" style="text-align:left;color:#a78bfa;font-size:.62rem;">🗓 LAST SCAN</div>
+          <div class="sc-sub"  id="s-ver">—</div>
+        </div>
+        <div class="stat-card sc-total">
+          <div class="sc-top"><span class="sc-num" id="s-total">—</span><span class="sc-label">TOTAL<br>FOUND</span></div>
+          <div class="sc-sub" id="s-commits">—</div>
+        </div>
+        <div class="stat-card sc-real">
+          <div class="sc-top"><span class="sc-num" id="s-real">—</span><span class="sc-label">REAL<br>ISSUES</span></div>
+          <div class="sc-sub" id="s-real-sub">—</div>
+        </div>
+        <div class="stat-card sc-fp">
+          <div class="sc-top"><span class="sc-num" id="s-fp">—</span><span class="sc-label">FALSE<br>POSITIVES</span></div>
+          <div class="sc-sub">Suppressed</div>
+        </div>
+      </div>
+
+      <!-- Open Findings -->
+      <div class="sw-section">
+        🚨 Open Findings — Prioritized
+        <span id="findings-count" style="font-size:.68rem;color:#6b7280;font-weight:400;text-transform:none;letter-spacing:0;"></span>
+      </div>
+      <div id="findings-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
+
+      <!-- Recommendations -->
+      <div class="sw-section">💡 Recommendations</div>
+      <div id="recs-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
+
+      <!-- GitHub Security Features -->
+      <div class="sw-section">🐙 GitHub Security Features</div>
+      <div class="gh-grid">
+        <div class="gh-feature"><span>🔒</span><span class="gh-label">Private Repo</span><span class="gh-on">✅ ON</span></div>
+        <div class="gh-feature"><span>🔍</span><span class="gh-label">Secret Scanning</span><span class="gh-on">✅ ON</span></div>
+        <div class="gh-feature"><span>🛡️</span><span class="gh-label">Push Protection</span><span class="gh-on">✅ ON</span></div>
+        <div class="gh-feature"><span>🤖</span><span class="gh-label">Dependabot Alerts</span><span class="gh-on">✅ ON</span></div>
+        <div class="gh-feature"><span>📄</span><span class="gh-label">SECURITY.md</span><span class="gh-on">✅ IN PLACE</span></div>
+        <div class="gh-feature"><span>🚫</span><span class="gh-label">.gitignore Hardened</span><span class="gh-on">✅ IN PLACE</span></div>
+      </div>
+
+      <!-- Next scheduled scan -->
+      <div class="next-scan-bar" id="next-scan-bar">
+        🕒 Next scheduled scan: <span id="next-scan-label">Every Sunday at 9:00 AM ET</span>
+      </div>
+
+      <!-- Scan History -->
+      <div class="sw-section">
+        📋 Scan History
+        <a href="https://github.com/jhurff/My-Ai-Brain/blob/main/08%20-%20QA-and-Monitoring/Security/Security-Audit-Log.md"
+           target="_blank" style="font-size:.7rem;color:#6b7280;text-decoration:none;font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto;">GitHub →</a>
+      </div>
+      <div id="history-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
+
+      <!-- Security Policy -->
+      <div class="sw-section">
+        📄 Security Policy
+        <button class="policy-toggle" id="policy-btn" onclick="togglePolicy()">show ▼</button>
+      </div>
+      <div class="policy-box" id="policy-box" style="display:none;"></div>
+
+      <div style="height:1.5rem;flex-shrink:0;"></div>
+    </main>
+  </div>
+
+  <script>
+    /* ── Sidebar / theme boilerplate ── */
+    (function () {
+      const toggle  = document.getElementById('sidebar-toggle');
+      const sidebar = document.getElementById('oc-sidebar');
+      if (toggle && sidebar) {
+        let col = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+        if (col) sidebar.classList.add('collapsed');
+        toggle.addEventListener('click', () => {
+          col = !col;
+          sidebar.classList.toggle('collapsed', col);
+          localStorage.setItem('overclaw-sidebar-collapsed', col);
+        });
+      }
+      const themeBtn = document.getElementById('theme-toggle');
+      const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
+      let theme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+      document.body.classList.add(theme + '-mode');
+      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+      themeBtn.addEventListener('click', () => {
+        theme = theme === 'dark' ? 'light' : 'dark';
+        document.body.classList.toggle('dark-mode',  theme === 'dark');
+        document.body.classList.toggle('light-mode', theme === 'light');
+        themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+        localStorage.setItem('overclaw-theme', theme);
+      });
+    })();
+
+    let policyOpen = false;
+    function togglePolicy() {
+      policyOpen = !policyOpen;
+      document.getElementById('policy-box').style.display = policyOpen ? 'block' : 'none';
+      document.getElementById('policy-btn').textContent    = policyOpen ? 'hide ▲' : 'show ▼';
+    }
+
+    function esc(s) {
+      if (!s) return '';
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function sevBadge(sev) {
+      return {
+        high:   '<span class="sev sev-high">🔴 HIGH</span>',
+        medium: '<span class="sev sev-medium">🟡 MEDIUM</span>',
+        low:    '<span class="sev sev-low">🔵 LOW</span>',
+      }[sev] || '<span class="sev sev-low">INFO</span>';
+    }
+
+    async function load() {
+      const errEl = document.getElementById('sec-error');
+      try {
+        const d = await fetch('/api/security/summary').then(r => r.json());
+        if (d.error) { errEl.style.display='block'; errEl.textContent='⚠️ '+(d.details||d.error); return; }
+        errEl.style.display = 'none';
+
+        // Stats
+        document.getElementById('s-date').textContent    = d.lastScan || '—';
+        document.getElementById('s-ver').textContent     = d.gitleaksVersion ? 'gitleaks v'+d.gitleaksVersion : '—';
+        document.getElementById('s-total').textContent   = d.totalFindings ?? '—';
+        document.getElementById('s-commits').textContent = d.commitCount ? d.commitCount.toLocaleString()+' commits' : '—';
+        document.getElementById('s-real').textContent    = d.realFindings ?? '—';
+        document.getElementById('s-real-sub').textContent= d.realFindings === 0 ? '✅ All clear' : d.realFindings+' need attention';
+        document.getElementById('s-fp').textContent      = d.falsePositives ?? '—';
+        document.getElementById('sec-last').textContent  = d.lastScan ? 'Last scan: '+d.lastScan : 'No scan data';
+
+        // Findings
+        const fl = document.getElementById('findings-list');
+        const fc = document.getElementById('findings-count');
+        if (!d.findings || !d.findings.length) {
+          fc.textContent = '';
+          fl.innerHTML = '<div style="color:#374151;font-size:.82rem;padding:.4rem 0;">✅ No real findings detected</div>';
+        } else {
+          fc.textContent = '— '+d.findings.length+' rule type'+(d.findings.length>1?'s':'');
+          fl.innerHTML = d.findings.map(f => `
+            <div class="finding-card">
+              <div class="finding-header">
+                ${sevBadge(f.severity)}
+                <span class="finding-name">${esc(f.label||f.ruleId)}</span>
+                <span class="finding-count">${f.count} occurrence${f.count!==1?'s':''}</span>
+                ${f.firstDate ? `<span class="finding-date">first seen ${esc(f.firstDate)}</span>` : ''}
+              </div>
+              ${f.files && f.files.length ? `<div class="finding-files">${f.files.map(fp=>`<span class="finding-file">${esc(fp)}</span>`).join('')}${f.fileCount>f.files.length?`<span class="finding-file" style="color:#4b5563">+${f.fileCount-f.files.length} more</span>`:''}</div>` : ''}
+              ${f.remediation ? `<div class="finding-fix">💊 ${esc(f.remediation)}</div>` : ''}
+            </div>`).join('');
+        }
+
+        // Recommendations
+        const recs = buildRecs(d);
+        document.getElementById('recs-list').innerHTML = recs.map(r => `
+          <div class="rec-item">
+            <span class="rec-icon">${r.icon}</span>
+            <div><div class="rec-title">${esc(r.title)}</div>${r.desc?`<div class="rec-desc">${esc(r.desc)}</div>`:''}</div>
+          </div>`).join('');
+
+        // History
+        const hl = document.getElementById('history-list');
+        if (!d.auditHistory || !d.auditHistory.length) {
+          hl.innerHTML = '<div style="color:#374151;font-size:.78rem;">No history entries parsed yet</div>';
+        } else {
+          hl.innerHTML = d.auditHistory.map(h => `
+            <div class="history-item">
+              <span class="hi-date">📅 ${h.date}</span>
+              <div class="hi-stats">
+                ${h.commits?`<span style="color:#4b5563">${h.commits} commits</span>`:''}
+                ${h.total!=null?`<span class="hi-total">${h.total} total</span>`:''}
+                ${h.real!=null?`<span class="hi-real">${h.real} real</span>`:''}
+                ${h.fps!=null?`<span class="hi-fp">${h.fps} FP</span>`:''}
+              </div>
+              <span class="hi-label">${esc(h.label||'')}</span>
+            </div>`).join('');
+        }
+
+        // Policy
+        if (d.policy) document.getElementById('policy-box').textContent = d.policy;
+
+        // Next scan
+        document.getElementById('next-scan-bar').style.display = 'block';
+
+      } catch(e) {
+        errEl.style.display = 'block';
+        errEl.textContent   = '⚠️ ' + e.message;
+      }
+    }
+
+    function buildRecs(d) {
+      const recs = [];
+      const hasSlack  = (d.findings||[]).some(f => f.ruleId === 'slack-webhook-url');
+      const hasApiKey = (d.findings||[]).some(f => f.ruleId === 'generic-api-key');
+      if (hasSlack)  recs.push({ icon:'🔴', title:'Rotate Slack webhook(s)', desc:'Webhook URLs are in git history. Go to api.slack.com → BrightMove app → Incoming Webhooks → Regenerate. Store the new URL in Bitwarden (slack-webhook-brightmove-agent-monitoring).' });
+      if (hasApiKey) recs.push({ icon:'🟡', title:'Verify unrecognized API key in BestFishingStuff.md', desc:'Check view-source on bestfishingstuff.com. If it\'s a public Ahrefs analytics embed, I\'ll add it to the suppression list. If real, rotate and move to Bitwarden.' });
+      recs.push({ icon:'🟢', title:'SECURITY.md policy in repo root', desc:'In place ✓' });
+      recs.push({ icon:'🟢', title:'GitHub push protection enabled', desc:'Blocks future secret commits at push time ✓' });
+      recs.push({ icon:'🟢', title:'GitHub secret scanning enabled', desc:'Continuous passive monitoring ✓' });
+      recs.push({ icon:'🟢', title:'.gitignore hardened', desc:'.env, *.key, *.pem, *.token and related patterns blocked ✓' });
+      recs.push({ icon:'🟢', title:'Weekly gitleaks scan active', desc:'Every Sunday at 9 AM ET — results delivered to Telegram ✓' });
+      if (hasSlack) recs.push({ icon:'🟡', title:'Optional: scrub webhook URLs from git history', desc:'Use git filter-repo to clean commit history. Low priority (private repo), but eliminates the finding permanently.' });
+      return recs;
+    }
+
+    async function runScan() {
+      const btn = document.getElementById('scan-btn');
+      const pg  = document.getElementById('sec-progress');
+      btn.disabled = true; btn.textContent = '⚡ Scanning…';
+      pg.classList.add('active');
+      try {
+        const r = await fetch('/api/security/scan', { method:'POST' }).then(r => r.json());
+        if (r.ok) { pg.textContent = '✅ Scan complete — refreshing…'; await load(); }
+        else       pg.textContent = '⚠️ Scan failed: ' + (r.error || 'unknown');
+      } catch(e) {
+        pg.textContent = '⚠️ ' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = '⚡ Run Scan';
+        setTimeout(() => { pg.classList.remove('active'); pg.textContent = '⚡ Scanning full commit history… (~5s)'; }, 4000);
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
