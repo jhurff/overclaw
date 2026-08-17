@@ -433,6 +433,259 @@ app.get('/vault/graph', (req, res) => {
   res.render('vault-graph', { title: 'Vault Graph', currentPath: '/vault/graph' });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Needs-Attention Resolver
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Map heartbeat machine directory → agent routing info. */
+const RESOLVE_AGENT_MAP = {
+  'OpenClaw':              { key: 'spike', label: 'Spike — OpenClaw / H2FClanker2',         canWake: true  },
+  'H2FClanker2':           { key: 'spike', label: 'Spike — OpenClaw / H2FClanker2',         canWake: true  },
+  'BrightMove-MBP':        { key: 'steve', label: 'Steve — Claude Cowork / BrightMove MBP', canWake: false },
+  'BrightMove-MBP/Cursor': { key: 'lex',   label: 'Lex — Cursor / BrightMove MBP',          canWake: false },
+  'H2FClanker1':           { key: 'bill',  label: 'Bill — ChatGPT / H2FClanker1',            canWake: false },
+};
+
+/** All agents as an ordered list for the picker. */
+const RESOLVE_AGENTS_LIST = [
+  { key: 'spike', label: 'Spike — OpenClaw / H2FClanker2',         canWake: true  },
+  { key: 'steve', label: 'Steve — Claude Cowork / BrightMove MBP', canWake: false },
+  { key: 'bill',  label: 'Bill — ChatGPT / H2FClanker1',            canWake: false },
+  { key: 'lex',   label: 'Lex — Cursor / BrightMove MBP',          canWake: false },
+];
+
+/**
+ * Parse plain YAML-style frontmatter from raw markdown content.
+ * Returns {} when no frontmatter block found.
+ */
+function parseFrontmatterText(content) {
+  if (!content || !content.startsWith('---')) return {};
+  const end = content.indexOf('\n---', 3);
+  if (end === -1) return {};
+  const block = content.slice(3, end).trim();
+  const result = {};
+  for (const line of block.split('\n')) {
+    const m = line.match(/^([\w-]+)\s*:\s*(.*)$/);
+    if (!m) continue;
+    result[m[1]] = m[2].replace(/^["']|["']$/g, '').trim();
+  }
+  return result;
+}
+
+/** Infer which agent should receive the resolution dispatch. */
+function inferResolutionAgent(relPath, fm) {
+  if (relPath) {
+    const parts = relPath.split(/[/\\]/);
+    // Try machine/subAgent combo first (e.g. BrightMove-MBP/Cursor)
+    if (parts.length >= 2) {
+      const combo = parts[0] + '/' + parts[1];
+      if (RESOLVE_AGENT_MAP[combo]) return RESOLVE_AGENT_MAP[combo];
+    }
+    if (RESOLVE_AGENT_MAP[parts[0]]) return RESOLVE_AGENT_MAP[parts[0]];
+  }
+  // Fallback: frontmatter for_agent / agent field
+  const fa = ((fm && (fm.for_agent || fm.agent)) || '').toLowerCase();
+  if (/spike|openclaw/.test(fa)) return RESOLVE_AGENT_MAP['OpenClaw'];
+  if (/steve/.test(fa))          return RESOLVE_AGENT_MAP['BrightMove-MBP'];
+  if (/lex|cursor/.test(fa))     return RESOLVE_AGENT_MAP['BrightMove-MBP/Cursor'];
+  if (/bill/.test(fa))           return RESOLVE_AGENT_MAP['H2FClanker1'];
+  return RESOLVE_AGENT_MAP['OpenClaw'];
+}
+
+/** Build the full context object the resolver form needs. */
+async function buildResolveContext(alertRelPath) {
+  const filePath = '08 - QA-and-Monitoring/Heartbeats/' + alertRelPath;
+  const content  = await vaultReader.getFile(filePath);
+  const fm       = parseFrontmatterText(content);
+  const filename = path.basename(alertRelPath, '.md');
+  const agent    = inferResolutionAgent(alertRelPath, fm);
+
+  // Strip frontmatter to get markdown body
+  let body = content;
+  if (content.startsWith('---')) {
+    const end = content.indexOf('\n---', 3);
+    if (end !== -1) body = content.slice(end + 4).trimStart();
+  }
+
+  return {
+    alertId:           filename,
+    filePath,
+    relPath:           alertRelPath,
+    job:               fm.job              || '',
+    writtenBy:         fm.written_by        || '',
+    forAgent:          fm.for_agent         || fm.agent || '',
+    issue:             fm.issue             || '',
+    actionRequested:   fm.action_requested  || '',
+    severity:          fm.severity          || '',
+    status:            fm.status            || '',
+    deliveryStatus:    fm.delivery_status   || '',
+    writtenAt:         fm.written_at         || '',
+    resolutionStatus:  fm.resolution_status  || null,
+    body,
+    agent,
+    allAgents: RESOLVE_AGENTS_LIST,
+  };
+}
+
+// GET /resolve — Resolver form page
+app.get('/resolve', (req, res) => {
+  const alertPath = (req.query.alert || '').replace(/\.\./g, '');
+  if (!alertPath) return res.redirect('/swarm');
+  res.render('resolve', { title: 'Resolve Alert', alertPath, currentPath: '/resolve' });
+});
+
+// GET /api/resolve/context — JSON context for resolver form
+app.get('/api/resolve/context', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const alertPath = (req.query.alert || '').replace(/\.\./g, '');
+  if (!alertPath) return res.status(400).json({ error: 'alert path required' });
+  try {
+    const ctx = await buildResolveContext(alertPath);
+    res.json(ctx);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/resolve — submit resolution instructions and dispatch to agent
+app.post('/api/resolve', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { alertPath, agentKey, agentLabel, instructions } = req.body || {};
+  if (!alertPath || !instructions) {
+    return res.status(400).json({ error: 'alertPath and instructions are required' });
+  }
+  try {
+    const filePath = '08 - QA-and-Monitoring/Heartbeats/' + alertPath;
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const abs      = path.resolve(vaultAbs, filePath);
+    if (!abs.startsWith(vaultAbs + path.sep)) {
+      return res.status(403).json({ error: 'Path traversal denied' });
+    }
+
+    // 1. Read + parse current alert file
+    const content  = await vaultReader.getFile(filePath);
+    const fm       = parseFrontmatterText(content);
+
+    // Split frontmatter from body
+    let fmLines = [];
+    let body    = content;
+    if (content.startsWith('---')) {
+      const end = content.indexOf('\n---', 3);
+      if (end !== -1) {
+        fmLines = content.slice(3, end).trim().split('\n');
+        body    = content.slice(end + 4).trimStart();
+      }
+    }
+
+    const now    = new Date();
+    const nowISO = now.toISOString();
+    const nowET  = now.toLocaleString('en-US', { timeZone: 'America/New_York',
+                                                  dateStyle: 'medium', timeStyle: 'short' });
+    const effectiveAgentKey   = agentKey   || 'spike';
+    const effectiveAgentLabel = agentLabel || effectiveAgentKey;
+
+    // 2. Update frontmatter — add/overwrite resolution fields
+    const fmKeep = fmLines.filter(l =>
+      !l.startsWith('resolution_status:') &&
+      !l.startsWith('resolution_dispatched_at:') &&
+      !l.startsWith('resolution_agent:')
+    );
+    fmKeep.push(`resolution_status: dispatched`);
+    fmKeep.push(`resolution_dispatched_at: ${nowISO}`);
+    fmKeep.push(`resolution_agent: ${effectiveAgentKey}`);
+    const newFm = '---\n' + fmKeep.join('\n') + '\n---';
+
+    // 3. Append resolution history section to body
+    const quotedInstructions = instructions.split('\n').map(l => `> ${l}`).join('\n');
+    const histEntry = [
+      '',
+      `### Dispatched — ${nowET}`,
+      `**Routed to:** ${effectiveAgentLabel}  `,
+      `**Instructions from Jimmy:**`,
+      '',
+      quotedInstructions,
+      '',
+    ].join('\n');
+
+    let newBody;
+    if (body.includes('## 🔧 Resolution History')) {
+      // Append new dispatch entry inside the existing section
+      newBody = body.trimEnd() + '\n' + histEntry;
+    } else {
+      newBody = body.trimEnd() + '\n\n---\n\n## 🔧 Resolution History\n' + histEntry;
+    }
+
+    // 4. Write updated alert file
+    const newContent = newFm + '\n\n' + newBody;
+    await fs.writeFile(abs, newContent, 'utf-8');
+
+    // 5. Write notification file to agent
+    const agentName  = effectiveAgentKey.charAt(0).toUpperCase() + effectiveAgentKey.slice(1);
+    const alertId    = path.basename(alertPath, '.md');
+    const notifDir   = path.join(VAULT_PATH, '03 - Agents', 'Notifications', agentName);
+    await fs.mkdir(notifDir, { recursive: true });
+    const stamp      = now.toISOString().slice(0, 16).replace('T', '-').replace(/:(\d{2})$/, '-$1');
+    const notifLines = [
+      '---',
+      'type: alert-resolution',
+      `alertId: ${alertId}`,
+      `alertPath: ${filePath}`,
+      `dispatchedAt: ${nowISO}`,
+      `dispatchedBy: Jimmy`,
+      `agentKey: ${effectiveAgentKey}`,
+      '---', '',
+      `# Alert Resolution Request`, '',
+      `Jimmy has reviewed the following alert and provided resolution instructions.`, '',
+      `**Alert ID:** \`${alertId}\`  `,
+      `**Alert file:** \`${filePath}\`  `,
+      `**Dispatched:** ${nowET}`, '',
+      '## Jimmy\'s Instructions', '',
+      instructions, '',
+      '## Steps to Complete', '',
+      `1. Read the full alert at \`${filePath}\``,
+      '2. Execute Jimmy\'s instructions above',
+      '3. When fully resolved, rename the alert file: `NEEDS-ATTENTION-*` → `HANDLED-*`',
+      '4. Write a brief resolution note in the file before renaming (optional but encouraged)',
+      '',
+    ];
+    await fs.writeFile(
+      path.join(notifDir, stamp + '-alert-resolution.md'),
+      notifLines.join('\n'),
+      'utf-8'
+    );
+
+    // 6. Vault sync (commit + push everything)
+    const synced = await vaultSync(
+      `resolve: dispatch ${alertId.slice(0, 80)} → ${effectiveAgentKey}`
+    );
+
+    // 7. Wake Spike if she's the target (same gateway)
+    let wakeResult = null;
+    if (effectiveAgentKey === 'spike' && clawBridge) {
+      try {
+        wakeResult = await clawBridge.wakeAgent(
+          `🔧 Alert resolution dispatched by Jimmy.\n\nAlert: ${alertId}\n\nInstructions:\n${instructions.slice(0, 400)}\n\nPlease read your notification file at ${notifDir} and act on it now.`,
+          'agent:main'
+        );
+      } catch (e) {
+        wakeResult = { error: e.message };
+      }
+    }
+
+    res.json({
+      ok: true,
+      synced: synced.ok,
+      syncWarning: synced.ok ? null : synced.stderr,
+      woke: !!(wakeResult && !wakeResult.error),
+      alertId,
+      agentKey: effectiveAgentKey,
+    });
+  } catch (err) {
+    console.error(`[resolve] POST error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper: return a degraded response when the vault is unavailable
 function vaultUnavailable(res, details) {
   return res.status(503).json({ error: 'Vault not available', details: details || 'VaultReader not initialized' });

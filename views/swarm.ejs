@@ -233,13 +233,22 @@
       border-radius: 6px; padding: 0.5rem 0.75rem;
       display: flex; gap: 0.6rem; align-items: baseline;
       flex-wrap: wrap; font-size: 0.8rem;
-      text-decoration: none;
-      transition: background .12s, border-color .12s;
     }
-    a.alert-item:hover {
-      background: rgba(194,65,12,0.22);
-      border-color: #c2410c;
+    .al-actions { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+    .al-action-link {
+      font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+      text-decoration: none; white-space: nowrap; transition: background .12s;
     }
+    .al-action-view {
+      border: 1px solid #9a3412; color: #fb923c;
+      background: rgba(194,65,12,0.1);
+    }
+    .al-action-view:hover  { background: rgba(194,65,12,0.25); }
+    .al-action-resolve {
+      border: 1px solid #4338ca; color: #a5b4fc;
+      background: rgba(79,70,229,0.15);
+    }
+    .al-action-resolve:hover { background: rgba(79,70,229,0.3); border-color: #6366f1; color: #c7d2fe; }
     .al-machine { font-weight: 600; color: #fb923c; }
     .al-type    { color: #fdba74; flex: 1; min-width: 0; }
     .al-detail  { color: #d97706; font-size: 0.72rem; width: 100%; margin-top: 2px;
@@ -498,28 +507,28 @@
 
         document.getElementById('alerts-container').innerHTML = alerts.length
           ? '<div class="alert-list">' + alerts.map(a => {
-              const docPath = a.relPath
-                ? '08 - QA-and-Monitoring/Heartbeats/' + a.relPath
-                : null;
-              const href = docPath
-                ? `/vault/doc?path=${encodeURIComponent(docPath)}`
-                : null;
-              const tag    = href ? 'a' : 'div';
-              const attrs  = href ? ` href="${href}" target="_blank"` : '';
-              const label  = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
-              const srcCls = a.alertSource === 'needs-attention' ? 'al-src-na' : 'al-src-hberr';
-              const srcLbl = a.alertSource === 'needs-attention' ? 'NEEDS-ATTN' : 'HB-ERROR';
-              const detail = a.alertDetail
+              const docPath     = a.relPath ? '08 - QA-and-Monitoring/Heartbeats/' + a.relPath : null;
+              const viewHref    = docPath   ? `/vault/doc?path=${encodeURIComponent(docPath)}` : null;
+              const resolveHref = a.relPath ? `/resolve?alert=${encodeURIComponent(a.relPath)}` : null;
+              const label   = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
+              const srcCls  = a.alertSource === 'needs-attention' ? 'al-src-na' : 'al-src-hberr';
+              const srcLbl  = a.alertSource === 'needs-attention' ? 'NEEDS-ATTN' : 'HB-ERROR';
+              const detail  = a.alertDetail
                 ? `<span class="al-detail">${a.alertDetail.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`
                 : '';
-              return `<${tag} class="alert-item"${attrs}>
+              const actions = (viewHref || resolveHref) ? `
+                <span class="al-actions">
+                  ${viewHref    ? `<a class="al-action-link al-action-view"    href=\"${viewHref}\"    target="_blank">View</a>` : ''}
+                  ${resolveHref ? `<a class="al-action-link al-action-resolve" href=\"${resolveHref}\">Resolve</a>` : ''}
+                </span>` : '';
+              return `<div class="alert-item">
                 <span class="al-machine">${a.machine !== 'unknown' ? a.machine : '⚠️'}</span>
                 <span class="al-src-badge ${srcCls}">${srcLbl}</span>
                 <span class="al-type">${label}</span>
                 <span class="al-date">${fmtDate(a.date)}</span>
-                ${href ? '<span class="al-open">open →</span>' : ''}
+                ${actions}
                 ${detail}
-              </${tag}>`;
+              </div>`;
             }).join('') + '</div>'
           : '<div class="no-alerts">✅ No unhandled alerts</div>';
 
