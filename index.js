@@ -594,11 +594,12 @@ app.get('/api/swarm/summary', async (req, res) => {
     if (!status.available) return vaultUnavailable(res, status.error);
 
     // Fetch in parallel
-    const [taskBoard, agents, heartbeats, heatmap] = await Promise.all([
+    const [taskBoard, agents, heartbeats, heatmap, alerts] = await Promise.all([
       vaultReader.getTaskBoard().catch(e => ({ error: e.message })),
       vaultReader.getAgentRegistry().catch(e => []),
       vaultReader.getHeartbeats({ limit: 200 }).catch(e => []),
       vaultReader.getActivityHeatmap().catch(e => ({ days: [], agents: [] })),
+      vaultReader.getAlerts().catch(e => []),
     ]);
 
     // Build last-heartbeat-per-machine map
@@ -623,9 +624,6 @@ app.get('/api/swarm/summary', async (req, res) => {
         };
       }
     }
-
-    // NEEDS-ATTENTION alerts (not handled)
-    const alerts = heartbeats.filter(h => h.isAlert && !h.isHandled).slice(0, 20);
 
     // Flag stuck in-progress tasks and surface count in stats
     const nowMs = Date.now();

@@ -207,6 +207,26 @@
     @media (max-width: 700px) {
       .heatmap-grid { grid-template-columns: 44px repeat(7, 1fr); }
     }
+    /* ── Top-of-page alert banner ── */
+    #alert-banner {
+      display: none;
+      background: rgba(153,27,27,0.25);
+      border: 1px solid #dc2626;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.82rem;
+      color: #fca5a5;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    #alert-banner .ab-count {
+      font-weight: 700; color: #f87171;
+      font-size: 1.05rem; line-height: 1;
+    }
+    #alert-banner a {
+      color: #fca5a5; text-decoration: underline; margin-left: auto;
+      font-size: 0.75rem; white-space: nowrap;
+    }
     .alert-item {
       background: rgba(194,65,12,0.12);
       border: 1px solid #9a3412;
@@ -222,6 +242,13 @@
     }
     .al-machine { font-weight: 600; color: #fb923c; }
     .al-type    { color: #fdba74; flex: 1; min-width: 0; }
+    .al-detail  { color: #d97706; font-size: 0.72rem; width: 100%; margin-top: 2px;
+                  padding-top: 2px; border-top: 1px solid rgba(154,52,18,0.3);
+                  word-break: break-word; }
+    .al-src-badge { font-size: 0.62rem; font-weight: 700; border-radius: 3px;
+                    padding: 1px 4px; white-space: nowrap; flex-shrink: 0; }
+    .al-src-na    { background: rgba(220,38,38,0.25); color: #f87171; }
+    .al-src-hberr { background: rgba(202,138,4,0.2);  color: #fbbf24; }
     .al-date    { color: #6b7280; font-size: 0.7rem; white-space: nowrap; }
     .al-open    { font-size: 0.67rem; color: #6b7280; white-space: nowrap; opacity: .7; }
     a.alert-item:hover .al-open { opacity: 1; color: #9ca3af; }
@@ -267,6 +294,13 @@
       <!-- Error -->
       <div class="sw-error" id="vault-error"></div>
 
+      <!-- Alert banner (shown when there are unresolved issues) -->
+      <div id="alert-banner" style="display:none">
+        <span>🚨</span>
+        <span><span class="ab-count" id="ab-count">0</span> unresolved issue(s) — see Needs Attention below</span>
+        <a href="#alerts-section">jump ↓</a>
+      </div>
+
       <!-- Task board stats (2×2 grid, each links to filtered board) -->
       <div class="sw-section">📋 Task Board</div>
       <div class="stats-grid">
@@ -301,18 +335,20 @@
         </a>
       </div>
 
+      <!-- Alerts (above Agents so issues are visible without scrolling) -->
+      <div class="sw-section" id="alerts-section" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🚨 Needs Attention <span id="alert-section-count" style="font-size:0.7rem;font-weight:400;color:#6b7280;"></span></span>
+      </div>
+      <div id="alerts-container">
+        <div style="color:#4b5563; font-size:0.8rem;">Loading…</div>
+      </div>
+
       <!-- Agents + Health -->
       <div class="sw-section" style="display:flex;align-items:center;justify-content:space-between;">
         <span>🤖 Agents</span>
         <a href="/activity" style="font-size:0.72rem;color:#6b7280;text-decoration:none;font-weight:500;">Full Activity Log →</a>
       </div>
       <div class="agent-grid" id="agent-grid">
-        <div style="color:#4b5563; font-size:0.8rem;">Loading…</div>
-      </div>
-
-      <!-- Alerts -->
-      <div class="sw-section">🚨 Needs Attention</div>
-      <div id="alerts-container">
         <div style="color:#4b5563; font-size:0.8rem;">Loading…</div>
       </div>
 
@@ -446,6 +482,20 @@
 
         /* alerts */
         const alerts = data.alerts || [];
+
+        // Top banner
+        const alertBanner  = document.getElementById('alert-banner');
+        const abCountEl    = document.getElementById('ab-count');
+        const alertSectCnt = document.getElementById('alert-section-count');
+        if (alerts.length > 0) {
+          alertBanner.style.display = 'flex';
+          abCountEl.textContent = alerts.length;
+          alertSectCnt.textContent = '(' + alerts.length + ')';
+        } else {
+          alertBanner.style.display = 'none';
+          alertSectCnt.textContent = '';
+        }
+
         document.getElementById('alerts-container').innerHTML = alerts.length
           ? '<div class="alert-list">' + alerts.map(a => {
               const docPath = a.relPath
@@ -454,14 +504,21 @@
               const href = docPath
                 ? `/vault/doc?path=${encodeURIComponent(docPath)}`
                 : null;
-              const tag   = href ? 'a' : 'div';
-              const attrs = href ? ` href="${href}" target="_blank"` : '';
-              const label = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
+              const tag    = href ? 'a' : 'div';
+              const attrs  = href ? ` href="${href}" target="_blank"` : '';
+              const label  = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
+              const srcCls = a.alertSource === 'needs-attention' ? 'al-src-na' : 'al-src-hberr';
+              const srcLbl = a.alertSource === 'needs-attention' ? 'NEEDS-ATTN' : 'HB-ERROR';
+              const detail = a.alertDetail
+                ? `<span class="al-detail">${a.alertDetail.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`
+                : '';
               return `<${tag} class="alert-item"${attrs}>
                 <span class="al-machine">${a.machine !== 'unknown' ? a.machine : '⚠️'}</span>
+                <span class="al-src-badge ${srcCls}">${srcLbl}</span>
                 <span class="al-type">${label}</span>
                 <span class="al-date">${fmtDate(a.date)}</span>
                 ${href ? '<span class="al-open">open →</span>' : ''}
+                ${detail}
               </${tag}>`;
             }).join('') + '</div>'
           : '<div class="no-alerts">✅ No unhandled alerts</div>';
