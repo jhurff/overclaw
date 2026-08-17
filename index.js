@@ -686,6 +686,97 @@ app.post('/api/resolve', async (req, res) => {
   }
 });
 
+// POST /api/resolve/close — directly mark an alert as HANDLED (issue fixed at source)
+app.post('/api/resolve/close', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { alertPath, note } = req.body || {};
+  if (!alertPath) return res.status(400).json({ error: 'alertPath required' });
+  try {
+    const filePath = '08 - QA-and-Monitoring/Heartbeats/' + alertPath;
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const abs      = path.resolve(vaultAbs, filePath);
+    if (!abs.startsWith(vaultAbs + path.sep)) return res.status(403).json({ error: 'Path traversal denied' });
+
+    // Must be a NEEDS-ATTENTION file
+    const basename = path.basename(abs);
+    if (!basename.toUpperCase().startsWith('NEEDS-ATTENTION')) {
+      return res.status(400).json({ error: 'Only NEEDS-ATTENTION files can be closed this way' });
+    }
+
+    const content = await vaultReader.getFile(filePath);
+    const fm      = parseFrontmatterText(content);
+
+    // Split frontmatter from body
+    let fmLines = [];
+    let body    = content;
+    if (content.startsWith('---')) {
+      const end = content.indexOf('\n---', 3);
+      if (end !== -1) {
+        fmLines = content.slice(3, end).trim().split('\n');
+        body    = content.slice(end + 4).trimStart();
+      }
+    }
+
+    const now    = new Date();
+    const nowISO = now.toISOString();
+    const nowET  = now.toLocaleString('en-US', { timeZone: 'America/New_York',
+                                                  dateStyle: 'medium', timeStyle: 'short' });
+
+    // Update frontmatter
+    const fmKeep = fmLines.filter(l =>
+      !l.startsWith('resolution_status:') &&
+      !l.startsWith('resolution_dispatched_at:') &&
+      !l.startsWith('resolution_agent:')
+    );
+    fmKeep.push(`resolution_status: closed`);
+    fmKeep.push(`resolution_closed_at: ${nowISO}`);
+    fmKeep.push(`resolution_closed_by: Jimmy`);
+    const newFm = '---\n' + fmKeep.join('\n') + '\n---';
+
+    // Append resolution section
+    const resNote = note ? note.trim() : 'Issue resolved at source.';
+    const histEntry = [
+      '',
+      `### Closed — ${nowET}`,
+      `**Closed by:** Jimmy  `,
+      `**Resolution note:** ${resNote}`,
+      '',
+    ].join('\n');
+
+    let newBody;
+    if (body.includes('## 🔧 Resolution History')) {
+      newBody = body.trimEnd() + '\n' + histEntry;
+    } else {
+      newBody = body.trimEnd() + '\n\n---\n\n## 🔧 Resolution History\n' + histEntry;
+    }
+
+    // Write updated content to the file first
+    const newContent = newFm + '\n\n' + newBody;
+    await fs.writeFile(abs, newContent, 'utf-8');
+
+    // Rename NEEDS-ATTENTION-* → HANDLED-*
+    const dir         = path.dirname(abs);
+    const handledName = basename.replace(/^NEEDS-ATTENTION[-_]/i, 'HANDLED-');
+    const handledAbs  = path.join(dir, handledName);
+    await fs.rename(abs, handledAbs);
+
+    // Derive vault-relative paths for the commit message
+    const alertId = path.basename(alertPath, '.md');
+    const synced  = await vaultSync(`resolve: close ${alertId.slice(0, 80)} — ${resNote.slice(0, 60)}`);
+
+    res.json({
+      ok: true,
+      synced: synced.ok,
+      syncWarning: synced.ok ? null : synced.stderr,
+      alertId,
+      handledName,
+    });
+  } catch (err) {
+    console.error(`[resolve/close] error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper: return a degraded response when the vault is unavailable
 function vaultUnavailable(res, details) {
   return res.status(503).json({ error: 'Vault not available', details: details || 'VaultReader not initialized' });
