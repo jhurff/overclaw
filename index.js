@@ -588,11 +588,16 @@ app.post('/api/resolve', async (req, res) => {
     const fmKeep = fmLines.filter(l =>
       !l.startsWith('resolution_status:') &&
       !l.startsWith('resolution_dispatched_at:') &&
-      !l.startsWith('resolution_agent:')
+      !l.startsWith('resolution_agent:') &&
+      !l.startsWith('resolution_note:')
     );
     fmKeep.push(`resolution_status: dispatched`);
     fmKeep.push(`resolution_dispatched_at: ${nowISO}`);
     fmKeep.push(`resolution_agent: ${effectiveAgentKey}`);
+    // First line of instructions written to frontmatter for quick surface in Swarm Overview
+    const noteLine = instructions.split('\n')[0].trim().slice(0, 250)
+      .replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    fmKeep.push(`resolution_note: "${noteLine}"`);
     const newFm = '---\n' + fmKeep.join('\n') + '\n---';
 
     // 3. Append resolution history section to body

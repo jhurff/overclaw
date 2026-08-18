@@ -282,6 +282,16 @@
       width: 100%; margin-top: 2px; padding-top: 2px;
       border-top: 1px solid rgba(69,26,3,0.4);
     }
+    /* Resolution note — Jimmy's instructions, shown inline under PENDING VERIFY row */
+    .al-resolution-note {
+      display: block; font-style: normal; font-size: 0.72rem;
+      color: #92400e; margin-top: 5px;
+      padding: 4px 8px;
+      background: rgba(180,83,9,0.1);
+      border-left: 2px solid #d97706;
+      border-radius: 0 3px 3px 0;
+      word-break: break-word;
+    }
 
     /* ── Agent heartbeat sparkline ── */
     .ac-sparkline { margin-top: 7px; }
@@ -512,42 +522,68 @@
         /* alerts */
         const alerts = data.alerts || [];
 
-        // Top banner
-        const alertBanner  = document.getElementById('alert-banner');
-        const abCountEl    = document.getElementById('ab-count');
-        const alertSectCnt = document.getElementById('alert-section-count');
+        // Top banner — separate active from pending-verification
+        const activeAlerts  = alerts.filter(a => !a.isResolved);
+        const pendingAlerts = alerts.filter(a => !!a.isResolved);
+        const alertBanner   = document.getElementById('alert-banner');
+        const abCountEl     = document.getElementById('ab-count');
+        const abPendingEl   = document.getElementById('ab-pending-text');
+        const alertSectCnt  = document.getElementById('alert-section-count');
         if (alerts.length > 0) {
           alertBanner.style.display = 'flex';
-          abCountEl.textContent = alerts.length;
-          alertSectCnt.textContent = '(' + alerts.length + ')';
+          abCountEl.textContent = activeAlerts.length;
+          if (abPendingEl) abPendingEl.textContent = pendingAlerts.length > 0
+            ? ' · ' + pendingAlerts.length + ' pending verify' : '';
+          alertSectCnt.textContent = '(' + activeAlerts.length + ' active'
+            + (pendingAlerts.length > 0 ? ', ' + pendingAlerts.length + ' pending verify' : '') + ')';
         } else {
           alertBanner.style.display = 'none';
+          if (abPendingEl) abPendingEl.textContent = '';
           alertSectCnt.textContent = '';
         }
 
         document.getElementById('alerts-container').innerHTML = alerts.length
           ? '<div class="alert-list">' + alerts.map(a => {
-              const docPath     = a.relPath ? '08 - QA-and-Monitoring/Heartbeats/' + a.relPath : null;
-              const viewHref    = docPath   ? `/vault/doc?path=${encodeURIComponent(docPath)}` : null;
-              const resolveHref = a.relPath ? `/resolve?alert=${encodeURIComponent(a.relPath)}` : null;
-              const label   = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
-              const srcCls  = a.alertSource === 'needs-attention' ? 'al-src-na' : 'al-src-hberr';
-              const srcLbl  = a.alertSource === 'needs-attention' ? 'NEEDS-ATTN' : 'HB-ERROR';
-              const detail  = a.alertDetail
+              const isRes      = !!a.isResolved;
+              const itemCls    = isRes ? 'alert-item-resolved' : 'alert-item';
+              const docPath    = a.relPath ? '08 - QA-and-Monitoring/Heartbeats/' + a.relPath : null;
+              const viewHref   = docPath ? `/vault/doc?path=${encodeURIComponent(docPath)}` : null;
+              const resolveHref = (!isRes && a.relPath) ? `/resolve?alert=${encodeURIComponent(a.relPath)}` : null;
+              const label      = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
+              const srcCls     = isRes ? 'al-src-pending'
+                               : a.alertSource === 'needs-attention' ? 'al-src-na' : 'al-src-hberr';
+              const srcLbl     = isRes ? 'PENDING VERIFY'
+                               : a.alertSource === 'needs-attention' ? 'NEEDS-ATTN' : 'HB-ERROR';
+              const machineCls = isRes ? 'al-machine-res' : 'al-machine';
+              const typeCls    = isRes ? 'al-type-res'    : 'al-type';
+              const dateCls    = isRes ? 'al-date-res'    : 'al-date';
+              // Active items show error detail; resolved items show resolution note
+              const detail = (!isRes && a.alertDetail)
                 ? `<span class="al-detail">${a.alertDetail.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`
+                : '';
+              const resolvedMeta = isRes
+                ? '<span class="al-resolved-info">✓ '
+                  + (a.resolvedBy || 'Marked resolved').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  + (a.resolvedAt ? ' · ' + fmtDate(a.resolvedAt) : '')
+                  + ' — awaiting next clean run to confirm</span>'
+                  + (a.resolutionNote
+                    ? '<span class="al-resolution-note">'
+                      + a.resolutionNote.replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                      + '</span>'
+                    : '')
                 : '';
               const actions = (viewHref || resolveHref) ? `
                 <span class="al-actions">
-                  ${viewHref    ? `<a class="al-action-link al-action-view"    href=\"${viewHref}\"    target="_blank">View</a>` : ''}
-                  ${resolveHref ? `<a class="al-action-link al-action-resolve" href=\"${resolveHref}\">Resolve</a>` : ''}
+                  ${viewHref    ? `<a class="al-action-link al-action-view"    href="${viewHref}"    target="_blank">View</a>` : ''}
+                  ${resolveHref ? `<a class="al-action-link al-action-resolve" href="${resolveHref}">Resolve</a>` : ''}
                 </span>` : '';
-              return `<div class="alert-item">
-                <span class="al-machine">${a.machine !== 'unknown' ? a.machine : '⚠️'}</span>
+              return `<div class="${itemCls}">
+                <span class="${machineCls}">${a.machine !== 'unknown' ? a.machine : '⚠️'}</span>
                 <span class="al-src-badge ${srcCls}">${srcLbl}</span>
-                <span class="al-type">${label}</span>
-                <span class="al-date">${fmtDate(a.date)}</span>
+                <span class="${typeCls}">${label}</span>
+                <span class="${dateCls}">${fmtDate(a.date)}</span>
                 ${actions}
-                ${detail}
+                ${detail}${resolvedMeta}
               </div>`;
             }).join('') + '</div>'
           : '<div class="no-alerts">✅ No unhandled alerts</div>';
@@ -716,6 +752,11 @@
         const hb   = ag.keys.map(k => hbMap[k]).find(Boolean) || null;
         const date = hb ? (hb.date || null) : null;
         const cnt  = alts.filter(a =>
+          !a.isResolved &&
+          ag.keys.some(k => (a.machine || '').toLowerCase().startsWith(k.split('/')[0].toLowerCase()))
+        ).length;
+        const pendingCnt = alts.filter(a =>
+          !!a.isResolved &&
           ag.keys.some(k => (a.machine || '').toLowerCase().startsWith(k.split('/')[0].toLowerCase()))
         ).length;
         const reg  = regs.find(r => (r.nickname || r.agent || '').toLowerCase().includes(ag.name.toLowerCase())) || {};
