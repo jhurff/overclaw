@@ -263,6 +263,26 @@
     a.alert-item:hover .al-open { opacity: 1; color: #9ca3af; }
     .no-alerts  { font-size: 0.82rem; color: #374151; padding: 0.5rem 0; }
 
+    /* ── Resolved / pending-verification alert row ── */
+    .alert-item-resolved {
+      background: rgba(120,53,15,0.06);
+      border: 1px solid #451a03;
+      border-left: 3px solid #d97706;
+      border-radius: 6px; padding: 0.5rem 0.75rem;
+      display: flex; gap: 0.6rem; align-items: baseline;
+      flex-wrap: wrap; font-size: 0.8rem;
+      opacity: 0.8;
+    }
+    .al-src-pending   { background: rgba(180,83,9,0.2);  color: #d97706; }
+    .al-machine-res   { font-weight: 600; color: #d97706; }
+    .al-type-res      { color: #b45309; flex: 1; min-width: 0; }
+    .al-date-res      { color: #57534e; font-size: 0.7rem; white-space: nowrap; }
+    .al-resolved-info {
+      font-size: 0.67rem; color: #78716c; font-style: italic;
+      width: 100%; margin-top: 2px; padding-top: 2px;
+      border-top: 1px solid rgba(69,26,3,0.4);
+    }
+
     /* ── Agent heartbeat sparkline ── */
     .ac-sparkline { margin-top: 7px; }
     .ac-sparkline-hdr {
@@ -306,7 +326,7 @@
       <!-- Alert banner (shown when there are unresolved issues) -->
       <div id="alert-banner" style="display:none">
         <span>🚨</span>
-        <span><span class="ab-count" id="ab-count">0</span> unresolved issue(s) — see Needs Attention below</span>
+        <span><span class="ab-count" id="ab-count">0</span> active<span id="ab-pending-text" style="color:#d97706;font-weight:600"></span> — see Needs Attention below</span>
         <a href="#alerts-section">jump ↓</a>
       </div>
 
@@ -713,7 +733,10 @@
             <span class="ac-hb">💓 ${timeAgo(date)}</span>
             ${cnt > 0
               ? `<span class="hc-alert">⚠️ ${cnt} alert${cnt > 1 ? 's' : ''}</span>`
-              : '<span class="ac-clear">✓ clear</span>'}
+              
+                : pendingCnt > 0
+                  ? `<span style="font-size:0.67rem;font-weight:700;color:#d97706;">⏳ ${pendingCnt} pending verify</span>`
+                  : '<span class="ac-clear">✓ clear</span>'}
           </div>
           ${renderSparkline(hbHistory[ag.name], ag.color)}
           <div class="ac-links">
