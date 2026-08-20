@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .oc-main-content { overflow: hidden !important; height: calc(100vh - 60px); }
+    .oc-dashboard-area {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: unset !important;
+      overflow-y: auto !important;
+      padding: 1.25rem 1.5rem !important;
+      gap: 0 !important;
+    }
+
+    /* ── Search bar ── */
+    .sr-bar {
+      display: flex;
+      gap: .6rem;
+      margin-bottom: 1.4rem;
+      align-items: center;
+    }
+    .sr-input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: .95rem;
+      padding: .65rem 1rem;
+      outline: none;
+      font-family: inherit;
+      transition: border-color .15s;
+    }
+    .sr-input:focus { border-color: #3b82f6; }
+    .sr-btn {
+      background: #1e3a5f;
+      border: 1px solid #2563eb;
+      color: #93c5fd;
+      font-size: .85rem;
+      font-weight: 600;
+      padding: .65rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .sr-btn:hover { background: #1d4ed8; color: #fff; }
+
+    /* ── Meta row ── */
+    .sr-meta {
+      font-size: .72rem;
+      color: #6b7280;
+      margin-bottom: 1rem;
+      min-height: 1.2rem;
+    }
+    .sr-meta strong { color: #9ca3af; }
+
+    /* ── Result card ── */
+    .sr-card {
+      background: #0d1117;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: .9rem 1rem;
+      margin-bottom: .65rem;
+      transition: border-color .15s;
+    }
+    .sr-card:hover { border-color: #374151; }
+    .sr-card-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-bottom: .35rem;
+    }
+    .sr-title {
+      font-size: .9rem;
+      font-weight: 700;
+      color: #93c5fd;
+      text-decoration: none;
+    }
+    .sr-title:hover { text-decoration: underline; color: #bfdbfe; }
+    .sr-count {
+      font-size: .7rem;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+    .sr-path {
+      font-size: .7rem;
+      color: #4b5563;
+      margin-bottom: .55rem;
+      word-break: break-all;
+    }
+    .sr-snippets { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .6rem; }
+    .sr-snippet {
+      font-size: .76rem;
+      color: #9ca3af;
+      background: #111827;
+      border-left: 2px solid #374151;
+      padding: .3rem .65rem;
+      border-radius: 0 4px 4px 0;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .sr-snippet mark {
+      background: #1e3a5f;
+      color: #93c5fd;
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+    .sr-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .sr-link {
+      font-size: .72rem;
+      font-weight: 600;
+      padding: .28rem .7rem;
+      border-radius: 5px;
+      text-decoration: none;
+      transition: background .15s;
+    }
+    .sr-link-oc {
+      background: #1e3a5f;
+      border: 1px solid #2563eb;
+      color: #93c5fd;
+    }
+    .sr-link-oc:hover { background: #1d4ed8; color: #fff; }
+    .sr-link-doc {
+      background: transparent;
+      border: 1px solid #374151;
+      color: #6b7280;
+    }
+    .sr-link-doc:hover { border-color: #6b7280; color: #e2e8f0; }
+
+    /* ── States ── */
+    .sr-empty {
+      text-align: center;
+      color: #4b5563;
+      font-size: .85rem;
+      padding: 3rem 0;
+    }
+    .sr-spinner {
+      display: none;
+      color: #6b7280;
+      font-size: .82rem;
+      padding: 1rem 0;
+    }
+    .sr-spinner.show { display: block; }
+    .sr-title-bar {
+      display: flex;
+      align-items: baseline;
+      gap: .75rem;
+      margin-bottom: 1.1rem;
+      flex-shrink: 0;
+    }
+    .sr-heading { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; margin: 0; }
+    /* ── Mobile responsive ── */
+    @media (max-width: 820px) {
+      .sr-bar { flex-wrap: nowrap; }
+      .sr-input { font-size: 16px !important; } /* prevent iOS auto-zoom */
+      .sr-btn { font-size: 16px !important; padding: .65rem .9rem; }
+      .sr-card-header { flex-direction: column; gap: .2rem; }
+      .sr-snippet { font-size: .8rem; }
+      .sr-actions { gap: .4rem; }
+      .sr-link { font-size: .78rem; padding: .35rem .65rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="oc-header">
+    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">BRAIN SEARCH</span></a></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
+  </header>
+
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/search' }) %>
+
+    <main class="oc-dashboard-area">
+      <div class="sr-title-bar">
+        <h1 class="sr-heading">🔍 Brain Search</h1>
+      </div>
+
+      <form class="sr-bar" id="sr-form" onsubmit="doSearch(event)">
+        <input
+          class="sr-input"
+          id="sr-input"
+          type="text"
+          placeholder="Search all vault documents…"
+          value="<%= query.replace(/</g,'&lt;').replace(/>/g,'&gt;') %>"
+          autocomplete="off"
+          autofocus
+        />
+        <button type="submit" class="sr-btn">Search</button>
+      </form>
+
+      <div class="sr-meta" id="sr-meta"></div>
+      <div class="sr-spinner" id="sr-spinner">Searching…</div>
+      <div id="sr-results"></div>
+    </main>
+  </div>
+
+<script>
+  /* ── Sidebar / theme boilerplate ── */
+  (function () {
+    const toggle  = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('oc-sidebar');
+    if (toggle && sidebar) {
+      let collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+      if (collapsed) sidebar.classList.add('collapsed');
+      toggle.addEventListener('click', () => {
+        collapsed = !collapsed;
+        sidebar.classList.toggle('collapsed', collapsed);
+        localStorage.setItem('overclaw-sidebar-collapsed', collapsed);
+      });
+    }
+    const themeBtn = document.getElementById('theme-toggle');
+    const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
+    let theme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
+    document.body.classList.add(theme + '-mode');
+    themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+    themeBtn.addEventListener('click', () => {
+      theme = theme === 'dark' ? 'light' : 'dark';
+      document.body.classList.toggle('dark-mode',  theme === 'dark');
+      document.body.classList.toggle('light-mode', theme === 'light');
+      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+      localStorage.setItem('overclaw-theme', theme);
+    });
+  })();
+
+const INITIAL_QUERY = <%- JSON.stringify(query) %>;
+
+function highlight(text, query) {
+  if (!query) return escHtml(text);
+  const esc = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escHtml(text).replace(new RegExp(esc, 'gi'), m => `<mark>${m}</mark>`);
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function labelForLink(link) {
+  const map = {
+    '/task-board':      '📋 Task Board',
+    '/agents':          '🤖 Agents',
+    '/activity':        '📡 Activity',
+    '/scheduled-tasks': '🔁 Scheduled Tasks',
+    '/swarm':           '🌐 Swarm',
+    '/kanban':          '📋 Kanban',
+  };
+  for (const [prefix, label] of Object.entries(map)) {
+    if (link === prefix || link.startsWith(prefix + '?')) return label;
+  }
+  if (link.startsWith('/vault/doc')) return '📄 Vault Doc';
+  return '→ Open';
+}
+
+async function doSearch(e) {
+  if (e) e.preventDefault();
+  const q = document.getElementById('sr-input').value.trim();
+  if (!q || q.length < 2) return;
+
+  // Update URL without reload
+  history.replaceState(null, '', `/search?q=${encodeURIComponent(q)}`);
+
+  const meta    = document.getElementById('sr-meta');
+  const spinner = document.getElementById('sr-spinner');
+  const results = document.getElementById('sr-results');
+
+  meta.textContent = '';
+  results.innerHTML = '';
+  spinner.classList.add('show');
+
+  try {
+    const resp = await fetch(`/api/vault/search?q=${encodeURIComponent(q)}`);
+    const data = await resp.json();
+    spinner.classList.remove('show');
+
+    if (!data.results || data.results.length === 0) {
+      meta.innerHTML = `No results for <strong>"${escHtml(q)}"</strong>`;
+      results.innerHTML = `<div class="sr-empty">Nothing found in the brain.</div>`;
+      return;
+    }
+
+    meta.innerHTML = `<strong>${data.total}</strong> file${data.total !== 1 ? 's' : ''} matched${data.total > 60 ? ' (showing top 60)' : ''} for <strong>"${escHtml(q)}"</strong>`;
+
+    results.innerHTML = data.results.map(r => {
+      const ocLink    = r.overclawLink;
+      const isDocOnly = ocLink.startsWith('/vault/doc');
+      const snippetsHtml = r.snippets.map(s =>
+        `<div class="sr-snippet">${highlight(s.text, q)}</div>`
+      ).join('');
+
+      return `
+        <div class="sr-card">
+          <div class="sr-card-header">
+            <a class="sr-title" href="${escHtml(r.docLink)}">${escHtml(r.title)}</a>
+            <span class="sr-count">${r.totalMatches} match${r.totalMatches !== 1 ? 'es' : ''}</span>
+          </div>
+          <div class="sr-path">${escHtml(r.folder)}/</div>
+          <div class="sr-snippets">${snippetsHtml}</div>
+          ${!isDocOnly ? `<div class="sr-actions"><a class="sr-link sr-link-oc" href="${escHtml(ocLink)}">${labelForLink(ocLink)}</a></div>` : ''}
+        </div>`;
+    }).join('');
+
+  } catch (err) {
+    spinner.classList.remove('show');
+    meta.textContent = 'Search failed: ' + err.message;
+  }
+}
+
+// Auto-run if query pre-filled from URL
+if (INITIAL_QUERY) doSearch(null);
+</script>
+</body>
+</html>

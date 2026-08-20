@@ -8,409 +8,207 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    .feed-tabs {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.2rem;
-      flex-wrap: wrap;
-    }
-    .feed-tab {
-      padding: 0.35rem 1rem;
-      border: 1px solid var(--border, #2d3548);
-      border-radius: 9999px;
-      cursor: pointer;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--muted, #8892a4);
-      background: none;
-      transition: all 0.15s;
-    }
-    .feed-tab.active {
-      background: #1e40af;
-      color: #bfdbfe;
-      border-color: #1e40af;
-    }
-    .feed-tab:hover:not(.active) {
-      border-color: #6b7280;
-      color: #e2e8f0;
-    }
-
-    .activity-feed { display: flex; flex-direction: column; gap: 0.55rem; }
-
-    .feed-item {
-      background: var(--card-bg, #1a1f2e);
-      border: 1px solid var(--border, #2d3548);
-      border-radius: 8px;
-      padding: 0.65rem 1rem;
-      display: flex;
-      gap: 0.8rem;
-      align-items: flex-start;
-      font-size: 0.83rem;
-    }
-    .feed-item.alert-item {
-      border-color: #c2410c;
-      background: #3b1a08;
-    }
-    .feed-item .feed-icon { font-size: 1rem; flex-shrink: 0; }
-    .feed-item .feed-body { flex: 1; min-width: 0; }
-    .feed-item .feed-title {
-      font-weight: 600;
-      color: var(--heading, #e2e8f0);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .feed-item.alert-item .feed-title { color: #fb923c; }
-    .feed-item .feed-meta {
-      font-size: 0.73rem;
-      color: var(--muted, #6b7280);
-      margin-top: 1px;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .machine-chip {
-      display: inline-block;
-      padding: 1px 7px;
-      border-radius: 9999px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      background: #1e3a5f;
-      color: #93c5fd;
-    }
-    .alert-badge {
-      display: inline-block;
-      padding: 1px 7px;
-      border-radius: 9999px;
-      font-size: 0.68rem;
-      font-weight: 700;
-      background: #7f1d1d;
-      color: #fca5a5;
-    }
-    .handled-badge {
-      display: inline-block;
-      padding: 1px 7px;
-      border-radius: 9999px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      background: #14532d;
-      color: #86efac;
-    }
-
-    .learning-card {
-      background: var(--card-bg, #1a1f2e);
-      border: 1px solid var(--border, #2d3548);
-      border-radius: 8px;
-      padding: 0.9rem 1.1rem;
-      font-size: 0.83rem;
-    }
-    .learning-card h3 {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--heading, #e2e8f0);
-      margin: 0 0 0.3rem;
-    }
-    .tag-chip {
-      display: inline-block;
-      padding: 1px 8px;
-      border-radius: 9999px;
-      font-size: 0.68rem;
-      font-weight: 600;
-      background: #1a3a2a;
-      color: #6ee7b7;
-      margin-right: 4px;
-    }
-
-    .vault-unavailable {
-      background: #1c1917;
-      border: 1px solid #78350f;
-      border-radius: 8px;
-      padding: 0.8rem 1rem;
-      color: #fde68a;
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
-    }
-    .refresh-note { font-size: 0.75rem; color: #6b7280; margin-top: 1rem; }
-    #feed-count { color: #6b7280; font-size: 0.8rem; margin-bottom: 0.8rem; }
-
-    /* ── Agent filter pills ── */
-    .agent-filter { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
-    .agent-pill {
-      padding: 0.28rem 0.75rem;
-      border: 1px solid #2d3548;
-      border-radius: 9999px;
-      cursor: pointer; font-size: 0.78rem; font-weight: 600;
-      color: #8892a4; background: none; font-family: inherit;
-      transition: all .15s; -webkit-tap-highlight-color: transparent;
-    }
-    .agent-pill.active {
-      background: var(--ac, #374151);
-      color: #e2e8f0;
-      border-color: var(--ac, #4b5563);
-    }
-    .agent-pill:hover:not(.active) { border-color: #6b7280; color: #e2e8f0; }
-  </style>
 </head>
 <body>
   <header class="oc-header">
-    <div class="logo">
-      <h1 class="main-title">OVERCLAW</h1>
-      <span class="tagline">AGENT DASHBOARD</span>
-    </div>
+    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
     <div class="header-controls">
       <button id="sidebar-toggle" class="control-button">☰</button>
       <button id="theme-toggle" class="control-button">☀️</button>
     </div>
   </header>
-
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/activity' }) %>
-
     <main class="oc-dashboard-area">
-      <h1 style="margin-bottom:0.25rem;">📡 Activity Feed</h1>
-      <p style="color:var(--muted,#8892a4); font-size:0.87rem; margin-bottom:1.2rem;">
-        Unified swarm activity — vault heartbeats from all machines plus agent learnings.
-      </p>
-
-      <div id="vault-error" class="vault-unavailable" style="display:none;"></div>
-
-      <!-- Agent filter -->
-      <div class="agent-filter">
-        <button class="agent-pill active" data-agent="all" onclick="setAgentFilter('all',this)">All Agents</button>
-        <button class="agent-pill" data-agent="Spike" onclick="setAgentFilter('Spike',this)" style="--ac:#f97316">🧞 Spike</button>
-        <button class="agent-pill" data-agent="Steve" onclick="setAgentFilter('Steve',this)" style="--ac:#3b82f6">📈 Steve</button>
-        <button class="agent-pill" data-agent="Lex"   onclick="setAgentFilter('Lex',this)"   style="--ac:#a855f7">💻 Lex</button>
-        <button class="agent-pill" data-agent="Bill"  onclick="setAgentFilter('Bill',this)"  style="--ac:#10b981">🐟 Bill</button>
-      </div>
-
-      <!-- Tab bar -->
-      <div class="feed-tabs">
-        <button class="feed-tab active" data-tab="vault" onclick="switchTab('vault', this)">📡 Vault Heartbeats</button>
-        <button class="feed-tab" data-tab="learnings" onclick="switchTab('learnings', this)">📖 Learnings</button>
-      </div>
-
-      <!-- Vault heartbeats tab -->
-      <div id="tab-vault">
-        <div style="display:flex; gap:0.8rem; margin-bottom:0.8rem; flex-wrap:wrap; align-items:center;">
-          <label style="font-size:0.8rem; color:#6b7280;">
-            <input type="checkbox" id="filter-alerts-only" onchange="renderHeartbeats()">
-            Alerts only
-          </label>
-          <label style="font-size:0.8rem; color:#6b7280;">
-            <input type="checkbox" id="filter-hide-handled" onchange="renderHeartbeats()">
-            Hide handled
-          </label>
+      <div class="oc-data-wrap">
+        <div class="oc-table-toolbar">
+          <input type="search" id="q" class="oc-search-input" placeholder="Search activity…">
+          <select id="f-type" class="oc-filter-select">
+            <option value="">All types</option>
+            <option value="heartbeat">💓 Heartbeat</option>
+            <option value="alert">🚨 Alert</option>
+            <option value="learning">📖 Learning</option>
+          </select>
+          <select id="f-agent" class="oc-filter-select">
+            <option value="">All agents</option>
+            <option value="Spike">🦞 Spike</option>
+            <option value="Steve">📈 Steve</option>
+            <option value="Lex">💻 Lex</option>
+            <option value="Bill">🐟 Bill</option>
+          </select>
+          <span class="oc-count-badge" id="row-count">–</span>
         </div>
-        <div id="feed-count"></div>
-        <div id="heartbeats-feed" class="activity-feed">
-          <div style="color:#6b7280; font-size:0.85rem;">Loading heartbeats…</div>
+        <div class="oc-table-scroll">
+          <table class="oc-data-table" id="activity-tbl">
+            <thead><tr>
+              <th data-sort="typeLabel" style="width:100px">Type</th>
+              <th data-sort="title">Event</th>
+              <th data-sort="source" style="width:180px">Agent / Machine</th>
+              <th data-sort="dateSort" style="width:160px">Date</th>
+              <th class="no-sort" style="width:140px">Status</th>
+            </tr></thead>
+            <tbody id="activity-tbody">
+              <tr><td colspan="5" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-
-      <!-- Learnings tab (hidden by default) -->
-      <div id="tab-learnings" style="display:none;">
-        <div id="learnings-list" class="activity-feed">
-          <div style="color:#6b7280; font-size:0.85rem;">Loading learnings…</div>
-        </div>
-      </div>
-
-      <p class="refresh-note" id="refresh-note">Auto-refreshes every 60 seconds.</p>
     </main>
   </div>
 
   <script>
-    // --- Sidebar / theme boilerplate ---
-    (function () {
-      const toggle  = document.getElementById('sidebar-toggle');
-      const sidebar = document.getElementById('oc-sidebar');
-      if (toggle && sidebar) {
-        let collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (collapsed) sidebar.classList.add('collapsed');
-        toggle.addEventListener('click', () => {
-          collapsed = !collapsed;
-          sidebar.classList.toggle('collapsed', collapsed);
-          localStorage.setItem('overclaw-sidebar-collapsed', collapsed);
-        });
-      }
-      const themeBtn = document.getElementById('theme-toggle');
-      const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
-      let theme      = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
-      document.body.classList.add(theme + '-mode');
-      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-      themeBtn.addEventListener('click', () => {
-        theme = theme === 'dark' ? 'light' : 'dark';
-        document.body.classList.toggle('dark-mode',  theme === 'dark');
-        document.body.classList.toggle('light-mode', theme === 'light');
-        themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-        localStorage.setItem('overclaw-theme', theme);
-      });
+    /* ── sidebar/theme ── */
+    (function(){
+      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+      if(col)sb.classList.add('collapsed');
+      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+      const th=document.getElementById('theme-toggle');
+      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
     })();
 
-    // --- Tab switching ---
-    function switchTab(tabName, btn) {
-      document.querySelectorAll('.feed-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-vault').style.display     = tabName === 'vault'     ? '' : 'none';
-      document.getElementById('tab-learnings').style.display = tabName === 'learnings' ? '' : 'none';
-    }
-
-    // --- Agent filter ---
     const AGENT_MACHINES = {
-      'Spike': ['OpenClaw'],
-      'Steve': ['BrightMove-MBP'],
-      'Lex':   ['BrightMove-MBP/Cursor'],
-      'Bill':  ['H2FClanker1'],
+      Spike: ['OpenClaw'],
+      Steve: ['BrightMove-MBP'],
+      Lex:   ['BrightMove-MBP/Cursor'],
+      Bill:  ['H2FClanker1'],
     };
-    let currentAgent = 'all';
 
-    function setAgentFilter(agent, btn) {
-      currentAgent = agent;
-      document.querySelectorAll('.agent-pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderHeartbeats();
-      renderLearnings();
+    function machineToAgent(machine, subAgent) {
+      const key = subAgent ? `${machine}/${subAgent}` : machine;
+      for (const [agent, machines] of Object.entries(AGENT_MACHINES)) {
+        if (machines.some(m => key.toLowerCase() === m.toLowerCase())) return agent;
+      }
+      return '';
     }
 
-    // --- Heartbeats ---
-    let allHeartbeats = [];
+    let allRows=[], sortKey='dateSort', sortDir=-1;
 
     function fmtDate(str) {
       if (!str) return '—';
       try { return new Date(str).toLocaleString(); } catch { return str; }
     }
 
-    function renderHeartbeats() {
-      const alertsOnly  = document.getElementById('filter-alerts-only').checked;
-      const hideHandled = document.getElementById('filter-hide-handled').checked;
-      const feed        = document.getElementById('heartbeats-feed');
-      const countEl     = document.getElementById('feed-count');
+    const TYPE_ICON  = { heartbeat:'💓', alert:'🚨', learning:'📖' };
+    const TYPE_LABEL = { heartbeat:'Heartbeat', alert:'Alert', learning:'Learning' };
 
-      let items = allHeartbeats;
-      if (alertsOnly)  items = items.filter(h => h.isAlert);
-      if (hideHandled) items = items.filter(h => !h.isHandled);
-      if (currentAgent !== 'all') {
-        const patterns = AGENT_MACHINES[currentAgent] || [];
-        items = items.filter(h => {
-          const key = h.subAgent ? `${h.machine}/${h.subAgent}` : h.machine;
-          return patterns.some(p => key.toLowerCase() === p.toLowerCase());
+    function applyAndRender() {
+      const q      = document.getElementById('q').value.toLowerCase().trim();
+      const typeF  = document.getElementById('f-type').value;
+      const agentF = document.getElementById('f-agent').value;
+
+      let vis = allRows.filter(r => {
+        if (typeF  && r.type  !== typeF)  return false;
+        if (agentF && r.agent !== agentF) return false;
+        if (q) {
+          const h = [r.title, r.source, r.typeLabel, r.tags||''].join(' ').toLowerCase();
+          if (!h.includes(q)) return false;
+        }
+        return true;
+      });
+
+      if (sortKey) {
+        vis = [...vis].sort((a,b) => {
+          const va=String(a[sortKey]||''), vb=String(b[sortKey]||'');
+          return sortDir * va.localeCompare(vb);
         });
       }
 
-      countEl.textContent = items.length + ' event' + (items.length !== 1 ? 's' : '');
+      const tbody = document.getElementById('activity-tbody');
+      tbody.innerHTML = vis.length ? vis.map(r => {
+        const icon  = TYPE_ICON[r.type]  || '•';
+        const label = TYPE_LABEL[r.type] || r.type;
 
-      if (items.length === 0) {
-        feed.innerHTML = '<div style="color:#6b7280; font-size:0.85rem; padding:1rem 0;">No events match filters.</div>';
-        return;
-      }
-
-      feed.innerHTML = items.map(hb => {
-        const alertBadge   = hb.isAlert   ? '<span class="alert-badge">⚠️ ALERT</span>'  : '';
-        const handledBadge = hb.isHandled ? '<span class="handled-badge">✅ handled</span>' : '';
-        const subStr       = hb.subAgent  ? ' / ' + hb.subAgent : '';
-        const icon         = hb.isAlert ? '🚨' : '💓';
-        return `
-          <div class="feed-item ${hb.isAlert ? 'alert-item' : ''}">
-            <span class="feed-icon">${icon}</span>
-            <div class="feed-body">
-              <div class="feed-title">${hb.type || hb.filename || 'heartbeat'}</div>
-              <div class="feed-meta">
-                <span class="machine-chip">${hb.machine}${subStr}</span>
-                <span>${fmtDate(hb.date)}</span>
-                ${alertBadge}
-                ${handledBadge}
-              </div>
-            </div>
-          </div>`;
-      }).join('');
-    }
-
-    async function loadHeartbeats() {
-      const errBox = document.getElementById('vault-error');
-      try {
-        const resp = await fetch('/api/vault/activity?limit=200');
-        const data = await resp.json();
-
-        if (data.error) {
-          errBox.style.display = 'block';
-          errBox.textContent   = '⚠️ Vault unavailable: ' + (data.details || data.error);
-          allHeartbeats        = [];
-          renderHeartbeats();
-          return;
+        let statusHtml = '';
+        if (r.isAlert)   statusHtml += '<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.68rem;font-weight:700;background:#7f1d1d;color:#fca5a5;margin-right:3px">⚠️ alert</span>';
+        if (r.isHandled) statusHtml += '<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.68rem;font-weight:600;background:#14532d;color:#86efac">✓ handled</span>';
+        if (r.tags) {
+          r.tags.split(',').forEach(t => {
+            const tag = t.trim();
+            if (tag) statusHtml += `<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.68rem;font-weight:600;background:#1a3a2a;color:#6ee7b7;margin-right:2px">${tag}</span>`;
+          });
         }
 
-        errBox.style.display = 'none';
-        allHeartbeats        = Array.isArray(data) ? data : [];
-        renderHeartbeats();
+        return `
+          <tr style="${r.isAlert ? 'background:rgba(59,26,8,.4)' : ''}">
+            <td style="white-space:nowrap;font-size:.8rem">${icon} <span style="color:#6b7280">${label}</span></td>
+            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;color:#e2e8f0">${r.title}</td>
+            <td style="font-size:.78rem;color:#9ca3af;white-space:nowrap">${r.source}</td>
+            <td style="font-size:.72rem;color:#6b7280;white-space:nowrap">${fmtDate(r.date)}</td>
+            <td>${statusHtml || '<span style="color:#374151;font-size:.7rem">—</span>'}</td>
+          </tr>`;
+      }).join('')
+        : `<tr class="oc-empty-row"><td colspan="5">No activity matches.</td></tr>`;
 
-        document.getElementById('refresh-note').textContent =
-          'Last updated: ' + new Date().toLocaleTimeString() + ' · Auto-refreshes every 60s';
-
-      } catch (err) {
-        errBox.style.display = 'block';
-        errBox.textContent   = '⚠️ Error fetching vault activity: ' + err.message;
-      }
+      document.getElementById('row-count').textContent = vis.length+' / '+allRows.length;
+      document.querySelectorAll('#activity-tbl th[data-sort]').forEach(th => {
+        th.classList.remove('sort-asc','sort-desc');
+        if (th.dataset.sort===sortKey) th.classList.add(sortDir>0?'sort-asc':'sort-desc');
+      });
     }
 
-    // --- Learnings ---
-    let allLearnings = [];
+    document.getElementById('q').addEventListener('input', applyAndRender);
+    document.getElementById('f-type').addEventListener('change', applyAndRender);
+    document.getElementById('f-agent').addEventListener('change', applyAndRender);
+    document.addEventListener('click', e => {
+      const th = e.target.closest('#activity-tbl th[data-sort]');
+      if (!th) return;
+      const k = th.dataset.sort;
+      if (sortKey===k) sortDir*=-1; else { sortKey=k; sortDir=1; }
+      applyAndRender();
+    });
 
-    function renderLearnings() {
-      const list = document.getElementById('learnings-list');
-      let data   = allLearnings;
-      if (currentAgent !== 'all' && data.length) {
-        const agLower = currentAgent.toLowerCase();
-        data = data.filter(l => {
-          const tags = (l.tags || []).map(t => t.toLowerCase());
-          return tags.some(t => t.includes(agLower))
-            || (l.agent || '').toLowerCase().includes(agLower);
-        });
-      }
-      if (!data.length) {
-        const msg = currentAgent !== 'all'
-          ? `No learnings tagged for <strong>${currentAgent}</strong> yet.`
-          : 'No learnings recorded yet.';
-        list.innerHTML = `<div style="color:#6b7280; font-size:0.85rem;">${msg}</div>`;
-        return;
-      }
-      list.innerHTML = data.map(l => `
-        <div class="learning-card">
-          <h3>${l.title || '(untitled)'}</h3>
-          <p style="color:var(--muted,#8892a4); margin:0.2rem 0 0.5rem;">${l.summary || ''}</p>
-          <div style="margin-bottom:0.4rem;">
-            ${(l.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
-          </div>
-          <div style="font-size:0.72rem; color:#6b7280;">
-            ${l.agent ? `<span style="margin-right:6px; color:#9ca3af;">${l.agent}</span>` : ''}
-            ${l.created_at ? new Date(l.created_at).toLocaleString() : ''}
-          </div>
-        </div>`).join('');
-    }
-
-    async function loadLearnings() {
-      const list = document.getElementById('learnings-list');
-      try {
-        const resp = await fetch('/api/learnings');
-        const data = await resp.json();
-        allLearnings = Array.isArray(data) ? data : [];
-        allLearnings.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        renderLearnings();
-      } catch (err) {
-        list.innerHTML = '<div style="color:#f87171; font-size:0.85rem;">Failed to load learnings: ' + err.message + '</div>';
-      }
-    }
-
-    // Init
-    loadHeartbeats();
-    loadLearnings();
-    setInterval(loadHeartbeats, 60000);
-    // Pre-select agent from URL ?agent=Name
-    (function () {
-      var agent = new URLSearchParams(window.location.search).get('agent');
-      if (!agent) return;
-      var btn = document.querySelector('.agent-pill[data-agent="' + agent + '"]');
-      if (btn) setAgentFilter(agent, btn);
+    /* Pre-select agent from URL ?agent=Name */
+    (function(){
+      const a = new URLSearchParams(window.location.search).get('agent');
+      if (a) { document.getElementById('f-agent').value = a; }
     })();
+
+    async function load() {
+      try {
+        const [hbData, learnData] = await Promise.all([
+          fetch('/api/vault/activity?limit=200').then(r=>r.json()).catch(()=>[]),
+          fetch('/api/learnings').then(r=>r.json()).catch(()=>[]),
+        ]);
+
+        const hbRows = (Array.isArray(hbData) ? hbData : []).map(hb => ({
+          type:        hb.isAlert ? 'alert' : 'heartbeat',
+          typeLabel:   hb.isAlert ? 'Alert' : 'Heartbeat',
+          title:       hb.type || hb.filename || 'heartbeat',
+          source:      hb.subAgent ? `${hb.machine}/${hb.subAgent}` : (hb.machine||'—'),
+          agent:       machineToAgent(hb.machine, hb.subAgent),
+          date:        hb.date,
+          dateSort:    hb.date||'',
+          isAlert:     !!hb.isAlert,
+          isHandled:   !!hb.isHandled,
+          tags:        '',
+        }));
+
+        const learnRows = (Array.isArray(learnData) ? learnData : []).map(l => ({
+          type:        'learning',
+          typeLabel:   'Learning',
+          title:       l.title||'(untitled)',
+          source:      l.agent||'—',
+          agent:       l.agent||'',
+          date:        l.created_at,
+          dateSort:    l.created_at||'',
+          isAlert:     false,
+          isHandled:   false,
+          tags:        (l.tags||[]).join(', '),
+        }));
+
+        allRows = [...hbRows, ...learnRows];
+        applyAndRender();
+      } catch(e) {
+        document.getElementById('activity-tbody').innerHTML =
+          `<tr><td colspan="5" style="color:#f87171;padding:1rem">⚠️ Failed: ${e.message}</td></tr>`;
+      }
+    }
+
+    load();
+    setInterval(load, 60000);
   </script>
 </body>
 </html>

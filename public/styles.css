@@ -1044,3 +1044,29 @@ a:hover {
   margin: 1.1rem 0 .75rem;
 }
 .oc-settings-section:first-child { margin-top: 0; }
+
+/* ── Global sidebar search ── */
+.oc-search-form {
+  padding: .6rem .75rem .4rem;
+  border-bottom: 1px solid #1f2937;
+  margin-bottom: .4rem;
+}
+.oc-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0d1117;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: .78rem;
+  padding: .4rem .7rem;
+  outline: none;
+  font-family: inherit;
+  transition: border-color .15s;
+}
+.oc-search-input:focus { border-color: #3b82f6; }
+.oc-search-input::placeholder { color: #4b5563; }
+@media (max-width: 820px) {
+  /* Hide text input on icon-rail — nav icon takes over */
+  .oc-search-form { display: none; }
+}
