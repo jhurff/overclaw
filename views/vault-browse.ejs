@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <style>
+    .oc-main-content  { overflow: hidden !important; height: calc(100vh - 60px); }
+    .oc-dashboard-area { padding: 0 !important; overflow: hidden !important; display: flex !important; flex-direction: column !important; }
+
+    /* ── Two-pane wrapper ── */
+    .vb-wrap { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+    /* ── Left: tree pane ── */
+    .vb-tree-pane {
+      width: 270px; min-width: 140px; max-width: 480px;
+      display: flex; flex-direction: column; overflow: hidden;
+      border-right: 1px solid #1f2937; flex-shrink: 0;
+      background: #060a11;
+    }
+    .vb-tree-bar {
+      display: flex; gap: .25rem; padding: .4rem .45rem;
+      border-bottom: 1px solid #1f2937; flex-shrink: 0;
+    }
+    .vb-tbar-btn {
+      flex: 1; background: transparent; border: 1px solid #1a2334;
+      color: #6b7280; font-size: .68rem; font-weight: 600;
+      padding: .22rem .3rem; border-radius: 5px; cursor: pointer;
+      font-family: inherit; white-space: nowrap; transition: all .1s;
+    }
+    .vb-tbar-btn:hover { border-color: #374151; color: #9ca3af; background: #0d1117; }
+    .vb-tbar-btn:disabled { opacity: .4; cursor: default; }
+    .vb-tree-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: .2rem 0; }
+
+    /* ── Tree nodes ── */
+    .vb-ul { list-style: none; padding: 0; margin: 0; }
+    .vb-children { padding-left: .8rem; border-left: 1px solid #131b28; margin-left: .55rem; }
+
+    .vb-row {
+      display: flex; align-items: center; gap: .22rem;
+      padding: .19rem .4rem; cursor: pointer;
+      font-size: .77rem; border-radius: 4px; margin: 1px 4px;
+      color: #8892a4; position: relative; user-select: none;
+    }
+    .vb-row:hover { background: #0d1117; color: #e2e8f0; }
+    .vb-row.vb-active { background: #1e3a5f !important; color: #93c5fd !important; }
+    .vb-row.vb-is-dir { color: #c8d6e8; font-weight: 500; }
+
+    .vb-tog  { flex-shrink: 0; font-size: .55rem; width: .7rem; color: #374151; }
+    .vb-icon { flex-shrink: 0; font-size: .73rem; width: .9rem; }
+    .vb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .vb-acts { display: none; gap: 0; flex-shrink: 0; }
+    .vb-row:hover .vb-acts { display: flex; }
+    .vb-act {
+      background: none; border: none; color: #374151;
+      font-size: .62rem; cursor: pointer; padding: .05rem .18rem;
+      line-height: 1; border-radius: 3px;
+    }
+    .vb-act:hover { color: #9ca3af; background: #1f2937; }
+    .vb-act.danger:hover { color: #f87171; }
+
+    /* ── Resizer handle ── */
+    .vb-resizer { width: 4px; cursor: col-resize; flex-shrink: 0; background: transparent; transition: background .15s; }
+    .vb-resizer:hover, .vb-resizer.dragging { background: #2563eb; }
+
+    /* ── Right: editor pane ── */
+    .vb-editor { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    .vb-editor-bar {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .32rem .7rem; border-bottom: 1px solid #1f2937;
+      background: #060a11; flex-shrink: 0; min-height: 34px;
+    }
+    .vb-crumb { flex: 1; font-size: .72rem; color: #4b5563; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vb-crumb-link { color: #60a5fa; cursor: pointer; }
+    .vb-crumb-link:hover { text-decoration: underline; }
+    .vb-crumb-sep { margin: 0 .2rem; color: #374151; }
+    .vb-crumb-cur { color: #9ca3af; }
+
+    .vb-editor-acts { display: flex; gap: .28rem; flex-shrink: 0; align-items: center; }
+    .vb-save-note { font-size: .67rem; color: #6b7280; white-space: nowrap; }
+    .vb-save-note.ok  { color: #86efac; }
+    .vb-save-note.err { color: #f87171; }
+
+    .vb-btn {
+      background: #1e3a5f; border: 1px solid #2563eb; color: #93c5fd;
+      font-size: .71rem; font-weight: 600; padding: .2rem .5rem;
+      border-radius: 5px; cursor: pointer; font-family: inherit; white-space: nowrap;
+    }
+    .vb-btn:hover { background: #1d4ed8; color: #fff; }
+    .vb-btn:disabled { opacity: .35; cursor: default; }
+    .vb-btn.sec { background: transparent; border-color: #1f2937; color: #6b7280; }
+    .vb-btn.sec:hover { border-color: #4b5563; color: #e2e8f0; }
+    .vb-btn.del { background: transparent; border-color: #7f1d1d; color: #f87171; }
+    .vb-btn.del:hover { background: #7f1d1d; color: #fff; }
+
+    /* ── Editor body ── */
+    .vb-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+
+    .vb-welcome {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: .5rem; color: #374151;
+    }
+    .vb-welcome-icon { font-size: 2.2rem; }
+    .vb-welcome-text { font-size: .82rem; }
+
+    /* Dir table */
+    .vb-dir-scroll { flex: 1; overflow-y: auto; }
+    .vb-dir-tbl { width: 100%; border-collapse: collapse; }
+    .vb-dir-tbl th {
+      font-size: .64rem; text-transform: uppercase; letter-spacing: .08em;
+      color: #374151; text-align: left; padding: .28rem .65rem;
+      border-bottom: 1px solid #111827; position: sticky; top: 0; background: #0a0e1a; z-index: 1;
+    }
+    .vb-dir-tbl td { padding: .3rem .65rem; font-size: .8rem; border-bottom: 1px solid #0a0e1a; }
+    .vb-dir-tbl tr:hover td { background: #0d1117; }
+    .vb-dir-tbl tr:last-child td { border-bottom: none; }
+    .vb-dir-entry { display: flex; align-items: center; gap: .4rem; cursor: pointer; color: #e2e8f0; }
+    .vb-dir-entry:hover { color: #93c5fd; }
+    .vb-dir-row-acts { display: flex; gap: .25rem; }
+
+    /* Markdown view */
+    .vb-md-view {
+      flex: 1; overflow-y: auto; padding: 1rem 1.4rem;
+      color: #e2e8f0; font-size: .88rem; line-height: 1.75;
+    }
+    .vb-md-view h1,.vb-md-view h2,.vb-md-view h3,.vb-md-view h4 { color: #f1f5f9; margin: 1.2em 0 .4em; font-family: var(--oc-font-display); }
+    .vb-md-view h1 { font-size: 1.4rem; border-bottom: 1px solid #1f2937; padding-bottom: .35rem; }
+    .vb-md-view h2 { font-size: 1.1rem; border-bottom: 1px solid #1f2937; padding-bottom: .2rem; }
+    .vb-md-view h3 { font-size: .95rem; }
+    .vb-md-view p  { margin: .6em 0; }
+    .vb-md-view a  { color: #60a5fa; text-decoration: none; }
+    .vb-md-view a:hover { text-decoration: underline; }
+    .vb-md-view code { background: #161b22; color: #93c5fd; padding: .1em .35em; border-radius: 4px; font-size: .82em; font-family: 'JetBrains Mono',Consolas,monospace; }
+    .vb-md-view pre  { background: #0d1117; border: 1px solid #1f2937; border-radius: 6px; padding: .75rem 1rem; overflow-x: auto; margin: .75em 0; }
+    .vb-md-view pre code { background: none; padding: 0; color: #e2e8f0; font-size: .8rem; }
+    .vb-md-view blockquote { border-left: 3px solid #374151; margin: .6em 0; padding: .2em .8em; color: #9ca3af; }
+    .vb-md-view ul,.vb-md-view ol { padding-left: 1.5em; margin: .5em 0; }
+    .vb-md-view li { margin: .25em 0; }
+    .vb-md-view table { border-collapse: collapse; width: 100%; margin: .75em 0; }
+    .vb-md-view th,.vb-md-view td { border: 1px solid #1f2937; padding: .35rem .65rem; font-size: .82rem; }
+    .vb-md-view th { background: #0a0e1a; color: #9ca3af; text-transform: uppercase; font-size: .68rem; letter-spacing: .06em; }
+    .vb-md-view hr { border: none; border-top: 1px solid #1f2937; margin: 1em 0; }
+    .vb-md-view img { max-width: 100%; border-radius: 6px; }
+    /* Textarea */
+    .vb-ta {
+      flex: 1; width: 100%; box-sizing: border-box; background: #0d1117;
+      border: none; outline: none; color: #e2e8f0; resize: none;
+      font-family: 'JetBrains Mono','Cascadia Code','Fira Code',Consolas,monospace;
+      font-size: .82rem; line-height: 1.65; padding: .85rem 1.1rem;
+      tab-size: 2;
+    }
+
+    /* Modal */
+    .vb-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      z-index: 9999; display: flex; align-items: center; justify-content: center;
+    }
+    .vb-dialog {
+      background: #111827; border: 1px solid #374151; border-radius: 10px;
+      padding: 1.2rem 1.4rem; min-width: 300px; max-width: 460px; width: 90%;
+    }
+    .vb-dialog h3 { margin: 0 0 .7rem; font-size: .92rem; color: #e2e8f0; }
+    .vb-dialog p  { margin: 0 0 .65rem; font-size: .78rem; color: #6b7280; word-break: break-all; }
+    .vb-dialog input {
+      width: 100%; box-sizing: border-box; background: #0d1117;
+      border: 1px solid #374151; border-radius: 6px;
+      color: #e2e8f0; font-size: .84rem; padding: .45rem .65rem;
+      outline: none; font-family: inherit; margin-bottom: .7rem;
+    }
+    .vb-dialog input:focus { border-color: #3b82f6; }
+    .vb-dialog-btns { display: flex; gap: .4rem; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <header class="oc-header">
+    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
+  </header>
+
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/vault/browse' }) %>
+    <main class="oc-dashboard-area">
+      <div class="vb-wrap">
+
+        <!-- LEFT: file tree -->
+        <div class="vb-tree-pane" id="vb-tree-pane">
+          <div class="vb-tree-bar">
+            <button class="vb-tbar-btn" id="btn-new-file"   onclick="newFile()">📄 New</button>
+            <button class="vb-tbar-btn" id="btn-new-folder" onclick="newFolder()">📁 Folder</button>
+            <button class="vb-tbar-btn" id="btn-sync"       onclick="syncVault()">🔄 Sync</button>
+          </div>
+          <div class="vb-tree-scroll" id="vb-tree-scroll">
+            <div style="padding:.6rem .8rem;color:#374151;font-size:.75rem">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Drag resizer -->
+        <div class="vb-resizer" id="vb-resizer"></div>
+
+        <!-- RIGHT: editor/content -->
+        <div class="vb-editor" id="vb-editor">
+          <div class="vb-editor-bar" id="vb-editor-bar">
+            <div class="vb-crumb" id="vb-crumb">
+              <span class="vb-crumb-link" onclick="openPath('','dir')">Vault Root</span>
+            </div>
+            <div class="vb-editor-acts" id="vb-editor-acts" style="display:none">
+              <span class="vb-save-note" id="vb-save-note"></span>
+              <button class="vb-btn sec" id="btn-rename" onclick="renameItem()">Rename</button>
+              <button class="vb-btn sec" id="btn-move"   onclick="moveItem()">Move</button>
+              <button class="vb-btn sec" id="btn-edit"   onclick="switchToEdit()" style="display:none">Edit</button>
+              <button class="vb-btn sec" id="btn-view"   onclick="switchToView()" style="display:none">View</button>
+              <button class="vb-btn"     id="btn-save"   onclick="saveFile()"     style="display:none" disabled>Save</button>
+              <button class="vb-btn del" id="btn-delete" onclick="deleteItem()">Delete</button>
+            </div>
+          </div>
+          <div class="vb-body" id="vb-body">
+            <div class="vb-welcome" id="vb-welcome">
+              <span class="vb-welcome-icon">🧠</span>
+              <span class="vb-welcome-text">Select a file or folder to get started</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal dialog -->
+  <div class="vb-overlay" id="vb-overlay" style="display:none" onclick="if(event.target===this)closeDialog()">
+    <div class="vb-dialog">
+      <h3 id="dlg-title"></h3>
+      <p  id="dlg-desc"  style="display:none"></p>
+      <input type="text" id="dlg-input" autocomplete="off" spellcheck="false">
+      <div class="vb-dialog-btns">
+        <button class="vb-btn sec" onclick="closeDialog()">Cancel</button>
+        <button class="vb-btn"     id="dlg-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── sidebar / theme ── */
+    (function(){
+      const sb=document.getElementById('oc-sidebar'), btn=document.getElementById('sidebar-toggle');
+      if(sb&&btn){ let c=localStorage.getItem('overclaw-sidebar-collapsed')==='true'; if(c)sb.classList.add('collapsed'); btn.addEventListener('click',()=>{c=!c;sb.classList.toggle('collapsed',c);localStorage.setItem('overclaw-sidebar-collapsed',c);}); }
+      const th=document.getElementById('theme-toggle');
+      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+      document.body.classList.add(tm+'-mode'); th.textContent=tm==='dark'?'🌙':'☀️';
+      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+    })();
+
+    /* ── State ── */
+    let currentPath = null;
+    let currentType = null;
+    let origContent = null;
+    let dirty       = false;
+
+    /* ── Helpers ── */
+    const parent  = p => { const i=p.lastIndexOf('/'); return i<0?'':p.slice(0,i); };
+    const base    = p => p.split('/').pop();
+    const extOf   = n => { const i=n.lastIndexOf('.'); return i<0?'':n.slice(i).toLowerCase(); };
+    const isMd    = n => extOf(n)==='.md';
+    const fileIcon = n => {
+      if (!isMd(n)) return '📎';
+      const l=n.toLowerCase();
+      if(l.includes('readme')||l.includes('index')||l.includes('home')) return '📋';
+      if(l.startsWith('_')) return '🗂️';
+      return '📄';
+    };
+    const cwdFor = () => (currentType==='dir' ? (currentPath||'') : parent(currentPath||''));
+
+    /* ── Tree ── */
+    const treeState = {}; // path → { loaded, expanded }
+
+    async function loadDir(dirPath) {
+      const r = await fetch(`/api/vault/ls?path=${encodeURIComponent(dirPath)}`);
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      return d.entries || [];
+    }
+
+    function makeRow(entry) {
+      const li = document.createElement('li');
+      li.className = 'vb-ul';
+      li.dataset.path = entry.path;
+      li.dataset.type = entry.type;
+
+      const row = document.createElement('div');
+      row.className = 'vb-row' + (entry.type==='dir' ? ' vb-is-dir' : '');
+      row.dataset.path = entry.path;
+      row.dataset.type = entry.type;
+      row.innerHTML = `
+        <span class="vb-tog">${entry.type==='dir' ? '▶' : ''}</span>
+        <span class="vb-icon">${entry.type==='dir' ? '📁' : fileIcon(entry.name)}</span>
+        <span class="vb-name" title="${entry.path}">${entry.name}</span>
+        <span class="vb-acts">
+          <button class="vb-act" title="Rename" onclick="event.stopPropagation();renameItem('${entry.path}','${entry.type}')">✏️</button>
+          ${entry.type==='file'?`<button class="vb-act" title="Move" onclick="event.stopPropagation();moveItem('${entry.path}','${entry.type}')">📦</button>`:''}
+          <button class="vb-act danger" title="Delete" onclick="event.stopPropagation();deleteItem('${entry.path}','${entry.type}')">🗑️</button>
+        </span>`;
+
+      const childUl = document.createElement('ul');
+      childUl.className = 'vb-ul vb-children';
+      childUl.style.display = 'none';
+
+      if (entry.type==='dir') {
+        treeState[entry.path] = { loaded:false, expanded:false };
+        row.addEventListener('click', async () => {
+          await toggleDir(entry.path, row, childUl);
+          openPath(entry.path, 'dir');
+        });
+      } else {
+        row.addEventListener('click', () => openPath(entry.path, 'file'));
+      }
+
+      li.appendChild(row);
+      li.appendChild(childUl);
+      return li;
+    }
+
+    async function toggleDir(dirPath, rowEl, childUl) {
+      const st = treeState[dirPath] || { loaded:false, expanded:false };
+      if (!st.loaded) {
+        rowEl.querySelector('.vb-tog').textContent = '…';
+        try {
+          const entries = await loadDir(dirPath);
+          childUl.innerHTML = '';
+          const ul = document.createElement('ul');
+          ul.className = 'vb-ul';
+          ul.style.cssText = 'list-style:none;padding:0;margin:0';
+          entries.forEach(e => ul.appendChild(makeRow(e)));
+          childUl.appendChild(ul);
+          st.loaded = true;
+        } catch(e) { rowEl.querySelector('.vb-tog').textContent = '!'; return; }
+      }
+      st.expanded = !st.expanded;
+      treeState[dirPath] = st;
+      childUl.style.display = st.expanded ? '' : 'none';
+      rowEl.querySelector('.vb-tog').textContent = st.expanded ? '▼' : '▶';
+      const icon = rowEl.querySelector('.vb-icon');
+      if (icon) icon.textContent = st.expanded ? '📂' : '📁';
+    }
+
+    async function refreshDir(dirPath) {
+      if (!dirPath) { await initTree(); return; }
+      const st = treeState[dirPath];
+      if (!st) return;
+      const row = document.querySelector(`.vb-row[data-path="${CSS.escape(dirPath)}"]`);
+      if (!row) return;
+      const li = row.closest('[data-path]');
+      const childUl = li ? li.querySelector(':scope > .vb-children') : null;
+      if (!childUl) return;
+      if (st.expanded) {
+        st.loaded = false;
+        childUl.innerHTML = '';
+        await toggleDir(dirPath, row, childUl); // collapse then re-expand
+      }
+    }
+
+    function setActive(p) {
+      document.querySelectorAll('.vb-row.vb-active').forEach(r=>r.classList.remove('vb-active'));
+      if (p===null) return;
+      const r = document.querySelector(`.vb-row[data-path="${CSS.escape(p)}"]`);
+      if (r) r.classList.add('vb-active');
+    }
+
+    async function initTree() {
+      const scroll = document.getElementById('vb-tree-scroll');
+      scroll.innerHTML = '';
+      try {
+        const entries = await loadDir('');
+        const ul = document.createElement('ul');
+        ul.className = 'vb-ul';
+        ul.style.cssText = 'list-style:none;padding:0;margin:0';
+        entries.forEach(e => ul.appendChild(makeRow(e)));
+        scroll.appendChild(ul);
+      } catch(e) {
+        scroll.innerHTML = `<div style="padding:.6rem .8rem;color:#f87171;font-size:.75rem">⚠️ ${e.message}</div>`;
+      }
+    }
+
+    /* ── Open path (main entry point) ── */
+    async function openPath(p, type, skipDirtyCheck) {
+      if (!skipDirtyCheck && dirty && currentType==='file' && currentPath!==p) {
+        if (!confirm('You have unsaved changes. Discard them?')) return;
+        dirty = false;
+      }
+      currentPath = p;
+      currentType = type;
+      setActive(p===''? null : p);
+      renderCrumb(p);
+
+      const acts = document.getElementById('vb-editor-acts');
+      acts.style.display = (p!==null && p!==undefined) ? 'flex' : 'none';
+
+      const saveBtn = document.getElementById('btn-save');
+      saveBtn.style.display = (type==='file' && isMd(base(p||''))) ? '' : 'none';
+      saveBtn.disabled = true;
+      setSaveNote('');
+
+      if (type==='dir') await showDir(p);
+      else              await showFile(p);
+    }
+
+    /* ── Breadcrumb ── */
+    function renderCrumb(p) {
+      const el = document.getElementById('vb-crumb');
+      if (!p) { el.innerHTML = '<span class="vb-crumb-cur">Vault Root</span>'; return; }
+      const parts = p.split('/');
+      let built = '';
+      let html  = `<span class="vb-crumb-link" onclick="openPath('','dir')">Vault</span>`;
+      parts.forEach((seg, i) => {
+        built = built ? built+'/'+seg : seg;
+        const snap = built;
+        const isDir = (i < parts.length-1) || currentType==='dir';
+        html += `<span class="vb-crumb-sep">/</span>`;
+        if (i === parts.length-1) {
+          html += `<span class="vb-crumb-cur">${seg}</span>`;
+        } else {
+          html += `<span class="vb-crumb-link" onclick="openPath('${snap}','dir')">${seg}</span>`;
+        }
+      });
+      el.innerHTML = html;
+    }
+
+    /* ── Show directory ── */
+    async function showDir(dirPath) {
+      const body = document.getElementById('vb-body');
+      body.innerHTML = '<div style="padding:.6rem .8rem;color:#374151;font-size:.75rem">Loading…</div>';
+      try {
+        const entries = await loadDir(dirPath);
+        if (!entries.length) {
+          body.innerHTML = `<div class="vb-welcome"><span class="vb-welcome-icon">📂</span><span class="vb-welcome-text">Empty folder</span></div>`;
+          return;
+        }
+        const rows = entries.map(e => `
+          <tr>
+            <td><div class="vb-dir-entry" onclick="openPath('${e.path}','${e.type}')">
+              <span>${e.type==='dir'?'📁':fileIcon(e.name)}</span><span>${e.name}</span>
+            </div></td>
+            <td style="color:#4b5563;font-size:.7rem">${e.type==='dir'?'Folder':(extOf(e.name).replace('.','').toUpperCase()||'File')}</td>
+            <td><div class="vb-dir-row-acts">
+              <button class="vb-btn sec" onclick="renameItem('${e.path}','${e.type}')">Rename</button>
+              ${e.type==='file'?`<button class="vb-btn sec" onclick="moveItem('${e.path}','${e.type}')">Move</button>`:''}
+              <button class="vb-btn del" onclick="deleteItem('${e.path}','${e.type}')">Delete</button>
+            </div></td>
+          </tr>`).join('');
+        body.innerHTML = `
+          <div class="vb-dir-scroll">
+            <table class="vb-dir-tbl">
+              <thead><tr><th>Name</th><th>Type</th><th>Actions</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`;
+      } catch(e) {
+        body.innerHTML = `<div style="padding:.8rem;color:#f87171;font-size:.82rem">⚠️ ${e.message}</div>`;
+      }
+    }
+
+    /* ── Show file (view mode by default) ── */
+    let fileMode = 'view'; // 'view' | 'edit'
+    let cachedContent = null;
+
+    async function showFile(filePath) {
+      const body = document.getElementById('vb-body');
+      body.innerHTML = '<div style="padding:.6rem .8rem;color:#374151;font-size:.75rem">Loading…</div>';
+      setSaveNote('');
+      if (!isMd(base(filePath))) {
+        setFileButtons(false);
+        body.innerHTML = `<div class="vb-welcome">
+          <span class="vb-welcome-icon">📎</span>
+          <span class="vb-welcome-text" style="color:#6b7280">${base(filePath)}</span>
+          <span style="font-size:.75rem;color:#4b5563">Non-markdown — not editable here</span>
+          <a href="/vault/doc?path=${encodeURIComponent(filePath)}" class="vb-btn" style="margin-top:.3rem">View Doc</a>
+        </div>`;
+        return;
+      }
+      try {
+        const r = await fetch(`/api/vault/file?path=${encodeURIComponent(filePath)}`);
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        origContent   = d.content;
+        cachedContent = d.content;
+        dirty         = false;
+        fileMode      = 'view';
+        setFileButtons(true);
+        renderViewMode(d.content);
+      } catch(e) {
+        body.innerHTML = `<div style="padding:.8rem;color:#f87171;font-size:.82rem">⚠️ ${e.message}</div>`;
+      }
+    }
+
+    function renderViewMode(content) {
+      const body = document.getElementById('vb-body');
+      const html  = typeof marked !== 'undefined' ? marked.parse(content) : `<pre style="padding:1rem;font-size:.8rem;white-space:pre-wrap">${escHtml(content)}</pre>`;
+      body.innerHTML = `<div class="vb-md-view">${html}</div>`;
+      // Make internal vault links navigable
+      body.querySelectorAll('.vb-md-view a[href]').forEach(a => {
+        const href = a.getAttribute('href');
+        if (!href.startsWith('http') && !href.startsWith('#')) {
+          a.addEventListener('click', e => { e.preventDefault(); });
+        }
+      });
+    }
+
+    function switchToEdit() {
+      if (!currentPath || currentType !== 'file') return;
+      fileMode = 'edit';
+      setFileButtons(true);
+      const body = document.getElementById('vb-body');
+      body.innerHTML = `<textarea class="vb-ta" id="vb-ta" spellcheck="false">${escHtml(cachedContent||origContent||'')}</textarea>`;
+      const ta = document.getElementById('vb-ta');
+      ta.addEventListener('input', () => {
+        dirty = ta.value !== origContent;
+        document.getElementById('btn-save').disabled = !dirty;
+        setSaveNote(dirty ? 'unsaved' : '');
+      });
+      ta.addEventListener('keydown', e => {
+        if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); saveFile(); }
+        if (e.key==='Tab') {
+          e.preventDefault();
+          const s=ta.selectionStart, end=ta.selectionEnd;
+          ta.value = ta.value.slice(0,s)+'  '+ta.value.slice(end);
+          ta.selectionStart = ta.selectionEnd = s+2;
+          dirty = ta.value !== origContent;
+          document.getElementById('btn-save').disabled = !dirty;
+        }
+      });
+      ta.focus();
+    }
+
+    function switchToView() {
+      if (!currentPath || currentType !== 'file') return;
+      if (dirty && !confirm('Discard unsaved changes?')) return;
+      const ta = document.getElementById('vb-ta');
+      const content = ta ? ta.value : (cachedContent || origContent || '');
+      cachedContent = content;
+      dirty   = false;
+      fileMode = 'view';
+      setFileButtons(true);
+      setSaveNote('');
+      renderViewMode(content);
+    }
+
+    function setFileButtons(isMdFile) {
+      const show = v => el => el && (el.style.display = v);
+      ['btn-edit','btn-view','btn-save'].forEach(id => show('none')(document.getElementById(id)));
+      if (!isMdFile) return;
+      if (fileMode === 'view') {
+        show('')(document.getElementById('btn-edit'));
+      } else {
+        show('')(document.getElementById('btn-view'));
+        show('')(document.getElementById('btn-save'));
+        document.getElementById('btn-save').disabled = !dirty;
+      }
+    }
+
+    function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    /* ── Save ── */
+    async function saveFile() {
+      const ta = document.getElementById('vb-ta');
+      if (!ta || !currentPath) return;
+      const btn = document.getElementById('btn-save');
+      btn.disabled = true;
+      setSaveNote('Saving…');
+      try {
+        const r = await fetch('/api/vault/file', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ path: currentPath, content: ta.value }),
+        });
+        const d = await r.json();
+        if (!d.ok) throw new Error(d.error || d.warning || 'failed');
+        origContent   = ta.value;
+        cachedContent = ta.value;
+        dirty = false;
+        setFileButtons(true);
+        setSaveNote('✓ Saved'+(d.synced?' & synced':' (local)'), 'ok');
+        setTimeout(() => setSaveNote(''), 3000);
+      } catch(e) {
+        setSaveNote('✗ '+e.message, 'err');
+        btn.disabled = false;
+      }
+    }
+
+    function setSaveNote(msg, cls='') {
+      const el = document.getElementById('vb-save-note');
+      el.textContent = msg;
+      el.className = 'vb-save-note'+(cls?' '+cls:'');
+    }
+
+    /* ── Actions (tree buttons use overloaded args OR current state) ── */
+    function renameItem(p, t) {
+      p = p ?? currentPath; t = t ?? currentType;
+      const old = base(p);
+      showDialog('Rename', p, old, old, async (newName) => {
+        if (!newName || newName===old) return;
+        const newPath = parent(p) ? parent(p)+'/'+newName : newName;
+        const r = await fetch('/api/vault/move', {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ from:p, to:newPath }),
+        });
+        const d = await r.json();
+        if (!d.ok) return alert('Failed: '+(d.error||'unknown'));
+        await refreshDir(parent(p));
+        if (currentPath===p) await openPath(newPath, t, true);
+      });
+    }
+
+    function moveItem(p, t) {
+      p = p ?? currentPath; t = t ?? currentType;
+      showDialog('Move To', 'New path relative to vault root:', p, p, async (newPath) => {
+        if (!newPath || newPath===p) return;
+        const r = await fetch('/api/vault/move', {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ from:p, to:newPath }),
+        });
+        const d = await r.json();
+        if (!d.ok) return alert('Failed: '+(d.error||'unknown'));
+        await refreshDir(parent(p));
+        await refreshDir(parent(newPath));
+        if (currentPath===p) await openPath(newPath, t, true);
+      });
+    }
+
+    async function deleteItem(p, t) {
+      p = p ?? currentPath; t = t ?? currentType;
+      const label = t==='dir'
+        ? `folder "${base(p)}" and ALL its contents`
+        : `"${base(p)}"`;
+      if (!confirm(`Delete ${label}?\n\nThis will be committed to the vault. This cannot be undone.`)) return;
+      const r = await fetch(`/api/vault/file?path=${encodeURIComponent(p)}`, { method:'DELETE' });
+      const d = await r.json();
+      if (!d.ok) return alert('Failed: '+(d.error||'unknown'));
+      const par = parent(p);
+      await refreshDir(par);
+      if (currentPath===p || (t==='dir' && currentPath && currentPath.startsWith(p+'/'))) {
+        currentPath=null; currentType=null;
+        document.getElementById('vb-editor-acts').style.display='none';
+        document.getElementById('vb-crumb').innerHTML='<span class="vb-crumb-cur">Vault Root</span>';
+        document.getElementById('vb-body').innerHTML=`<div class="vb-welcome"><span class="vb-welcome-icon">🗑️</span><span class="vb-welcome-text">Deleted</span></div>`;
+      } else if (currentType==='dir') {
+        await showDir(currentPath); // refresh listing
+      }
+    }
+
+    function newFile() {
+      const cwd = cwdFor();
+      showDialog('New File', `In: ${cwd||'Vault Root'}`, '', 'note.md', async (name) => {
+        if (!name) return;
+        if (!name.endsWith('.md')) name += '.md';
+        const newPath = cwd ? cwd+'/'+name : name;
+        const r = await fetch('/api/vault/file', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ path:newPath, content:'' }),
+        });
+        const d = await r.json();
+        if (!d.ok) return alert('Failed: '+(d.error||'unknown'));
+        await refreshDir(cwd);
+        await openPath(newPath, 'file', true);
+      });
+    }
+
+    function newFolder() {
+      const cwd = cwdFor();
+      showDialog('New Folder', `In: ${cwd||'Vault Root'}`, '', 'New Folder', async (name) => {
+        if (!name) return;
+        const newPath = cwd ? cwd+'/'+name : name;
+        const r = await fetch('/api/vault/mkdir', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ path:newPath }),
+        });
+        const d = await r.json();
+        if (!d.ok) return alert('Failed: '+(d.error||'unknown'));
+        await refreshDir(cwd);
+        await openPath(newPath, 'dir', true);
+      });
+    }
+
+    async function syncVault() {
+      const btn = document.getElementById('btn-sync');
+      btn.textContent = '⏳'; btn.disabled = true;
+      try {
+        const r = await fetch('/api/vault/sync', { method:'POST' });
+        const d = await r.json();
+        btn.textContent = d.ok ? '✓' : '✗';
+      } catch { btn.textContent = '✗'; }
+      setTimeout(() => { btn.textContent = '🔄 Sync'; btn.disabled = false; }, 2000);
+    }
+
+    /* ── Dialog ── */
+    function showDialog(title, desc, value, placeholder, cb) {
+      document.getElementById('dlg-title').textContent = title;
+      const descEl = document.getElementById('dlg-desc');
+      descEl.textContent = desc || '';
+      descEl.style.display = desc ? '' : 'none';
+      const inp = document.getElementById('dlg-input');
+      inp.value = value||''; inp.placeholder = placeholder||'';
+      document.getElementById('vb-overlay').style.display = 'flex';
+      setTimeout(() => { inp.focus(); inp.select(); }, 50);
+      const ok = document.getElementById('dlg-ok');
+      ok.onclick = () => { closeDialog(); cb(inp.value.trim()); };
+      inp.onkeydown = e => { if(e.key==='Enter'){ closeDialog(); cb(inp.value.trim()); } if(e.key==='Escape') closeDialog(); };
+    }
+    function closeDialog() { document.getElementById('vb-overlay').style.display = 'none'; }
+
+    /* ── Pane resizer ── */
+    (function(){
+      const resizer = document.getElementById('vb-resizer');
+      const pane    = document.getElementById('vb-tree-pane');
+      let sx, sw;
+      resizer.addEventListener('mousedown', e => {
+        sx=e.clientX; sw=pane.offsetWidth;
+        resizer.classList.add('dragging');
+        const onMove = e => pane.style.width = Math.max(140,Math.min(480,sw+(e.clientX-sx)))+'px';
+        const onUp   = () => { resizer.classList.remove('dragging'); document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+      });
+    })();
+
+    /* ── Warn on unload ── */
+    window.addEventListener('beforeunload', e => { if(dirty){ e.preventDefault(); e.returnValue=''; } });
+
+    /* ── Boot ── */
+    initTree();
+  </script>
+</body>
+</html>

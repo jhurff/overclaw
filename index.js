@@ -433,6 +433,11 @@ app.get('/vault/graph', (req, res) => {
   res.render('vault-graph', { title: 'Vault Graph', currentPath: '/vault/graph' });
 });
 
+// Vault file browser page
+app.get('/vault/browse', (req, res) => {
+  res.render('vault-browse', { title: 'Browse Brain — OverClaw', currentPath: '/vault/browse' });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Needs-Attention Resolver
 // ─────────────────────────────────────────────────────────────────────────────
@@ -902,6 +907,84 @@ app.post('/api/vault/file', async (req, res) => {
         warning: 'Saved locally but vault-sync failed', details: synced.stderr });
     res.json({ ok: true, synced: true, path: filePath, savedAt: new Date().toISOString() });
   } catch (err) { res.status(500).json({ error: 'Write failed', details: err.message }); }
+});
+
+// GET /api/vault/ls — directory listing, all file types (for browse page)
+app.get('/api/vault/ls', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const relPath = (req.query.path || '').trim();
+  const SKIP = new Set(['.git', '.obsidian', 'node_modules', '.trash', '_Archive_old', '.DS_Store']);
+  try {
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const abs = relPath ? path.resolve(vaultAbs, relPath) : vaultAbs;
+    if (abs !== vaultAbs && !abs.startsWith(vaultAbs + path.sep))
+      return res.status(403).json({ error: 'Path traversal denied' });
+    let stat; try { stat = await fs.stat(abs); } catch { return res.status(404).json({ error: 'Not found' }); }
+    if (!stat.isDirectory()) return res.status(400).json({ error: 'Not a directory' });
+    const raw = await fs.readdir(abs, { withFileTypes: true });
+    const entries = [];
+    for (const e of raw) {
+      if (e.name.startsWith('.') || SKIP.has(e.name)) continue;
+      const rel = relPath ? relPath + '/' + e.name : e.name;
+      if (e.isDirectory()) entries.push({ name: e.name, type: 'dir',  path: rel });
+      else if (e.isFile())  entries.push({ name: e.name, type: 'file', path: rel, ext: path.extname(e.name).toLowerCase() });
+    }
+    entries.sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    res.json({ path: relPath, name: relPath ? path.basename(relPath) : 'Vault Root', entries });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /api/vault/move — rename or move a file/directory
+app.put('/api/vault/move', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { from: fromRel, to: toRel } = req.body || {};
+  if (!fromRel || !toRel) return res.status(400).json({ error: '`from` and `to` required' });
+  try {
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const absFrom  = path.resolve(vaultAbs, fromRel);
+    const absTo    = path.resolve(vaultAbs, toRel);
+    if (!absFrom.startsWith(vaultAbs + path.sep)) return res.status(403).json({ error: 'Path traversal denied' });
+    if (!absTo.startsWith(vaultAbs + path.sep))   return res.status(403).json({ error: 'Path traversal denied' });
+    try { await fs.access(absFrom); } catch { return res.status(404).json({ error: 'Source not found' }); }
+    await fs.mkdir(path.dirname(absTo), { recursive: true });
+    await fs.rename(absFrom, absTo);
+    const synced = await vaultSync(`vault: move ${path.basename(fromRel)} → ${path.basename(toRel)}`);
+    res.json({ ok: true, from: fromRel, to: toRel, synced: synced.ok });
+  } catch (err) { res.status(500).json({ error: 'Move failed', details: err.message }); }
+});
+
+// DELETE /api/vault/file — delete a file or directory
+app.delete('/api/vault/file', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const relPath = (req.query.path || '').trim();
+  if (!relPath) return res.status(400).json({ error: 'path required' });
+  try {
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const abs      = path.resolve(vaultAbs, relPath);
+    if (!abs.startsWith(vaultAbs + path.sep)) return res.status(403).json({ error: 'Path traversal denied' });
+    let stat; try { stat = await fs.stat(abs); } catch { return res.status(404).json({ error: 'Not found' }); }
+    if (stat.isDirectory()) await fs.rm(abs, { recursive: true, force: true });
+    else await fs.unlink(abs);
+    const synced = await vaultSync(`vault: delete ${path.basename(relPath)}`);
+    res.json({ ok: true, path: relPath, synced: synced.ok });
+  } catch (err) { res.status(500).json({ error: 'Delete failed', details: err.message }); }
+});
+
+// POST /api/vault/mkdir — create a directory
+app.post('/api/vault/mkdir', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const { path: dirRel } = req.body || {};
+  if (!dirRel) return res.status(400).json({ error: 'path required' });
+  try {
+    const vaultAbs = path.resolve(vaultReader.vaultPath);
+    const abs      = path.resolve(vaultAbs, dirRel);
+    if (!abs.startsWith(vaultAbs + path.sep)) return res.status(403).json({ error: 'Path traversal denied' });
+    await fs.mkdir(abs, { recursive: true });
+    res.json({ ok: true, path: dirRel });
+  } catch (err) { res.status(500).json({ error: 'mkdir failed', details: err.message }); }
 });
 
 // API: resolve wiki link name to vault path
@@ -2041,6 +2124,87 @@ app.post('/api/security/scan', async (req, res) => {
   } catch (err) {
     console.error('Security scan failed:', err.message);
     res.status(500).json({ error: 'Scan failed', details: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Vault path → OverClaw feature route mapper
+// ---------------------------------------------------------------------------
+function mapVaultPathToOverclaw(relPath) {
+  const p = relPath.replace(/\\/g, '/');
+  if (/Task Board/i.test(p))                             return '/task-board';
+  if (/03 - Agents\/Agent Registry/i.test(p))            return '/agents';
+  if (/03 - Agents\/Coordination/i.test(p))              return '/task-board';
+  if (/03 - Agents\/Notifications/i.test(p))             return '/agents';
+  if (/03 - Agents\//i.test(p))                          return '/agents';
+  if (/08 - QA-and-Monitoring\/Heartbeats/i.test(p))     return '/activity';
+  if (/08 - QA-and-Monitoring/i.test(p))                 return '/activity';
+  if (/06 - Loops/i.test(p))                             return '/scheduled-tasks';
+  if (/02 - Projects/i.test(p))                          return '/task-board';
+  return `/vault/doc?path=${encodeURIComponent(p)}`;
+}
+
+// Global brain search page
+app.get('/search', (req, res) => {
+  res.render('search', {
+    title: 'Brain Search — OverClaw',
+    currentPath: '/search',
+    query: req.query.q || '',
+  });
+});
+
+// Brain search API — plain-text search across all vault .md files
+app.get('/api/vault/search', async (req, res) => {
+  const query = (req.query.q || '').trim();
+  if (!query || query.length < 2) {
+    return res.json({ results: [], query, total: 0 });
+  }
+
+  const SKIP_DIRS = new Set(['.git', '.obsidian', 'node_modules', '.trash', '_Archive', '.DS_Store']);
+  const results = [];
+  const lowerQuery = query.toLowerCase();
+
+  async function walkDir(dir) {
+    let entries;
+    try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue;
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walkDir(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith('.md')) {
+        try {
+          const content = await fs.readFile(fullPath, 'utf-8');
+          const lines = content.split('\n');
+          const matchingLines = [];
+          lines.forEach((line, idx) => {
+            if (line.toLowerCase().includes(lowerQuery)) {
+              matchingLines.push({ lineNo: idx + 1, text: line.trim().slice(0, 220) });
+            }
+          });
+          if (matchingLines.length > 0) {
+            const relPath = path.relative(VAULT_PATH, fullPath).replace(/\\/g, '/');
+            results.push({
+              path: relPath,
+              title: path.basename(fullPath, '.md'),
+              folder: path.dirname(relPath),
+              snippets: matchingLines.slice(0, 4),
+              totalMatches: matchingLines.length,
+              overclawLink: mapVaultPathToOverclaw(relPath),
+              docLink: `/vault/doc?path=${encodeURIComponent(relPath)}`,
+            });
+          }
+        } catch { /* skip unreadable */ }
+      }
+    }
+  }
+
+  try {
+    await walkDir(VAULT_PATH);
+    results.sort((a, b) => b.totalMatches - a.totalMatches);
+    res.json({ results: results.slice(0, 60), query, total: results.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -1,8 +1,13 @@
 <aside class="oc-sidebar" id="oc-sidebar">
+    <form class="oc-search-form" action="/search" method="get" autocomplete="off">
+      <input class="oc-search-input" type="text" name="q" placeholder="🔍 Search brain…" />
+    </form>
     <nav>
         <div class="nav-group-title">Swarm</div>
         <ul>
             <li><a href="/swarm"       class="<%= typeof currentPath !== 'undefined' && currentPath === '/swarm'       ? 'active' : '' %>"><span class="icon">🌐</span>Swarm Overview</a></li>
+            <li><a href="/search"      class="<%= typeof currentPath !== 'undefined' && currentPath === '/search'      ? 'active' : '' %>"><span class="icon">🔍</span>Search Brain</a></li>
+            <li><a href="/vault/browse" class="<%= typeof currentPath !== 'undefined' && currentPath === '/vault/browse' ? 'active' : '' %>"><span class="icon">📁</span>Browse Brain</a></li>
             <li><a href="/task-board"  class="<%= typeof currentPath !== 'undefined' && currentPath === '/task-board'  ? 'active' : '' %>"><span class="icon">📋</span>Task Board</a></li>
             <li><a href="/activity"    class="<%= typeof currentPath !== 'undefined' && currentPath === '/activity'    ? 'active' : '' %>"><span class="icon">📡</span>Activity Feed</a></li>
             <li><a href="/vault/graph" class="<%= typeof currentPath !== 'undefined' && currentPath === '/vault/graph' ? 'active' : '' %>"><span class="icon">🕸️</span>Vault Graph</a></li>
