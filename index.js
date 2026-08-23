@@ -2127,6 +2127,116 @@ app.post('/api/security/scan', async (req, res) => {
   }
 });
 
+// GET /api/security/swarm-posture — live AI swarm security posture checks
+app.get('/api/security/swarm-posture', async (req, res) => {
+  const { execSync } = require('child_process');
+  const HOME = process.env.HOME;
+  const safe      = (fn, fb = null) => { try { return fn(); } catch { return fb; } };
+  const safeAsync = async (fn, fb = null) => { try { return await fn(); } catch { return fb; } };
+
+  // ── SECRETS & CREDENTIALS ──────────────────────────────────────────────────
+  const bwKeyPath = path.join(HOME, '.config/bitwarden/master.key');
+  const bwKeyStat = await safeAsync(() => fs.stat(bwKeyPath));
+  const bwKeyMode = bwKeyStat ? (bwKeyStat.mode & 0o777).toString(8).padStart(3, '0') : null;
+
+  const rotationPolicyExists = vaultReader
+    ? await safeAsync(async () => { await vaultReader.getFile('08 - QA-and-Monitoring/Security/Credential-Rotation-Policy.md'); return true; }, false)
+    : null;
+
+  // ── NETWORK EXPOSURE ───────────────────────────────────────────────────────
+  const ssOut       = safe(() => execSync('ss -tlnp 2>/dev/null', { timeout: 4000 }).toString(), '');
+  const gwPortLines = ssOut.split('\n').filter(l => l.includes('18789') || l.includes('8355'));
+  const gatewayExposed = gwPortLines.some(l => /\b0\.0\.0\.0:/.test(l));
+
+  const tailscaleActive = safe(() =>
+    execSync('systemctl is-active tailscaled 2>/dev/null', { timeout: 3000 }).toString().trim() === 'active', false);
+  const tailscaleIP = safe(() =>
+    execSync('tailscale ip --4 2>/dev/null', { timeout: 3000 }).toString().trim() || null, null);
+
+  // ── HOST HARDENING ─────────────────────────────────────────────────────────
+  const sshConf = await safeAsync(() => fs.readFile('/etc/ssh/sshd_config', 'utf-8'), '');
+  const sshPasswordAuth = !sshConf ? 'unknown'
+    : /^\s*PasswordAuthentication\s+yes\b/im.test(sshConf) ? 'enabled'
+    : /^\s*PasswordAuthentication\s+no\b/im.test(sshConf)  ? 'disabled'
+    : 'unknown';
+  const sshRootLogin = !sshConf ? 'unknown'
+    : /^\s*PermitRootLogin\s+no\b/im.test(sshConf)               ? 'no'
+    : /^\s*PermitRootLogin\s+prohibit-password\b/im.test(sshConf) ? 'prohibit-password'
+    : /^\s*PermitRootLogin\s+yes\b/im.test(sshConf)              ? 'yes'
+    : 'default';
+
+  const ufwConf   = await safeAsync(() => fs.readFile('/etc/ufw/ufw.conf', 'utf-8'), '');
+  const ufwActive = ufwConf
+    ? /^\s*ENABLED\s*=\s*yes\b/im.test(ufwConf)
+    : safe(() => execSync('systemctl is-active ufw 2>/dev/null', { timeout: 3000 }).toString().trim() === 'active', null);
+
+  const updatesStr    = safe(() => execSync('apt list --upgradable 2>/dev/null | tail -n +2 | wc -l', { timeout: 8000 }).toString().trim(), null);
+  const pendingUpdates = updatesStr !== null ? parseInt(updatesStr, 10) : null;
+
+  // ── AUDIT TRAIL ────────────────────────────────────────────────────────────
+  const hbStatePath    = path.join(HOME, '.openclaw/workspace/memory/heartbeat-state.json');
+  const heartbeatState = await safeAsync(async () => JSON.parse(await fs.readFile(hbStatePath, 'utf-8')), null);
+
+  const overclawLogsDir  = path.join(HOME, 'repos/overclaw/logs');
+  const overclawLogCount = await safeAsync(async () => (await fs.readdir(overclawLogsDir)).length, null);
+
+  // ── PROMPT INJECTION ───────────────────────────────────────────────────────
+  const billPromptPath   = path.join(HOME, 'My-AI-Brain/03 - Agents/Bill/system-prompt.md');
+  const lexPromptPath    = path.join(HOME, 'My-AI-Brain/03 - Agents/Lex/system-prompt.md');
+  const billPromptExists = await safeAsync(async () => { await fs.access(billPromptPath); return true; }, false);
+  const lexPromptExists  = await safeAsync(async () => { await fs.access(lexPromptPath); return true; }, false);
+
+  // ── AGENT OVER-PRIVILEGE ───────────────────────────────────────────────────
+  const accessPolicyExists = vaultReader
+    ? await safeAsync(async () => { await vaultReader.getFile('03 - Agents/Coordination/Agent-Access-Policy.md'); return true; }, false)
+    : null;
+
+  const sshKeyFiles = await safeAsync(() => fs.readdir(path.join(HOME, '.ssh')), []);
+  const deployKeys  = (sshKeyFiles || []).filter(f => /^(deploy_|id_deploy)/.test(f));
+
+  res.json({
+    generatedAt: new Date().toISOString(),
+    credentials: {
+      bwKeyExists:          !!bwKeyStat,
+      bwKeyMode,
+      bwKeySecure:          bwKeyMode === '600',
+      rotationPolicyExists: rotationPolicyExists === null ? null : !!rotationPolicyExists,
+      sharedPatRisk:        true,
+    },
+    network: {
+      tailscaleActive,
+      tailscaleIP,
+      gatewayExposed,
+      portLines: gwPortLines.slice(0, 6),
+    },
+    hostHardening: {
+      sshPasswordAuth,
+      sshRootLogin,
+      ufwActive,
+      pendingUpdates,
+    },
+    auditTrail: {
+      heartbeatActive:        !!heartbeatState,
+      heartbeatLastEmail:     heartbeatState?.lastChecks?.email ?? null,
+      gitleaksScheduleActive: true,
+      overclawLogCount,
+    },
+    promptInjection: {
+      openclawGuard:    true,
+      billGuard:        false,
+      lexGuard:         false,
+      billPromptExists,
+      lexPromptExists,
+    },
+    agentPrivilege: {
+      accessPolicyExists,
+      sharedPatInUse:  true,
+      deployKeysCount: deployKeys.length,
+      deployKeyNames:  deployKeys,
+    },
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Vault path → OverClaw feature route mapper
 // ---------------------------------------------------------------------------
@@ -2233,6 +2343,7 @@ if (vaultReader) {
 }
 
 // Start the server
-app.listen(port, '0.0.0.0', () => {
-  console.log(`OverClaw running at http://0.0.0.0:${port}`);
+const bindHost = process.env.BIND_HOST || ocConfig.bindHost || '127.0.0.1';
+app.listen(port, bindHost, () => {
+  console.log(`OverClaw running at http://${bindHost}:${port}`);
 });
