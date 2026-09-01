@@ -95,6 +95,25 @@
     .policy-toggle { font-size: 0.7rem; color: #6b7280; background: none; border: 1px solid #1f2937; border-radius: 4px; padding: 2px 8px; cursor: pointer; margin-left: auto; }
     .policy-toggle:hover { color: #e2e8f0; border-color: #374151; }
     .policy-box    { background: #0a0e17; border: 1px solid #1f2937; border-radius: 8px; padding: 1rem 1.1rem; font-size: 0.75rem; color: #9ca3af; line-height: 1.65; white-space: pre-wrap; font-family: monospace; max-height: 420px; overflow-y: auto; margin-top: 0.5rem; }
+
+    /* Swarm security posture */
+    .posture-card   { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 0.75rem 0.95rem; margin-bottom: 0.5rem; }
+    .posture-header { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.5rem; }
+    .posture-icon   { font-size: 1rem; flex-shrink: 0; }
+    .posture-name   { font-size: 0.84rem; font-weight: 700; color: #e2e8f0; flex: 1; }
+    .posture-badge  { font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; white-space: nowrap; }
+    .pb-ok          { background: #052e16; color: #86efac; }
+    .pb-warn        { background: #2d1a00; color: #fde68a; }
+    .pb-bad         { background: #1c0a0a; color: #fca5a5; }
+    .pb-unknown     { background: #1f2937; color: #6b7280; border: 1px solid #374151; }
+    .posture-checks { display: flex; flex-direction: column; gap: 0.3rem; }
+    .pc-row         { display: flex; align-items: flex-start; gap: 0.4rem; font-size: 0.74rem; line-height: 1.4; }
+    .pc-status      { flex-shrink: 0; width: 1.1em; }
+    .pc-text        { color: #9ca3af; }
+    .pc-text.ok     { color: #86efac; }
+    .pc-text.warn   { color: #fde68a; }
+    .pc-text.bad    { color: #fca5a5; }
+    .pc-text.unknown{ color: #4b5563; }
   </style>
 </head>
 <body>
@@ -167,6 +186,10 @@
         <div class="gh-feature"><span>📄</span><span class="gh-label">SECURITY.md</span><span class="gh-on">✅ IN PLACE</span></div>
         <div class="gh-feature"><span>🚫</span><span class="gh-label">.gitignore Hardened</span><span class="gh-on">✅ IN PLACE</span></div>
       </div>
+
+      <!-- Swarm Security Posture -->
+      <div class="sw-section">🛡️ Swarm Security Posture</div>
+      <div id="posture-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
 
       <!-- Next scheduled scan -->
       <div class="next-scan-bar" id="next-scan-bar">
@@ -348,6 +371,107 @@
       }
     }
 
+    function overallPostureStatus(items) {
+      if (items.some(i => i.status === 'bad'))     return 'bad';
+      if (items.some(i => i.status === 'warn'))    return 'warn';
+      if (items.some(i => i.status === 'unknown')) return 'unknown';
+      return 'ok';
+    }
+
+    function renderPosture(p) {
+      const icon  = { ok: '✅', warn: '⚠️', bad: '❌', unknown: '❓' };
+      const badge = { ok: '✅ OK', warn: '⚠️ NEEDS ATTENTION', bad: '❌ ACTION REQUIRED', unknown: '❓ UNKNOWN' };
+      function chk(status, text) {
+        return `<div class="pc-row"><span class="pc-status">${icon[status]||'❓'}</span><span class="pc-text ${status}">${esc(text)}</span></div>`;
+      }
+      const domains = [
+        {
+          icon: '🔑', name: 'Secrets & Credentials',
+          items: [
+            { status: p.credentials.bwKeyExists ? 'ok' : 'bad',
+              text: p.credentials.bwKeyExists ? `Bitwarden master.key present (chmod ${p.credentials.bwKeyMode})` : 'Bitwarden master.key MISSING!' },
+            { status: p.credentials.bwKeySecure ? 'ok' : 'warn',
+              text: p.credentials.bwKeySecure ? 'master.key permissions 600 ✓' : `master.key is chmod ${p.credentials.bwKeyMode||'?'} — should be 600` },
+            { status: p.credentials.rotationPolicyExists === null ? 'unknown' : p.credentials.rotationPolicyExists ? 'ok' : 'warn',
+              text: p.credentials.rotationPolicyExists ? 'Credential rotation policy in vault ✓' : 'No rotation policy doc — create 08-QA/Security/Credential-Rotation-Policy.md' },
+            { status: 'warn', text: 'Shared PAT (github-ai-agents-pat) covers all repos — replace with per-repo deploy keys (TASK-20260822-002)' },
+          ],
+        },
+        {
+          icon: '🌐', name: 'Network Exposure',
+          items: [
+            { status: p.network.tailscaleActive ? 'ok' : 'warn',
+              text: p.network.tailscaleActive ? `Tailscale active${p.network.tailscaleIP ? ' ('+p.network.tailscaleIP+')' : ''}` : 'Tailscale not detected — verify VPN access to gateway' },
+            { status: p.network.gatewayExposed ? 'bad' : 'ok',
+              text: p.network.gatewayExposed ? 'Gateway/OverClaw exposed on 0.0.0.0 — restrict to Tailscale immediately!' : 'Gateway & OverClaw ports not exposed on public interface ✓' },
+          ],
+        },
+        {
+          icon: '🖥️', name: 'Host Hardening',
+          items: [
+            { status: p.hostHardening.sshPasswordAuth === 'disabled' ? 'ok' : p.hostHardening.sshPasswordAuth === 'unknown' ? 'unknown' : 'bad',
+              text: `SSH password auth: ${p.hostHardening.sshPasswordAuth}` },
+            { status: p.hostHardening.sshRootLogin === 'no' || p.hostHardening.sshRootLogin === 'prohibit-password' ? 'ok' : p.hostHardening.sshRootLogin === 'yes' ? 'bad' : 'unknown',
+              text: `SSH root login: ${p.hostHardening.sshRootLogin}` },
+            { status: p.hostHardening.ufwActive === null ? 'unknown' : p.hostHardening.ufwActive ? 'ok' : 'warn',
+              text: `UFW firewall: ${p.hostHardening.ufwActive === null ? 'unknown — run healthcheck' : p.hostHardening.ufwActive ? 'active ✓' : 'not active'}` },
+            { status: p.hostHardening.pendingUpdates === null ? 'unknown' : p.hostHardening.pendingUpdates === 0 ? 'ok' : p.hostHardening.pendingUpdates > 20 ? 'bad' : 'warn',
+              text: p.hostHardening.pendingUpdates !== null ? `${p.hostHardening.pendingUpdates} pending apt update(s)` : 'Pending apt updates: unknown — run healthcheck' },
+          ],
+        },
+        {
+          icon: '📋', name: 'Audit Trail',
+          items: [
+            { status: p.auditTrail.heartbeatActive ? 'ok' : 'warn',
+              text: p.auditTrail.heartbeatActive ? 'Heartbeat state tracked ✓' : 'Heartbeat state file not found' },
+            { status: p.auditTrail.gitleaksScheduleActive ? 'ok' : 'bad',
+              text: 'Weekly gitleaks vault scan active (Sundays 9am ET) ✓' },
+            { status: p.auditTrail.overclawLogCount === null ? 'unknown' : p.auditTrail.overclawLogCount > 0 ? 'ok' : 'warn',
+              text: p.auditTrail.overclawLogCount !== null ? `OverClaw logs: ${p.auditTrail.overclawLogCount} file(s)` : 'OverClaw logs directory not found' },
+          ],
+        },
+        {
+          icon: '💉', name: 'Prompt Injection',
+          items: [
+            { status: 'ok',   text: 'OpenClaw (Spike): EXTERNAL_UNTRUSTED_CONTENT tag wrapping active (built-in) ✓' },
+            { status: 'warn', text: 'Bill (ChatGPT / H2FClanker1): no injection guard in system prompt — TASK-20260822-006' },
+            { status: 'warn', text: 'Lex (Cursor / BrightMove MBP): no injection guard in Cursor rules — TASK-20260822-006' },
+          ],
+        },
+        {
+          icon: '🤖', name: 'Agent Over-Privilege',
+          items: [
+            { status: p.agentPrivilege.accessPolicyExists === null ? 'unknown' : p.agentPrivilege.accessPolicyExists ? 'ok' : 'warn',
+              text: p.agentPrivilege.accessPolicyExists ? 'Per-agent access policy in vault ✓' : 'No per-agent access policy — needs Jimmy decision (TASK-20260822-007)' },
+            { status: 'warn', text: 'Shared PAT in use for vault sync — acceptable; per-agent scoping not yet documented' },
+            { status: p.agentPrivilege.deployKeysCount > 0 ? 'ok' : 'warn',
+              text: p.agentPrivilege.deployKeysCount > 0 ? `${p.agentPrivilege.deployKeysCount} SSH deploy key(s) on host ✓` : 'No per-repo SSH deploy keys found on host yet' },
+          ],
+        },
+      ];
+      return domains.map(domain => {
+        const s = overallPostureStatus(domain.items);
+        return `<div class="posture-card">
+          <div class="posture-header">
+            <span class="posture-icon">${domain.icon}</span>
+            <span class="posture-name">${esc(domain.name)}</span>
+            <span class="posture-badge pb-${s}">${badge[s]}</span>
+          </div>
+          <div class="posture-checks">${domain.items.map(it => chk(it.status, it.text)).join('')}</div>
+        </div>`;
+      }).join('');
+    }
+
+    async function loadPosture() {
+      try {
+        const p = await fetch('/api/security/swarm-posture').then(r => r.json());
+        document.getElementById('posture-list').innerHTML = renderPosture(p);
+      } catch(e) {
+        document.getElementById('posture-list').innerHTML = `<div style="color:#fca5a5;font-size:.78rem;">⚠️ Failed to load posture: ${esc(e.message)}</div>`;
+      }
+    }
+
+    loadPosture();
     load();
   </script>
 </body>

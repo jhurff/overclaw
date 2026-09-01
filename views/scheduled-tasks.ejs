@@ -77,8 +77,8 @@
       { name:'BoatJobBoard Content Push', schedStr:'On-demand',    agent:'Bill',  enabled:false, desc:'WP REST API post queue; currently paused' },
     ];
 
-    const AGENT_COLORS = { Spike:'#f97316', Steve:'#3b82f6', Lex:'#a855f7', Bill:'#10b981' };
-    const AGENT_BG     = { Spike:'#431407', Steve:'#172554', Lex:'#2e1065',  Bill:'#022c22' };
+    const AGENT_COLORS = { Spike:'#f97316', Steve:'#3b82f6', Lex:'#a855f7', Bill:'#10b981', Luther:'#eab308' };
+    const AGENT_BG     = { Spike:'#431407', Steve:'#172554', Lex:'#2e1065',  Bill:'#022c22', Luther:'#422006' };
 
     let allTasks=[], sortKey='agent', sortDir=1;
 
@@ -101,7 +101,7 @@
     function agentBadge(name) {
       const c = AGENT_COLORS[name]||'#9ca3af';
       const bg = AGENT_BG[name]||'#1c1917';
-      const emoji = {Spike:'🦞',Steve:'📈',Lex:'💻',Bill:'🐟'}[name]||'';
+      const emoji = {Spike:'🦞',Steve:'📈',Lex:'💻',Bill:'🐟',Luther:'🤖'}[name]||'';
       return `<span style="display:inline-block;padding:1px 9px;border-radius:9999px;font-size:.7rem;font-weight:700;background:${bg};color:${c}">${emoji} ${name}</span>`;
     }
 
