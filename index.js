@@ -2146,7 +2146,11 @@ app.get('/api/security/swarm-posture', async (req, res) => {
   // ── NETWORK EXPOSURE ───────────────────────────────────────────────────────
   const ssOut       = safe(() => execSync('ss -tlnp 2>/dev/null', { timeout: 4000 }).toString(), '');
   const gwPortLines = ssOut.split('\n').filter(l => l.includes('18789') || l.includes('8355'));
-  const gatewayExposed = gwPortLines.some(l => /\b0\.0\.0\.0:/.test(l));
+  // OpenClaw (18789) exposure — flag if listening on 0.0.0.0 (should be localhost-only)
+  const openclawExposed   = gwPortLines.filter(l => l.includes('18789')).some(l => /\b0\.0\.0\.0:/.test(l));
+  // OverClaw (8355) — 0.0.0.0 binding is intentional (LAN access per design decision 2026-09-02)
+  const overclawLanAccess = gwPortLines.filter(l => l.includes('8355')).some(l => /\b0\.0\.0\.0:/.test(l));
+  const gatewayExposed    = openclawExposed; // LAN-intentional OverClaw binding does not count as exposed
 
   const tailscaleActive = safe(() =>
     execSync('systemctl is-active tailscaled 2>/dev/null', { timeout: 3000 }).toString().trim() === 'active', false);
@@ -2206,7 +2210,10 @@ app.get('/api/security/swarm-posture', async (req, res) => {
     network: {
       tailscaleActive,
       tailscaleIP,
-      gatewayExposed,
+      gatewayExposed,        // true only if OpenClaw (18789) binds 0.0.0.0
+      openclawExposed,       // OpenClaw gateway 0.0.0.0 binding check
+      overclawLanAccess,     // OverClaw 0.0.0.0 binding — intentional LAN design
+      overclawLanIntentional: true,
       portLines: gwPortLines.slice(0, 6),
     },
     hostHardening: {
@@ -2315,6 +2322,105 @@ app.get('/api/vault/search', async (req, res) => {
     res.json({ results: results.slice(0, 60), query, total: results.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GAP ATLAS — blind-spot map for the swarm
+// ---------------------------------------------------------------------------
+const ATLAS_JSON_PATH  = path.join(VAULT_PATH, '08 - QA-and-Monitoring', 'ATLAS', 'atlas.json');
+const ATLAS_GAPS_DIR   = path.join(VAULT_PATH, '08 - QA-and-Monitoring', 'ATLAS', 'gaps');
+
+async function readAtlasFile() {
+  try {
+    const text = await fs.readFile(ATLAS_JSON_PATH, 'utf-8');
+    return JSON.parse(text);
+  } catch (err) {
+    if (err.code === 'ENOENT') return { version: 1, updated: null, description: '', regions: [], gaps: [] };
+    throw err;
+  }
+}
+
+async function writeAtlasFile(atlas) {
+  await fs.mkdir(path.dirname(ATLAS_JSON_PATH), { recursive: true });
+  await fs.writeFile(ATLAS_JSON_PATH, JSON.stringify(atlas, null, 2), 'utf-8');
+}
+
+app.get('/gap-atlas', (req, res) => {
+  res.render('gap-atlas', {
+    title: 'GAP ATLAS — OverClaw',
+    currentPath: '/gap-atlas',
+  });
+});
+
+app.get('/api/gap/atlas', async (req, res) => {
+  try {
+    const atlas = await readAtlasFile();
+    res.json({ ok: true, atlas, lastSyncAt: vaultReader ? vaultReader.lastSyncAt : null });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/gap/record', async (req, res) => {
+  const { region, agent, taskId, title, note } = req.body || {};
+  if (!region || !title) {
+    return res.status(400).json({ ok: false, error: 'region and title are required' });
+  }
+  try {
+    const atlas = await readAtlasFile();
+    const today       = new Date().toISOString().slice(0, 10);
+    const compact     = today.replace(/-/g, '');
+    const todayCount  = (atlas.gaps || []).filter(g => g.id && g.id.startsWith(`GAP-${compact}`)).length;
+    const seq         = String(todayCount + 1).padStart(3, '0');
+    const id          = `GAP-${compact}-${seq}`;
+
+    const gap = {
+      id,
+      date:   today,
+      taskId: taskId || null,
+      region,
+      agent:  agent || 'Spike',
+      title,
+      note:   note || '',
+    };
+    if (!Array.isArray(atlas.gaps)) atlas.gaps = [];
+    atlas.gaps.push(gap);
+    atlas.updated = today;
+
+    // Increment region hit count
+    const reg = (atlas.regions || []).find(r => r.id === region);
+    if (reg) {
+      reg.hitCount = (reg.hitCount || 0) + 1;
+      reg.lastHit  = today;
+    }
+
+    await writeAtlasFile(atlas);
+
+    // Write individual gap markdown
+    await fs.mkdir(ATLAS_GAPS_DIR, { recursive: true });
+    const gapMd = [
+      `# ${id} — ${title}`,
+      '',
+      `**Date:** ${today}`,
+      `**Region:** ${region}`,
+      `**Agent:** ${agent || 'Spike'}`,
+      `**Task:** ${taskId || '—'}`,
+      '',
+      '## Note',
+      note || '—',
+      '',
+    ].join('\n');
+    await fs.writeFile(path.join(ATLAS_GAPS_DIR, `${id}.md`), gapMd, 'utf-8');
+
+    // Vault sync
+    try { await vaultSync(`gap: record ${id} (${region})`); } catch (syncErr) {
+      console.warn(`GAP: vault sync failed — ${syncErr.message}`);
+    }
+
+    res.json({ ok: true, gap });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 

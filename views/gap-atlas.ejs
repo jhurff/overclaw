@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .oc-main-content  { overflow: hidden !important; height: calc(100vh - 60px); }
+    .oc-dashboard-area {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: unset !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      padding: 1rem 1.25rem !important;
+      gap: 0 !important;
+    }
+
+    /* ── Top bar ── */
+    .ga-topbar { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:1rem; gap:1rem; flex-wrap:wrap; }
+    .ga-title  { font-size:1.1rem; font-weight:700; color:var(--oc-text-dark,#e2e8f0); margin:0; }
+    .ga-sub    { font-size:0.78rem; color:#6b7280; margin:0.15rem 0 0; }
+    .ga-meta   { font-size:0.73rem; color:#6b7280; display:flex; align-items:center; gap:0.75rem; }
+    .ga-sync-btn {
+      font-size:0.72rem; padding:0.18rem 0.55rem;
+      border-radius:4px; border:1px solid #374151;
+      background:transparent; color:#9ca3af; cursor:pointer;
+    }
+    .ga-sync-btn:hover { border-color:#6b7280; color:#e2e8f0; }
+    .ga-sync-btn:disabled { opacity:.5; cursor:default; }
+
+    /* ── Error banner ── */
+    .ga-error { display:none; background:#1c1917; border:1px solid #78350f; border-radius:6px; padding:0.6rem 1rem; color:#fde68a; font-size:0.82rem; margin-bottom:1rem; }
+
+    /* ── Section labels ── */
+    .ga-section { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#6b7280; margin:1.5rem 0 0.65rem; }
+    .ga-section:first-of-type { margin-top:0; }
+
+    /* ── Region grid ── */
+    .ga-region-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:0.75rem; }
+
+    /* ── Region card ── */
+    .ga-card {
+      background:var(--oc-card-bg,#1c2128);
+      border:1px solid #30363d;
+      border-left:3px solid transparent;
+      border-radius:8px;
+      padding:0.9rem 1rem;
+    }
+    .ga-card.wt-hi  { border-left-color:#ef4444; }
+    .ga-card.wt-med { border-left-color:#f59e0b; }
+    .ga-card.wt-lo  { border-left-color:#10b981; }
+
+    .ga-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.45rem; }
+    .ga-card-name   { display:flex; align-items:center; gap:0.4rem; font-size:0.88rem; font-weight:600; color:#e2e8f0; }
+    .ga-card-emoji  { font-size:1rem; }
+    .ga-hits        { font-size:0.7rem; color:#6b7280; display:flex; align-items:center; gap:0.4rem; }
+    .ga-hit-badge   { background:#374151; border-radius:3px; padding:0.1rem 0.35rem; font-size:0.68rem; font-weight:600; color:#9ca3af; }
+
+    /* Weight bar */
+    .ga-wbar        { height:4px; background:#1f2937; border-radius:2px; margin-bottom:0.6rem; overflow:hidden; }
+    .ga-wfill       { height:100%; border-radius:2px; transition:width .4s ease; }
+
+    .ga-desc        { font-size:0.78rem; color:#9ca3af; line-height:1.5; margin-bottom:0.55rem; }
+    .ga-hint        { font-size:0.72rem; color:#4b5563; line-height:1.5; margin-bottom:0.25rem; }
+    .ga-hint strong { color:#374151; }
+    .ga-last-hit    { font-size:0.68rem; color:#374151; margin-top:0.45rem; }
+
+    /* ── Gap log table ── */
+    .ga-table-wrap  { overflow-x:auto; margin-bottom:0.5rem; }
+    .ga-note-cell   { font-size:0.72rem; color:#6b7280; max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* ── Log form ── */
+    .ga-form { display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; max-width:680px; }
+    .ga-full { grid-column:1/-1; }
+    .ga-label { display:block; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#6b7280; margin-bottom:0.2rem; }
+    .ga-input, .ga-select, .ga-textarea {
+      width:100%; padding:0.4rem 0.6rem;
+      background:#0d1117; border:1px solid #30363d; border-radius:5px;
+      color:#e2e8f0; font-size:0.82rem; font-family:inherit; box-sizing:border-box;
+    }
+    .ga-input:focus, .ga-select:focus, .ga-textarea:focus { outline:none; border-color:#58a6ff; }
+    .ga-textarea { resize:vertical; min-height:64px; }
+    .ga-submit {
+      padding:0.45rem 1.1rem; background:#1f6feb; color:#fff;
+      border:none; border-radius:5px; font-size:0.82rem; font-weight:600;
+      cursor:pointer; width:fit-content;
+    }
+    .ga-submit:hover { background:#388bfd; }
+    .ga-submit:disabled { opacity:.5; cursor:default; }
+    .ga-msg { font-size:0.78rem; padding:0.4rem 0.6rem; border-radius:5px; display:none; }
+    .ga-msg.ok  { background:#0f2615; color:#3fb950; border:1px solid #1b4721; display:block; }
+    .ga-msg.err { background:#2d1b1b; color:#f85149; border:1px solid #5e1a1a; display:block; }
+
+    /* ── Empty / loading ── */
+    .ga-empty { color:#4b5563; font-size:0.82rem; padding:1.5rem 0; text-align:center; }
+  </style>
+</head>
+<body>
+  <header class="oc-header">
+    <div class="logo">
+      <a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer">
+        <h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span>
+      </a>
+    </div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
+  </header>
+
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/gap-atlas' }) %>
+    <main class="oc-dashboard-area">
+
+      <!-- Top bar -->
+      <div class="ga-topbar">
+        <div>
+          <p class="ga-title">🧠 GAP ATLAS</p>
+          <p class="ga-sub">Where the model breaks — structural blind spots, not wrong answers</p>
+        </div>
+        <div class="ga-meta">
+          <span id="ga-updated">—</span>
+          <button class="ga-sync-btn" id="ga-sync-btn">↻ Sync</button>
+        </div>
+      </div>
+
+      <div class="ga-error" id="ga-error"></div>
+
+      <!-- Blind spot map -->
+      <p class="ga-section">BLIND SPOT MAP</p>
+      <div class="ga-region-grid" id="ga-grid">
+        <p class="ga-empty">Loading atlas…</p>
+      </div>
+
+      <!-- Recent gaps -->
+      <p class="ga-section">RECENT GAPS</p>
+      <div class="ga-table-wrap">
+        <table class="oc-data-table" id="ga-gaps-tbl">
+          <thead><tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Region</th>
+            <th>Agent</th>
+            <th>Title</th>
+            <th>Task</th>
+          </tr></thead>
+          <tbody id="ga-gaps-body">
+            <tr><td colspan="6" class="ga-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Log a gap -->
+      <p class="ga-section">LOG A GAP</p>
+      <div class="ga-form">
+        <div>
+          <label class="ga-label">Region *</label>
+          <select class="ga-select" id="lf-region">
+            <option value="">Select region…</option>
+          </select>
+        </div>
+        <div>
+          <label class="ga-label">Agent</label>
+          <input class="ga-input" id="lf-agent" value="Spike" placeholder="Spike">
+        </div>
+        <div class="ga-full">
+          <label class="ga-label">Title *</label>
+          <input class="ga-input" id="lf-title" placeholder="One-line description of what failed">
+        </div>
+        <div>
+          <label class="ga-label">Task ID (optional)</label>
+          <input class="ga-input" id="lf-task" placeholder="TASK-YYYYMMDD-NNN">
+        </div>
+        <div><!-- spacer --></div>
+        <div class="ga-full">
+          <label class="ga-label">Note</label>
+          <textarea class="ga-textarea" id="lf-note" placeholder="What specifically failed? What's needed to unblock?"></textarea>
+        </div>
+        <div class="ga-full" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+          <button class="ga-submit" id="lf-submit">Log GAP</button>
+          <div class="ga-msg" id="lf-msg"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /* ── Sidebar/theme (standard boilerplate) ── */
+    (function(){
+      const sb  = document.getElementById('oc-sidebar');
+      const btn = document.getElementById('sidebar-toggle');
+      let col = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+      if (col) sb.classList.add('collapsed');
+      btn.addEventListener('click', () => {
+        col = !col; sb.classList.toggle('collapsed', col);
+        localStorage.setItem('overclaw-sidebar-collapsed', col);
+      });
+      const th = document.getElementById('theme-toggle');
+      let tm = localStorage.getItem('overclaw-theme') || (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+      document.body.classList.add(tm + '-mode');
+      th.textContent = tm === 'dark' ? '🌙' : '☀️';
+      th.addEventListener('click', () => {
+        tm = tm === 'light' ? 'dark' : 'light';
+        document.body.classList.toggle('light-mode', tm === 'light');
+        document.body.classList.toggle('dark-mode', tm === 'dark');
+        localStorage.setItem('overclaw-theme', tm);
+        th.textContent = tm === 'dark' ? '🌙' : '☀️';
+      });
+    })();
+
+    /* ── Helpers ── */
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function pct(w) { return Math.round((w || 0) * 100) + '%'; }
+    function wtClass(w) { return w >= 0.7 ? 'wt-hi' : w >= 0.5 ? 'wt-med' : 'wt-lo'; }
+    function wtColor(w) { return w >= 0.7 ? '#ef4444' : w >= 0.5 ? '#f59e0b' : '#10b981'; }
+
+    /* ── Load atlas ── */
+    let atlasCache = null;
+
+    async function loadAtlas() {
+      const errEl = document.getElementById('ga-error');
+      errEl.style.display = 'none';
+      try {
+        const r    = await fetch('/api/gap/atlas');
+        const data = await r.json();
+        if (!data.ok) throw new Error(data.error || 'Unknown error');
+        atlasCache = data.atlas;
+        renderRegions(atlasCache);
+        renderGaps(atlasCache);
+        populateRegionSelect(atlasCache);
+        const updEl = document.getElementById('ga-updated');
+        let updText = atlasCache.updated ? 'Updated ' + atlasCache.updated : 'Never updated';
+        if (data.lastSyncAt) {
+          updText += ' · Synced ' + new Date(data.lastSyncAt).toLocaleTimeString();
+        }
+        updEl.textContent = updText;
+      } catch (err) {
+        errEl.textContent = '⚠ Failed to load atlas: ' + err.message;
+        errEl.style.display = 'block';
+        document.getElementById('ga-grid').innerHTML      = '';
+        document.getElementById('ga-gaps-body').innerHTML =
+          '<tr><td colspan="6" style="color:#ef4444;padding:1rem;text-align:center">Error loading data</td></tr>';
+      }
+    }
+
+    /* ── Render region cards ── */
+    function renderRegions(atlas) {
+      const grid = document.getElementById('ga-grid');
+      const regions = atlas.regions || [];
+      if (!regions.length) {
+        grid.innerHTML = '<p class="ga-empty">No regions defined yet.</p>';
+        return;
+      }
+      // Sort by weight descending
+      const sorted = [...regions].sort((a, b) => (b.weight || 0) - (a.weight || 0));
+      grid.innerHTML = sorted.map(r => `
+        <div class="ga-card ${wtClass(r.weight)}">
+          <div class="ga-card-header">
+            <span class="ga-card-name">
+              <span class="ga-card-emoji">${esc(r.emoji || '•')}</span>
+              ${esc(r.label)}
+            </span>
+            <span class="ga-hits">
+              <span style="color:${wtColor(r.weight)};font-weight:600">${pct(r.weight)}</span>
+              <span class="ga-hit-badge">${r.hitCount || 0} hit${r.hitCount !== 1 ? 's' : ''}</span>
+            </span>
+          </div>
+          <div class="ga-wbar">
+            <div class="ga-wfill" style="width:${pct(r.weight)};background:${wtColor(r.weight)}"></div>
+          </div>
+          <p class="ga-desc">${esc(r.description)}</p>
+          <p class="ga-hint"><strong>💡 CHECK</strong>&nbsp; ${esc(r.checkHint)}</p>
+          <p class="ga-hint"><strong>🚩 FLAG</strong>&nbsp; ${esc(r.flagBehavior)}</p>
+          ${r.lastHit ? `<p class="ga-last-hit">Last hit: ${esc(r.lastHit)}</p>` : ''}
+        </div>`).join('');
+    }
+
+    /* ── Render gap log ── */
+    function renderGaps(atlas) {
+      const tbody  = document.getElementById('ga-gaps-body');
+      const gaps   = [...(atlas.gaps || [])].reverse().slice(0, 25);
+      const regions = atlas.regions || [];
+      if (!gaps.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="ga-empty">No gaps recorded yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = gaps.map(g => {
+        const reg      = regions.find(r => r.id === g.region);
+        const regLabel = reg ? `${reg.emoji || ''} ${reg.label}` : esc(g.region);
+        const color    = reg ? wtColor(reg.weight) : '#9ca3af';
+        return `<tr>
+          <td style="font-family:monospace;font-size:0.75rem;color:#58a6ff;white-space:nowrap">${esc(g.id)}</td>
+          <td style="white-space:nowrap;color:#6b7280">${esc(g.date)}</td>
+          <td style="white-space:nowrap"><span style="font-size:0.75rem;color:${color}">${regLabel}</span></td>
+          <td style="color:#9ca3af">${esc(g.agent || '—')}</td>
+          <td>${esc(g.title)}</td>
+          <td style="font-family:monospace;font-size:0.72rem;color:#6b7280">${g.taskId ? esc(g.taskId) : '—'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    /* ── Populate region dropdown ── */
+    function populateRegionSelect(atlas) {
+      const sel = document.getElementById('lf-region');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">Select region…</option>' +
+        (atlas.regions || [])
+          .sort((a, b) => (b.weight || 0) - (a.weight || 0))
+          .map(r => `<option value="${esc(r.id)}">${r.emoji || ''} ${esc(r.label)} (${esc(r.id)})</option>`)
+          .join('');
+      if (cur) sel.value = cur;
+    }
+
+    /* ── Sync button ── */
+    document.getElementById('ga-sync-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('ga-sync-btn');
+      btn.disabled = true; btn.textContent = '↻ Syncing…';
+      await loadAtlas();
+      btn.disabled = false; btn.textContent = '↻ Sync';
+    });
+
+    /* ── Log a Gap form ── */
+    document.getElementById('lf-submit').addEventListener('click', async () => {
+      const region = document.getElementById('lf-region').value;
+      const title  = document.getElementById('lf-title').value.trim();
+      const agent  = document.getElementById('lf-agent').value.trim() || 'Spike';
+      const taskId = document.getElementById('lf-task').value.trim();
+      const note   = document.getElementById('lf-note').value.trim();
+      const msg    = document.getElementById('lf-msg');
+      const btn    = document.getElementById('lf-submit');
+
+      msg.className = 'ga-msg'; msg.style.display = 'none';
+      if (!region || !title) {
+        msg.className = 'ga-msg err';
+        msg.textContent = 'Region and Title are required.';
+        return;
+      }
+
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        const r    = await fetch('/api/gap/record', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ region, title, agent, taskId: taskId || null, note }),
+        });
+        const data = await r.json();
+        if (!data.ok) throw new Error(data.error || 'Server error');
+        msg.className   = 'ga-msg ok';
+        msg.textContent = '✓ Recorded: ' + data.gap.id;
+        document.getElementById('lf-title').value = '';
+        document.getElementById('lf-task').value  = '';
+        document.getElementById('lf-note').value  = '';
+        await loadAtlas();
+      } catch (err) {
+        msg.className   = 'ga-msg err';
+        msg.textContent = '✗ ' + err.message;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Log GAP';
+      }
+    });
+
+    /* ── Init ── */
+    loadAtlas();
+  </script>
+</body>
+</html>

@@ -547,6 +547,21 @@
               const viewHref   = docPath ? `/vault/doc?path=${encodeURIComponent(docPath)}` : null;
               const resolveHref = (!isRes && a.relPath) ? `/resolve?alert=${encodeURIComponent(a.relPath)}` : null;
               const label      = (a.type || a.filename || '').replace(/[-_]/g,' ').trim();
+              // Build "AgentName: HostName" label for the machine column
+              const ALERT_AGENTS = [
+                { name:'Spike',  keys:['OpenClaw'] },
+                { name:'Steve',  keys:['BrightMove-MBP'] },
+                { name:'Lex',    keys:['BrightMove-MBP/Cursor'] },
+                { name:'Bill',   keys:['H2FClanker1'] },
+                { name:'Luther', keys:['Grok-Bot'] },
+              ];
+              const machineRaw  = a.machine !== 'unknown' ? a.machine : null;
+              const alertAgent  = ALERT_AGENTS.find(ag =>
+                machineRaw && ag.keys.some(k => machineRaw.toLowerCase().startsWith(k.split('/')[0].toLowerCase()))
+              );
+              const machineLabel = machineRaw
+                ? (alertAgent ? alertAgent.name + ': ' + machineRaw : machineRaw)
+                : '⚠️';
               const srcCls     = isRes ? 'al-src-pending'
                                : a.alertSource === 'needs-attention' ? 'al-src-na' : 'al-src-hberr';
               const srcLbl     = isRes ? 'PENDING VERIFY'
@@ -575,7 +590,7 @@
                   ${resolveHref ? `<a class="al-action-link al-action-resolve" href="${resolveHref}">Resolve</a>` : ''}
                 </span>` : '';
               return `<div class="${itemCls}">
-                <span class="${machineCls}">${a.machine !== 'unknown' ? a.machine : '⚠️'}</span>
+                <span class="${machineCls}">${machineLabel}</span>
                 <span class="al-src-badge ${srcCls}">${srcLbl}</span>
                 <span class="${typeCls}">${label}</span>
                 <span class="${dateCls}">${fmtDate(a.date)}</span>
