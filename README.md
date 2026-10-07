@@ -69,26 +69,62 @@ routes simply return an error card instead of crashing.
 
 ## Vault Structure
 
-OverClaw reads the following files from your vault.  All paths are relative to
-`VAULT_PATH`.
+OverClaw reads from an Obsidian vault that serves as the shared memory and
+coordination layer for your agent swarm.  All paths are relative to `VAULT_PATH`.
+
+The full recommended vault layout (see `starter-brain/` for a ready-to-use template):
 
 ```
 VAULT_PATH/
-├── 03 - Agents/
-│   ├── Agent Registry.md          # Agent roster table
-│   ├── Notifications/
-│   │   └── <AgentName>/           # Per-agent notification inbox (.md files)
+├── 00 - Home/
+│   ├── README.md                  # Vault index and orientation
+│   ├── VAULT-INDEX.md             # Map of all folders and their purpose
+│   └── ONBOARDING.md              # How to wire a new agent into the swarm
+│
+├── 01 - Prompts/                  # Reusable prompt templates for agents
+│
+├── 02 - Projects/                 # One subfolder per active project
+│   └── <project-name>/
+│       ├── README.md              # What it is, current status
+│       ├── BRIEF.md               # Original ask, goals, constraints
+│       └── LOG.md                 # Running notes as work progresses
+│
+├── 03 - Agents/                   # ⬅ OverClaw reads this section
+│   ├── Agent Registry.md          # Agent roster table (name, status, role, machine)
+│   ├── AGENT-IDENTITY.md          # Why identity files matter; how to fill them in
+│   ├── Notifications/             # ⬅ OverClaw reads this section
+│   │   └── <AgentName>/           # Per-agent inbox — notification .md files dropped here
 │   └── Coordination/
-│       └── Task Board.md          # Kanban task board (Inbox / In Progress / Blocked / Done)
-└── 08 - QA-and-Monitoring/
-    ├── ATLAS/
-    │   └── atlas.json             # Blind-spot map (checked by agents before risky operations)
-    └── Heartbeats/
-        ├── Machine-A/             # Heartbeat .md files for Machine A
-        ├── Machine-B/             # Heartbeat .md files for Machine B
-        └── Machine-B/
-            └── SubAgent/          # Heartbeat files for a sub-agent on Machine B
+│       ├── README.md              # Routing rules and handoff patterns
+│       ├── Task Board.md          # ⬅ OverClaw reads this — Kanban (Inbox / In Progress / Blocked / Done)
+│       └── Tasks/
+│           ├── TASK-XXXX.md       # Individual task files
+│           └── Requests/          # DRAFT task requests awaiting approval
+│
+├── 04 - Models-and-Tools/         # Notes on AI models, APIs, and integrations
+│
+├── 05 - Research/                 # Reference material and background notes
+│
+├── 06 - Loops/                    # Recurring workflows, heartbeat specs, automation patterns
+│
+├── 07 - Weekly-Reviews/           # Weekly swarm summaries (YYYY-WNN.md)
+│
+├── 08 - QA-and-Monitoring/        # ⬅ OverClaw reads this section
+│   ├── ATLAS/
+│   │   └── atlas.json             # ⬅ OverClaw reads this — blind-spot map
+│   └── Heartbeats/
+│       ├── <Machine-A>/           # ⬅ OverClaw reads this — heartbeat .md files per machine
+│       ├── <Machine-B>/
+│       └── <Machine-B>/<SubAgent>/
+│
+├── _Templates/                    # Blank templates: BOOTSTRAP, SOUL, AGENTS, MEMORY, USER, task
+└── _Archive/                      # Completed projects and retired files
 ```
+
+> **OverClaw reads:** `03 - Agents/Agent Registry.md`, `03 - Agents/Notifications/`,
+> `03 - Agents/Coordination/Task Board.md`, `08 - QA-and-Monitoring/ATLAS/atlas.json`,
+> and `08 - QA-and-Monitoring/Heartbeats/`.  The remaining folders are for agent and
+> human use and do not affect the dashboard.
 
 ### Task Board format
 
