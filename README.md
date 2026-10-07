@@ -76,9 +76,13 @@ OverClaw reads the following files from your vault.  All paths are relative to
 VAULT_PATH/
 ├── 03 - Agents/
 │   ├── Agent Registry.md          # Agent roster table
+│   ├── Notifications/
+│   │   └── <AgentName>/           # Per-agent notification inbox (.md files)
 │   └── Coordination/
 │       └── Task Board.md          # Kanban task board (Inbox / In Progress / Blocked / Done)
 └── 08 - QA-and-Monitoring/
+    ├── ATLAS/
+    │   └── atlas.json             # Blind-spot map (checked by agents before risky operations)
     └── Heartbeats/
         ├── Machine-A/             # Heartbeat .md files for Machine A
         ├── Machine-B/             # Heartbeat .md files for Machine B
