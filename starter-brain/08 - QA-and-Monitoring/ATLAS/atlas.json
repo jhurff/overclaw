@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "description": "Live blind-spot map. Agents check this before high-risk operations and log new gaps when tasks fail in recognizable ways.",
+  "regions": [
+    {
+      "id": "credential-missing",
+      "label": "Missing Credentials",
+      "weight": 0.8,
+      "description": "External API, OAuth, or secrets not available to the agent at runtime.",
+      "flagBehavior": "Stop. Do not guess or attempt workarounds. State which credential is missing and ask for human intervention.",
+      "examples": ["API key not in vault", "OAuth token expired", "SSH key not present on this machine"]
+    },
+    {
+      "id": "cross-machine-constraint",
+      "label": "Cross-Machine Constraint",
+      "weight": 0.85,
+      "description": "Task requires a resource or account only accessible from a different machine.",
+      "flagBehavior": "Stop. Flag the task with must_run_from: <machine> and leave it in Inbox. Do not mark it Blocked.",
+      "examples": ["Email account only accessible via desktop client on another machine", "GUI-only tool not available over SSH"]
+    },
+    {
+      "id": "scope-underspecified",
+      "label": "Scope Underspecified",
+      "weight": 0.5,
+      "description": "Task lacks a clear output spec, acceptance criteria, or enough context to proceed safely.",
+      "flagBehavior": "Ask one clarifying question before starting. Do not proceed on assumptions for irreversible actions.",
+      "examples": ["Vague task title with no details", "No clear deliverable defined"]
+    },
+    {
+      "id": "permissions-gap",
+      "label": "Permissions Gap",
+      "weight": 0.6,
+      "description": "Task requires elevated permissions the agent does not currently have.",
+      "flagBehavior": "State the specific permission needed. Do not attempt privilege escalation. Ask for human approval.",
+      "examples": ["sudo required", "system-level file access", "write access to protected directory"]
+    }
+  ],
+  "lastUpdated": "2026-01-01",
+  "notes": "Add new regions as your swarm encounters new failure patterns. Increase weight as a failure type recurs."
+}
