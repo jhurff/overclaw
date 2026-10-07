@@ -33,7 +33,7 @@ degrades gracefully if the gateway is offline.
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/your-username/overclaw.git
+git clone https://github.com/jhurff/overclaw.git
 cd overclaw
 
 # 2. Install dependencies
