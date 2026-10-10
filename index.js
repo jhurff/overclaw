@@ -4,6 +4,7 @@ const { exec } = require('child_process');
 const fs = require('fs').promises; // For async file operations
 const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
 const VaultReader = require('./lib/VaultReader'); // Vault integration
+const McpServer  = require('./lib/McpServer');   // MCP protocol server
 
 const app = express();
 
@@ -1057,6 +1058,26 @@ app.get('/api/swarm/summary', async (req, res) => {
       }
     }
 
+    // Fallback for Luther (Grok Bot) — runs on a cloud box, not on the LAN.
+    // Luther writes work logs to 03 - Agents/Grok-Bot/Luther/ and health-check
+    // logs to 08 - QA-and-Monitoring/Heartbeats/Grok-Bot/. Use the most recent
+    // dated .md file from either location as a proxy for last-seen.
+    const LUTHER_KEY = 'Grok-Bot';
+    if (!lastHeartbeat[LUTHER_KEY] || !lastHeartbeat[LUTHER_KEY].date) {
+      const [lutherHbDate, lutherLogDate] = await Promise.all([
+        vaultReader.getLatestEntryDate('08 - QA-and-Monitoring/Heartbeats/Grok-Bot').catch(() => null),
+        vaultReader.getLatestEntryDate('03 - Agents/Grok-Bot/Luther').catch(() => null),
+      ]);
+      const lutherDate = [lutherHbDate, lutherLogDate].filter(Boolean).sort().reverse()[0] || null;
+      if (lutherDate) {
+        lastHeartbeat[LUTHER_KEY] = {
+          machine: 'Grok-Bot', subAgent: null,
+          date: lutherDate, isAlert: false, isHandled: false,
+          filename: 'work-log-fallback', type: 'work-log',
+        };
+      }
+    }
+
     // Flag stuck in-progress tasks and surface count in stats
     const nowMs = Date.now();
     (taskBoard.inProgress || []).forEach(t => flagStuckTask(t, nowMs));
@@ -1976,10 +1997,11 @@ app.get('/api/heartbeat-history', async (req, res) => {
 
     // Agent → vault machine-key mapping (matches swarm summary keys)
     const agentDefs = {
-      Spike: ['OpenClaw'],
-      Steve: ['BrightMove-MBP'],
-      Lex:   ['BrightMove-MBP/Cursor'],
-      Bill:  ['H2FClanker1'],
+      Spike:  ['OpenClaw'],
+      Steve:  ['BrightMove-MBP'],
+      Lex:    ['BrightMove-MBP/Cursor'],
+      Bill:   ['H2FClanker1'],
+      Luther: ['Grok-Bot'],
     };
 
     const history = {};
@@ -2422,6 +2444,258 @@ app.post('/api/gap/record', async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// ---------------------------------------------------------------------------
+// MCP Server — Model Context Protocol endpoints for swarm agents
+// Docs: GET /mcp   Streamable-HTTP: POST /mcp   SSE: GET /mcp/sse
+// ---------------------------------------------------------------------------
+
+const MCP_API_KEY = process.env.MCP_API_KEY || ocConfig.mcpApiKey || null;
+
+const mcpServer = vaultReader
+  ? new McpServer({ vaultReader, vaultPath: VAULT_PATH })
+  : null;
+
+/** Require Bearer token or X-Api-Key when MCP_API_KEY is configured. */
+function mcpAuth(req, res, next) {
+  if (!MCP_API_KEY) return next();           // no key = open on LAN/Tailscale
+  const auth = req.headers.authorization || '';
+  const key  = auth.startsWith('Bearer ') ? auth.slice(7).trim()
+             : (req.headers['x-api-key'] || '').trim();
+  if (key !== MCP_API_KEY)
+    return res.status(401).json({ jsonrpc: '2.0', id: null, error: { code: -32001, message: 'Unauthorized' } });
+  next();
+}
+
+/** CORS preflight for /mcp/* — agents on other hosts need this. */
+app.options('/mcp', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Api-Key');
+  res.sendStatus(204);
+});
+app.options('/mcp/:any*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Api-Key');
+  res.sendStatus(204);
+});
+
+/**
+ * GET /mcp — discovery endpoint.
+ * Returns server info, available tools, transport URLs, and auth requirements.
+ */
+app.get('/mcp', mcpAuth, (req, res) => {
+  const tools = mcpServer ? mcpServer.tools() : [];
+  res.json({
+    name:        'OverClaw MCP Server',
+    version:     '2.0.0',
+    description: 'Swarm task board and coordination tools for AI agents',
+    protocols:   ['2024-11-05', '2025-03-26'],
+    transports: {
+      streamableHttp: { method: 'POST', url: '/mcp',         note: 'MCP 2025-03-26, preferred' },
+      sse:            { method: 'GET',  url: '/mcp/sse',      note: 'MCP 2024-11-05, for Cursor/legacy clients' },
+      sseMessage:     { method: 'POST', url: '/mcp/message',  note: 'SSE transport message endpoint' },
+    },
+    auth: MCP_API_KEY ? 'Bearer token required (Authorization: Bearer <key> or X-Api-Key header)' : 'Open (no auth required)',
+    tools: tools.map(t => ({ name: t.name, description: t.description })),
+    available: !!mcpServer,
+  });
+});
+
+/**
+ * POST /mcp — Streamable HTTP transport (MCP 2025-03-26).
+ * Single endpoint for all JSON-RPC messages; supports single and batch.
+ */
+app.post('/mcp', mcpAuth, async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (!mcpServer)
+    return res.status(503).json({ jsonrpc: '2.0', id: null, error: { code: -32603, message: 'MCP server not available (vault not loaded)' } });
+
+  const body = req.body;
+  if (!body) return res.status(400).json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error: empty body' } });
+
+  try {
+    // Batch requests
+    if (Array.isArray(body)) {
+      const results = (await Promise.all(body.map(msg => mcpServer.dispatch(msg)))).filter(r => r !== null);
+      return res.json(results);
+    }
+    if (body.jsonrpc !== '2.0')
+      return res.status(400).json({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid Request' } });
+
+    const result = await mcpServer.dispatch(body);
+    // Notifications (no id) — 202 with no body
+    if (result === null) return res.status(202).end();
+    res.json(result);
+  } catch (err) {
+    console.error('[MCP POST] error:', err.message);
+    res.status(500).json({ jsonrpc: '2.0', id: null, error: { code: -32603, message: err.message } });
+  }
+});
+
+/**
+ * GET /mcp/sse — SSE transport (MCP 2024-11-05).
+ * Client connects here; server sends an `endpoint` event with the POST URL,
+ * then keeps the stream open for response delivery.
+ */
+app.get('/mcp/sse', mcpAuth, (req, res) => {
+  res.setHeader('Content-Type',                'text/event-stream');
+  res.setHeader('Cache-Control',               'no-cache');
+  res.setHeader('Connection',                  'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  if (!mcpServer) {
+    res.write(`event: error\ndata: ${JSON.stringify({ message: 'Vault not available' })}\n\n`);
+    return res.end();
+  }
+
+  const sessionId = mcpServer.attachSse(res);
+  req.on('close', () => mcpServer.detachSse(sessionId));
+});
+
+/**
+ * POST /mcp/message — SSE transport message handler (MCP 2024-11-05).
+ * Client sends JSON-RPC here; server returns 202 immediately and pushes
+ * the response over the SSE stream.
+ */
+app.post('/mcp/message', mcpAuth, async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (!mcpServer)
+    return res.status(503).json({ error: 'MCP server not available' });
+
+  const { sessionId } = req.query;
+  const body = req.body;
+
+  if (!body || body.jsonrpc !== '2.0')
+    return res.status(400).json({ error: 'Invalid JSON-RPC 2.0 request' });
+
+  // Ack immediately so the client knows the message was received
+  res.status(202).end();
+
+  try {
+    const result = await mcpServer.dispatch(body);
+    if (result !== null && sessionId) {
+      mcpServer.sendSse(sessionId, result);
+    }
+  } catch (err) {
+    console.error('[MCP SSE message] error:', err.message);
+    if (sessionId) {
+      mcpServer.sendSse(sessionId, {
+        jsonrpc: '2.0', id: body.id ?? null,
+        error: { code: -32603, message: err.message },
+      });
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// REST agent API — simple HTTP shortcuts for non-MCP agents (Bill, Steve, etc.)
+// These endpoints wrap the same MCP tool logic but speak plain REST.
+// ---------------------------------------------------------------------------
+
+/** Auth for REST agent API — same key as MCP, or open if no key set. */
+const agentApiAuth = mcpAuth;
+
+/**
+ * GET /api/agent/tasks?agent=<shortname>[&status=inbox|in_progress|blocked|all]
+ * Returns tasks assigned to the agent, grouped by section.
+ */
+app.get('/api/agent/tasks', agentApiAuth, async (req, res) => {
+  if (!mcpServer) return vaultUnavailable(res);
+  const agent  = (req.query.agent  || '').toLowerCase();
+  const status = (req.query.status || 'all');
+  if (!agent) return res.status(400).json({ error: 'agent query param required' });
+  try {
+    const result = await mcpServer._getMyTasks({ agent, status });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * POST /api/agent/tasks/:taskId/claim
+ * Body: { agent }
+ */
+app.post('/api/agent/tasks/:taskId/claim', agentApiAuth, async (req, res) => {
+  if (!mcpServer) return vaultUnavailable(res);
+  const { agent } = req.body || {};
+  if (!agent) return res.status(400).json({ error: 'agent required in body' });
+  try {
+    const result = await mcpServer._claimTask({ taskId: req.params.taskId, agent });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * POST /api/agent/tasks/:taskId/complete
+ * Body: { agent, output }
+ */
+app.post('/api/agent/tasks/:taskId/complete', agentApiAuth, async (req, res) => {
+  if (!mcpServer) return vaultUnavailable(res);
+  const { agent, output } = req.body || {};
+  if (!agent || !output) return res.status(400).json({ error: 'agent and output required in body' });
+  try {
+    const result = await mcpServer._completeTask({ taskId: req.params.taskId, agent, output });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * POST /api/agent/tasks/:taskId/block
+ * Body: { agent, reason }
+ */
+app.post('/api/agent/tasks/:taskId/block', agentApiAuth, async (req, res) => {
+  if (!mcpServer) return vaultUnavailable(res);
+  const { agent, reason } = req.body || {};
+  if (!agent || !reason) return res.status(400).json({ error: 'agent and reason required in body' });
+  try {
+    const result = await mcpServer._blockTask({ taskId: req.params.taskId, agent, reason });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * POST /api/agent/tasks/:taskId/note
+ * Body: { agent, note }
+ */
+app.post('/api/agent/tasks/:taskId/note', agentApiAuth, async (req, res) => {
+  if (!mcpServer) return vaultUnavailable(res);
+  const { agent, note } = req.body || {};
+  if (!agent || !note) return res.status(400).json({ error: 'agent and note required in body' });
+  try {
+    const result = await mcpServer._addTaskNote({ taskId: req.params.taskId, agent, note });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * GET /api/agent/notifications?agent=<shortname>
+ * Returns unread notification files.
+ */
+app.get('/api/agent/notifications', agentApiAuth, async (req, res) => {
+  if (!mcpServer) return vaultUnavailable(res);
+  const agent = (req.query.agent || '').toLowerCase();
+  if (!agent) return res.status(400).json({ error: 'agent query param required' });
+  try {
+    const result = await mcpServer._getNotifications({ agent });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * POST /api/agent/notifications/handled
+ * Body: { agent, filename }
+ */
+app.post('/api/agent/notifications/handled', agentApiAuth, async (req, res) => {
+  if (!mcpServer) return vaultUnavailable(res);
+  const { agent, filename } = req.body || {};
+  if (!agent || !filename) return res.status(400).json({ error: 'agent and filename required in body' });
+  try {
+    const result = await mcpServer._markNotificationHandled({ agent, filename });
+    res.json(result);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Simple /status route
