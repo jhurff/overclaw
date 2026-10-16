@@ -2454,7 +2454,7 @@ app.post('/api/gap/record', async (req, res) => {
 const MCP_API_KEY = process.env.MCP_API_KEY || ocConfig.mcpApiKey || null;
 
 const mcpServer = vaultReader
-  ? new McpServer({ vaultReader, vaultPath: VAULT_PATH })
+  ? new McpServer({ vaultReader, vaultPath: VAULT_PATH, clawBridge })
   : null;
 
 /** Require Bearer token or X-Api-Key when MCP_API_KEY is configured. */
