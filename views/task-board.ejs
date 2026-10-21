@@ -1517,8 +1517,9 @@
         const tp   = card.dataset.taskPath;
         if (tid && tp) openTaskModal(tid, tp);
       });
-      document.getElementById('task-modal-overlay').addEventListener('click', e => {
-        if (e.target.id === 'task-modal-overlay') _tmClose();
+      // Use event delegation so this works even when overlay is parsed after the script
+      document.addEventListener('click', e => {
+        if (e.target && e.target.id === 'task-modal-overlay') _tmClose();
       });
     }
 
