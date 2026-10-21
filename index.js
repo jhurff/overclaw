@@ -308,8 +308,8 @@ async function vaultSync(message) {
 
 /** Write a Tier-2 notification .md for any agent. */
 async function writeNotificationFile(agentKey, taskId, title, fromSection) {
-  const cap = { spike:'Spike', steve:'Steve', lex:'Lex', bill:'Bill', jimmy:'Jimmy' };
-  const agentName = cap[agentKey.toLowerCase()] || agentKey;
+  // Any agent key: capitalize first letter (no hardcoded list — new agents work automatically)
+  const agentName = agentKey.charAt(0).toUpperCase() + agentKey.slice(1);
   const now   = new Date();
   const stamp = now.toISOString().slice(0, 16).replace('T', '-').replace(':', '-');
   const dir   = require('path').join(VAULT_PATH, '03 - Agents', 'Notifications', agentName);
@@ -450,6 +450,7 @@ const RESOLVE_AGENT_MAP = {
   'BrightMove-MBP':        { key: 'steve', label: 'Steve — Claude Cowork / BrightMove MBP', canWake: false },
   'BrightMove-MBP/Cursor': { key: 'lex',   label: 'Lex — Cursor / BrightMove MBP',          canWake: false },
   'H2FClanker1':           { key: 'bill',  label: 'Bill — ChatGPT / H2FClanker1',            canWake: false },
+  'Grok-Bot':              { key: 'luther', label: 'Luther/Peter — Grok Bot cloud',              canWake: false },
 };
 
 /** All agents as an ordered list for the picker. */
@@ -458,6 +459,8 @@ const RESOLVE_AGENTS_LIST = [
   { key: 'steve', label: 'Steve — Claude Cowork / BrightMove MBP', canWake: false },
   { key: 'bill',  label: 'Bill — ChatGPT / H2FClanker1',            canWake: false },
   { key: 'lex',   label: 'Lex — Cursor / BrightMove MBP',          canWake: false },
+  { key: 'luther', label: 'Luther — Grok Bot cloud',              canWake: false },
+  { key: 'peter',  label: 'Peter — Grok Bot cloud',               canWake: false },
 ];
 
 /**

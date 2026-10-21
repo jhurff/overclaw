@@ -735,13 +735,31 @@
       const alts  = data.alerts || [];
       const regs  = data.agents || [];
 
-      const AGENTS = [
-        { name:'Spike',  color:'#f97316', keys:['OpenClaw'] },
-        { name:'Steve',  color:'#3b82f6', keys:['BrightMove-MBP'] },
-        { name:'Lex',    color:'#a855f7', keys:['BrightMove-MBP/Cursor'] },
-        { name:'Bill',   color:'#10b981', keys:['H2FClanker1'] },
-        { name:'Luther', color:'#eab308', keys:['Grok-Bot'] },
-      ];
+      // Derive heartbeat dir key(s) from vault registry row machine/type fields
+      function deriveHeartbeatKeys(reg) {
+        const nick = (reg.nickname || '').toLowerCase();
+        const mach = (reg.machine || '').toLowerCase();
+        const type = (reg.type || '').toLowerCase();
+        if (nick === 'spike' || mach.includes('h2fclanker2')) return ['OpenClaw', 'H2FClanker2'];
+        if (type.includes('cursor'))                           return ['BrightMove-MBP/Cursor'];
+        if (mach.includes('brightmove') || mach.includes('macbook')) return ['BrightMove-MBP'];
+        if (mach.includes('h2fclanker1'))                      return ['H2FClanker1'];
+        if (mach.includes('grok bot') || type.includes('grok')) return ['Grok-Bot'];
+        return [reg.nickname || 'unknown'];
+      }
+      const _HM_COLORS = {};
+      ((data.heatmap && data.heatmap.agents) || []).forEach(a => {
+        _HM_COLORS[a.name.toLowerCase()] = a.color;
+      });
+      const _PALETTE = ['#f97316','#3b82f6','#a855f7','#10b981','#eab308','#ec4899','#14b8a6','#6366f1'];
+      // Build AGENTS dynamically — any active agent in the vault registry shows up automatically
+      const AGENTS = regs
+        .filter(r => (r.status || '').includes('Active'))
+        .map((r, i) => {
+          const name  = (r.nickname || r.agent || 'Agent').trim();
+          const color = _HM_COLORS[name.toLowerCase()] || _PALETTE[i % _PALETTE.length];
+          return { name, color, keys: deriveHeartbeatKeys(r) };
+        });
 
       function timeAgo(d) {
         if (!d) return 'never';
