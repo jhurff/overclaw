@@ -855,6 +855,38 @@ app.get('/api/vault/agents', async (req, res) => {
   }
 });
 
+// GET /api/vault/task?path=<vault-relative-path>  — read individual task file
+app.get('/api/vault/task', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const relPath = (req.query.path || '').trim().replace(/\.\./g, '');
+  if (!relPath) return res.status(400).json({ error: 'path required' });
+  try {
+    const task = await vaultReader.getTaskFile(relPath);
+    res.json(task);
+  } catch (err) {
+    const code = err.message.includes('scope') ? 403 : (err.code === 'ENOENT' ? 404 : 500);
+    res.status(code).json({ error: err.message });
+  }
+});
+
+// POST /api/vault/task?path=<vault-relative-path>  — update task frontmatter + vault-sync
+app.post('/api/vault/task', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  const relPath = (req.query.path || '').trim().replace(/\.\./g, '');
+  if (!relPath) return res.status(400).json({ error: 'path required' });
+  const updates = req.body || {};
+  try {
+    await vaultReader.updateTaskFile(relPath, updates);
+    const taskBase = require('path').basename(relPath, '.md');
+    const synced   = await vaultSync(`task: update ${taskBase.slice(0, 80)}`);
+    res.json({ ok: true, synced: synced.ok, syncWarning: synced.ok ? null : synced.stderr });
+  } catch (err) {
+    const code = err.message.includes('scope') ? 403 : 500;
+    res.status(code).json({ error: err.message });
+  }
+});
+
+
 // API: read a vault file
 app.get('/api/vault/file', async (req, res) => {
   if (!vaultReader) return vaultUnavailable(res);

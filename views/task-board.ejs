@@ -494,6 +494,212 @@
     }
     body.light-mode #drop-panel .dp-cancel { color: #64748b; border-color: #e2e8f0; }
 
+    /* ── Agent filter bar ── */
+    .tb-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+      padding-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tb-filter-label {
+      font-size: 0.72rem;
+      color: #6b7280;
+      margin-right: 0.15rem;
+      white-space: nowrap;
+    }
+    .filter-pill {
+      font-size: 0.72rem;
+      padding: 0.18rem 0.65rem;
+      border-radius: 9999px;
+      border: 1px solid #374151;
+      background: transparent;
+      color: #9ca3af;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .filter-pill:hover { border-color: #6b7280; color: #e2e8f0; }
+    .filter-pill.active          { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; font-weight: 600; }
+    .filter-pill.fp-jimmy.active { background: #1a2d1a; border-color: #059669; color: #6ee7b7; }
+
+    /* ── Jimmy “Your Queue” section ── */
+    .jimmy-queue {
+      flex-shrink: 0;
+      background: rgba(251,191,36,0.04);
+      border: 1px solid rgba(251,191,36,0.22);
+      border-radius: 8px;
+      margin-bottom: 0.6rem;
+      overflow: hidden;
+    }
+    .jimmy-queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 0.8rem;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color .15s, background .15s;
+    }
+    .jimmy-queue-header:hover { background: rgba(251,191,36,0.06); }
+    .jimmy-queue.expanded .jimmy-queue-header { border-bottom-color: rgba(251,191,36,0.15); }
+    .jimmy-queue-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .jimmy-queue-count {
+      font-size: 0.65rem;
+      background: rgba(251,191,36,0.2);
+      color: #fbbf24;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-weight: 700;
+    }
+    .jimmy-queue-chevron {
+      font-size: 0.7rem;
+      color: #6b7280;
+      transition: transform .2s;
+      display: inline-block;
+    }
+    .jimmy-queue.expanded .jimmy-queue-chevron { transform: rotate(90deg); }
+    .jimmy-queue-body {
+      display: none;
+      padding: 0.5rem;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .jimmy-queue.expanded .jimmy-queue-body { display: flex; }
+    .jq-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(251,191,36,0.18);
+      border-radius: 6px;
+      padding: 0.5rem 0.65rem;
+      min-width: 170px;
+      max-width: 240px;
+      font-size: 0.8rem;
+      cursor: default;
+    }
+    .jq-card:hover { border-color: rgba(251,191,36,0.35); }
+    .jq-status-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+    }
+    .jq-status-inbox    { color: #a78bfa; }
+    .jq-status-progress { color: #60a5fa; }
+    .jq-status-blocked  { color: #f87171; }
+    .jq-card-id   { font-size: 0.62rem; font-family: monospace; color: #4b9edb;
+                    text-decoration: none; display: block; margin-bottom: 2px; }
+    .jq-card-id:hover { text-decoration: underline; }
+    .jq-card-title { font-weight: 500; color: #e2e8f0; line-height: 1.3; font-size: 0.77rem;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    /* light-mode overrides for filter + queue */
+    body.light-mode .tb-filter-label  { color: #64748b; }
+    body.light-mode .filter-pill      { border-color: #e2e8f0; color: #475569; background: #f8fafc; }
+    body.light-mode .filter-pill:hover { border-color: #94a3b8; color: #1e293b; }
+    body.light-mode .filter-pill.active { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
+    body.light-mode .filter-pill.fp-jimmy.active { background: #f0fdf4; border-color: #059669; color: #047857; }
+    body.light-mode .jimmy-queue { background: rgba(251,191,36,0.03); border-color: rgba(180,135,26,0.3); }
+    body.light-mode .jimmy-queue-title { color: #b45309; }
+    body.light-mode .jimmy-queue-count { background: rgba(180,135,26,0.12); color: #b45309; }
+    body.light-mode .jq-card { background: #fefce8; border-color: rgba(180,135,26,0.2); }
+    body.light-mode .jq-card:hover { border-color: rgba(180,135,26,0.4); }
+    body.light-mode .jq-card-title { color: #1e293b; }
+
+    /* ── Task Edit Modal ── */
+    .tm-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.65);
+      display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .tm-overlay.open { display: flex; }
+    .tm-dialog {
+      background: #111827; border: 1px solid #374151; border-radius: 10px;
+      width: 100%; max-width: 520px; max-height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,.7);
+    }
+    .tm-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.75rem 1rem; border-bottom: 1px solid #1f2937; flex-shrink: 0;
+    }
+    .tm-id   { font-size: 0.72rem; font-family: monospace; color: #4b9edb; flex: 1; }
+    .tm-fullview { font-size: 0.72rem; color: #6b7280; text-decoration: none; white-space: nowrap; }
+    .tm-fullview:hover { color: #93c5fd; text-decoration: underline; }
+    .tm-close {
+      background: none; border: none; color: #6b7280; font-size: 1.1rem;
+      cursor: pointer; line-height: 1; padding: 0 0.15rem;
+    }
+    .tm-close:hover { color: #e2e8f0; }
+    .tm-body {
+      flex: 1; overflow-y: auto; padding: 0.9rem;
+      display: flex; flex-direction: column; gap: 0.65rem;
+    }
+    .tm-field label {
+      display: block; font-size: 0.67rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.22rem;
+    }
+    .tm-field input[type=text],
+    .tm-field input[type=date],
+    .tm-field select,
+    .tm-field textarea {
+      width: 100%; box-sizing: border-box;
+      background: #0f1117; color: #e2e8f0;
+      border: 1px solid #374151; border-radius: 5px;
+      padding: 0.35rem 0.55rem; font-size: 0.82rem; font-family: inherit;
+    }
+    .tm-field input:focus,.tm-field select:focus,.tm-field textarea:focus {
+      outline: none; border-color: #4f46e5;
+    }
+    .tm-field textarea { resize: vertical; min-height: 72px; }
+    .tm-row { display: flex; gap: 0.55rem; }
+    .tm-row .tm-field { flex: 1; }
+    .tm-footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+      padding: 0.65rem 0.9rem; border-top: 1px solid #1f2937; flex-shrink: 0;
+    }
+    .tm-status-msg { font-size: 0.73rem; color: #6b7280; flex: 1; min-width: 0; }
+    .tm-footer-btns { display: flex; gap: 0.45rem; flex-shrink: 0; }
+    .tm-btn-primary {
+      font-size: 0.8rem; padding: 0.3rem 0.9rem;
+      background: #4f46e5; color: #fff; border: none;
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+    }
+    .tm-btn-primary:hover  { background: #4338ca; }
+    .tm-btn-primary:disabled { opacity: .5; cursor: default; }
+    .tm-btn-secondary {
+      font-size: 0.8rem; padding: 0.3rem 0.9rem;
+      background: transparent; color: #9ca3af; border: 1px solid #374151;
+      border-radius: 5px; cursor: pointer; font-family: inherit;
+    }
+    .tm-btn-secondary:hover { border-color: #6b7280; color: #e2e8f0; }
+    /* Card: clickable + compact label */
+    .kb-card { cursor: pointer; }
+    .card-label {
+      font-weight: 600; color: #e2e8f0; font-size: 0.85rem; line-height: 1.3;
+      margin: 0.15rem 0 0.3rem;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card-chips { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; margin-top: 0.2rem; }
+    body.light-mode .tm-dialog { background: #fff; border-color: #e2e8f0; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+    body.light-mode .tm-header { border-bottom-color: #e2e8f0; }
+    body.light-mode .tm-footer { border-top-color: #e2e8f0; }
+    body.light-mode .tm-field label { color: #64748b; }
+    body.light-mode .tm-field input,
+    body.light-mode .tm-field select,
+    body.light-mode .tm-field textarea { background: #f8fafc; color: #1e293b; border-color: #e2e8f0; }
+    body.light-mode .tm-btn-secondary { border-color: #e2e8f0; color: #64748b; }
+    body.light-mode .card-label { color: #1e293b; }
+
   </style>
 </head>
 <body>
@@ -518,6 +724,31 @@
           <span id="tb-sync-ts"></span>
           <button class="tb-sync-btn" id="sync-btn" onclick="syncVault()">↻ Sync</button>
         </div>
+      </div>
+
+      <!-- Agent filter bar -->
+      <div class="tb-filter-bar" id="agent-filter-bar">
+        <span class="tb-filter-label">Filter:</span>
+        <button class="filter-pill active" data-agent="" onclick="setAgentFilter(this)">All</button>
+        <button class="filter-pill" data-agent="spike" onclick="setAgentFilter(this)">🦞 Spike</button>
+        <button class="filter-pill" data-agent="lex" onclick="setAgentFilter(this)">Lex</button>
+        <button class="filter-pill" data-agent="steve" onclick="setAgentFilter(this)">Steve</button>
+        <button class="filter-pill" data-agent="bill" onclick="setAgentFilter(this)">Bill</button>
+        <button class="filter-pill" data-agent="luther" onclick="setAgentFilter(this)">Luther</button>
+        <button class="filter-pill" data-agent="peter"  onclick="setAgentFilter(this)">Peter</button>
+        <button class="filter-pill fp-jimmy" data-agent="jimmy" onclick="setAgentFilter(this)">👤 Jimmy (You)</button>
+      </div>
+
+      <!-- Jimmy "Your Queue" -->
+      <div class="jimmy-queue expanded" id="jimmy-queue" style="display:none">
+        <div class="jimmy-queue-header" onclick="toggleJimmyQueue()">
+          <div class="jimmy-queue-title">
+            👤 Needs Your Attention
+            <span class="jimmy-queue-count" id="jq-count">0</span>
+          </div>
+          <span class="jimmy-queue-chevron">▶</span>
+        </div>
+        <div class="jimmy-queue-body" id="jq-body"></div>
       </div>
 
       <!-- Vault error -->
@@ -606,9 +837,63 @@
     })();
 
     /* ── State ── */
-    const DONE_LIMIT = 10;
-    let currentData  = null;
-    let doneExpanded = false;
+    const DONE_LIMIT   = 10;
+    let currentData    = null;
+    let doneExpanded   = false;
+    let activeAgentFilter = '';   // '' = All
+
+    /* ── Agent filter ── */
+    function setAgentFilter(btn) {
+      activeAgentFilter = btn.dataset.agent || '';
+      document.querySelectorAll('.filter-pill').forEach(p =>
+        p.classList.toggle('active', (p.dataset.agent || '') === activeAgentFilter)
+      );
+      if (currentData) reRenderAll();
+    }
+
+    function reRenderAll() {
+      renderCol('col-inbox-cards',      currentData.inbox,      false, false);
+      renderCol('col-inprogress-cards', currentData.inProgress, false, false);
+      renderCol('col-blocked-cards',    currentData.blocked,    true,  false);
+      renderCol('col-done-cards',       currentData.done,       false, true);
+    }
+
+    /* ── Jimmy “Your Queue” ── */
+    function renderJimmyQueue(data) {
+      const jimmyTasks = [
+        ...(data.inbox      || []),
+        ...(data.inProgress || []),
+        ...(data.blocked    || []),
+      ].filter(t => (t.agent || '').toLowerCase() === 'jimmy');
+
+      const qEl = document.getElementById('jimmy-queue');
+      const cEl = document.getElementById('jq-count');
+      const bEl = document.getElementById('jq-body');
+      cEl.textContent = jimmyTasks.length;
+
+      if (!jimmyTasks.length) { qEl.style.display = 'none'; return; }
+      qEl.style.display = '';
+
+      bEl.innerHTML = jimmyTasks.map(t => {
+        const docPath = t.link ? '03 - Agents/Coordination/' + t.link : null;
+        const title   = (t.title || '(untitled)').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const idEl    = docPath
+          ? `<a href="/vault/doc?path=${encodeURIComponent(docPath)}" class="jq-card-id" target="_blank">${t.taskId}</a>`
+          : `<span class="jq-card-id">${t.taskId}</span>`;
+        let sCls = 'jq-status-inbox', sLabel = '\ud83d\udce5 Inbox';
+        if (t.status === 'inProgress') { sCls = 'jq-status-progress'; sLabel = '\ud83d\udd04 In Progress'; }
+        if (t.status === 'blocked')    { sCls = 'jq-status-blocked';  sLabel = '\ud83d\udeab Blocked'; }
+        return `<div class="jq-card">`
+          + `<div class="jq-status-label ${sCls}">${sLabel}</div>`
+          + idEl
+          + `<div class="jq-card-title">${title}</div>`
+          + `</div>`;
+      }).join('');
+    }
+
+    function toggleJimmyQueue() {
+      document.getElementById('jimmy-queue').classList.toggle('expanded');
+    }
 
     /* ── Helpers ── */
     function priorityChip(p) {
@@ -630,116 +915,95 @@
     }
 
     function card(task, extraCls) {
-      // task.link is like "Tasks/TASK-20260730-007.md" — relative to "03 - Agents/Coordination/"
-      const docPath = task.link
-        ? '03 - Agents/Coordination/' + task.link
-        : null;
-      const title = (task.title || '(untitled)').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      const titleEl = docPath
-        ? `<a href="/vault/doc?path=${encodeURIComponent(docPath)}" class="task-title" target="_blank">${title}</a>`
-        : `<div class="task-title">${title}</div>`;
-      const idBadge = task.taskId && docPath
-        ? `<a href="/vault/doc?path=${encodeURIComponent(docPath)}" class="task-id" target="_blank">${task.taskId}</a>`
-        : task.taskId ? `<div class="task-id">${task.taskId}</div>` : '';
+      const docPath  = task.link ? '03 - Agents/Coordination/' + task.link : null;
+      const rawTitle = (task.title || '(untitled)').replace(/\*\*/g,'').trim();
+      const label    = (task.shortName || (rawTitle.length > 54 ? rawTitle.slice(0,54)+'\u2026' : rawTitle))
+                         .replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const tidSafe  = (task.taskId||'').replace(/[^A-Z0-9\-]/g,'');
+      const st       = task.status || '';
 
-      /* ── Next-step / action section ── */
-      let actionEl = '';
-      const st = task.status || '';
-      if (st === 'blocked') {
-        let blockedBody = '';
-        if (task.reason) {
-          const r = task.reason.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          const jiIdx = r.search(/Jimmy:/i);
-          if (jiIdx >= 0) {
-            const pre = r.slice(0, jiIdx).trim();
-            const ji  = r.slice(jiIdx);
-            const jiShort = ji.length > 180 ? ji.slice(0,180)+'…' : ji;
-            blockedBody = `<div class="task-action blocked-action">`
-              + (pre ? `<div class="action-context">${pre.length>100?pre.slice(0,100)+'…':pre}</div>` : '')
-              + `<div class="action-jimmy">→ ${jiShort}</div></div>`;
-          } else {
-            const s = r.length > 180 ? r.slice(0,180)+'…' : r;
-            blockedBody = `<div class="task-action blocked-action">${s}</div>`;
-          }
-        }
-        const tid2 = (task.taskId||'').replace(/[^A-Z0-9\-]/g,'');
-        actionEl = blockedBody +
-          `<div class="reassign-section assign-row">` +
-          `<select class="assign-select" id="rsel-${tid2}">` +
-          `<option value="">↻ Reassign to…</option>` +
-          `<option value="spike">Spike</option>` +
-          `<option value="steve">Steve</option>` +
-          `<option value="lex">Lex</option>` +
-          `<option value="bill">Bill</option>` +
-          `</select>` +
-          `<button class="reassign-btn" data-task-id="${tid2}" data-from="blocked" onclick="assignTask(this)">↻ Reassign</button>` +
-          `</div>`;
-      } else if (st === 'inProgress') {
-        if (task.isStuck) {
-          const icon  = task.isOverdue ? '\u23f0' : '\u23f1';
-          const label = task.isOverdue ? `Overdue ${task.overdueDays}d` : `Stale ${task.staleDays}d`;
-          const sub   = task.created && task.created !== '\u2014' ? ' \u00b7 Started ' + task.created : '';
-          actionEl = `<div class="task-action stuck-action">`
-            + `<div class="stuck-action-label">${icon} ${label}${sub}</div>`
-            + `<button class="escalate-btn" data-task-id="${task.taskId}" onclick="escalateTask(this.dataset.taskId,this)">→ Move to Blocked</button>`
-            + `</div>`;
-        } else {
-          const parts = [];
-          if (task.created && task.created !== '\u2014') parts.push('Started ' + task.created);
-          if (task.deadline && task.deadline !== '\u2014') parts.push('Due ' + task.deadline);
-          if (parts.length) actionEl = `<div class="task-action progress-action">${parts.join(' \u00b7 ')}</div>`;
-        }
-      } else if (st === 'inbox') {
-        const parts = [];
-        if (task.deadline && task.deadline !== '—') parts.push('Due: ' + task.deadline.replace(/</g,'&lt;'));
-        const dueHtml = parts.length ? `<div class="task-action inbox-action">${parts.join(' · ')}</div>` : '';
-        const tid = (task.taskId||'').replace(/[^A-Z0-9\-]/g,'');
-        actionEl = dueHtml +
-          `<div class="assign-row">` +
-          `<select class="assign-select" id="asel-${tid}">` +
-          `<option value="">Assign &amp; start…</option>` +
-          `<option value="spike">Spike</option>` +
-          `<option value="steve">Steve</option>` +
-          `<option value="lex">Lex</option>` +
-          `<option value="bill">Bill</option>` +
-          `</select>` +
-          `<button class="assign-btn" data-task-id="${tid}" data-from="inbox" onclick="assignTask(this)">→ Start</button>` +
-          `</div>`;
-      } else if (st === 'done' && task.output) {
-        const out = task.output.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        const s = out.length > 120 ? out.slice(0,120)+'…' : out;
-        actionEl = `<div class="task-action done-action">${s}</div>`;
-      }
+      const idEl = docPath
+        ? `<a href="/vault/doc?path=${encodeURIComponent(docPath)}" class="task-id" target="_blank" onclick="event.stopPropagation()">${task.taskId}</a>`
+        : `<span class="task-id">${task.taskId||''}</span>`;
 
-      const stCls  = { inbox:'st-inbox', inProgress:'st-wip', blocked:'st-blocked', done:'st-done' };
       const agentEl = task.agent
         ? `<span class="chip chip-agent" style="${agentColor(task.agent)}">${task.agent}</span>` : '';
-      const pri = priorityChip(task.priority);
-      /* avoid double-showing date when actionEl already has it */
-      const rawDate = (st === 'inProgress') ? '' : (task.deadline || task.created || '');
-      const date = rawDate.replace(/</g,'&lt;');
-      const dateEl = date && date !== '—' ? `<span class="kb-date">${date}</span>` : '';
-      const draggable = (st !== 'done') ? 'draggable="true"' : '';
-      return `<div class="kb-card ${extraCls||''} ${stCls[st]||''} ${task.isStuck ? 'is-stuck' : ''}" ${draggable} data-task-id="${task.taskId||''}" data-section="${st}">
-        ${idBadge}${titleEl}${actionEl}
-        <div class="task-footer">${agentEl}${pri}${dateEl}</div>
+      const priEl  = priorityChip(task.priority);
+      const rawDt  = st === 'inProgress' ? (task.deadline||'') : (task.deadline||task.created||'');
+      const dateEl = rawDt && rawDt !== '\u2014'
+        ? `<span class="kb-date">${rawDt.replace(/</g,'&lt;')}</span>` : '';
+
+      let actionEl = '';
+      if (st === 'inbox') {
+        actionEl = `<div class="assign-row">
+          <select class="assign-select" id="asel-${tidSafe}" onclick="event.stopPropagation()">
+            <option value="">Assign &amp; start\u2026</option>
+            <option value="spike">Spike</option><option value="steve">Steve</option>
+            <option value="lex">Lex</option><option value="bill">Bill</option>
+            <option value="jimmy">Jimmy</option><option value="luther">Luther</option>
+            <option value="peter">Peter</option>
+          </select>
+          <button class="assign-btn" data-task-id="${tidSafe}" data-from="inbox"
+            onclick="event.stopPropagation();assignTask(this)">\u2192 Start</button>
+        </div>`;
+      } else if (st === 'inProgress' && task.isStuck) {
+        const icon2 = task.isOverdue ? '\u23f0' : '\u23f1';
+        const lbl2  = task.isOverdue ? `Overdue ${task.overdueDays}d` : `Stale ${task.staleDays}d`;
+        actionEl = `<div class="task-action stuck-action">
+          <div class="stuck-action-label">${icon2} ${lbl2}</div>
+          <button class="escalate-btn" data-task-id="${task.taskId}"
+            onclick="event.stopPropagation();escalateTask(this.dataset.taskId,this)">\u2192 Block</button>
+        </div>`;
+      } else if (st === 'blocked') {
+        const rTxt  = (task.reason||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const short = rTxt.length > 90 ? rTxt.slice(0,90)+'\u2026' : rTxt;
+        if (short) actionEl += `<div class="task-action blocked-action" style="font-size:.7rem;padding:.2rem .35rem">${short}</div>`;
+        actionEl += `<div class="reassign-section assign-row">
+          <select class="assign-select" id="rsel-${tidSafe}" onclick="event.stopPropagation()">
+            <option value="">\u21bb Reassign\u2026</option>
+            <option value="spike">Spike</option><option value="steve">Steve</option>
+            <option value="lex">Lex</option><option value="bill">Bill</option>
+          </select>
+          <button class="reassign-btn" data-task-id="${tidSafe}" data-from="blocked"
+            onclick="event.stopPropagation();assignTask(this)">\u21bb Go</button>
+        </div>`;
+      }
+
+      const stCls    = { inbox:'st-inbox', inProgress:'st-wip', blocked:'st-blocked', done:'st-done' };
+      const draggable = st !== 'done' ? 'draggable="true"' : '';
+      const pathAttr  = docPath ? `data-task-path="${encodeURIComponent(docPath)}"` : '';
+
+      return `<div class="kb-card ${extraCls||''} ${stCls[st]||''} ${task.isStuck?'is-stuck':''}"
+        ${draggable} data-task-id="${task.taskId||''}" data-section="${st}" ${pathAttr}>
+        ${idEl}
+        <div class="card-label">${label}</div>
+        <div class="card-chips">${agentEl}${priEl}${dateEl}</div>
+        ${actionEl}
       </div>`;
     }
 
+
     function renderCol(id, tasks, blocked, isDone) {
       const el = document.getElementById(id);
-      if (!tasks || !tasks.length) {
-        el.innerHTML = '<div class="kb-empty">Empty</div>';
+      // Apply agent filter
+      const allTasks = tasks || [];
+      const filtered = activeAgentFilter
+        ? allTasks.filter(t => (t.agent || '').toLowerCase() === activeAgentFilter)
+        : allTasks;
+      if (!filtered.length) {
+        el.innerHTML = activeAgentFilter && allTasks.length
+          ? `<div class="kb-empty">No ${activeAgentFilter} tasks</div>`
+          : '<div class="kb-empty">Empty</div>';
         return;
       }
       const cls = blocked ? 'is-blocked' : '';
-      if (isDone && !doneExpanded && tasks.length > DONE_LIMIT) {
-        const rest = tasks.length - DONE_LIMIT;
-        el.innerHTML = tasks.slice(0, DONE_LIMIT).map(t => card(t, '')).join('') +
+      if (isDone && !doneExpanded && filtered.length > DONE_LIMIT) {
+        const rest = filtered.length - DONE_LIMIT;
+        el.innerHTML = filtered.slice(0, DONE_LIMIT).map(t => card(t, '')).join('') +
           `<button class="show-more-btn" onclick="expandDone()">+${rest} more</button>`;
       } else {
-        el.innerHTML = tasks.map(t => card(t, cls)).join('');
-        if (isDone && tasks.length > DONE_LIMIT)
+        el.innerHTML = filtered.map(t => card(t, cls)).join('');
+        if (isDone && filtered.length > DONE_LIMIT)
           el.innerHTML += `<button class="show-more-btn" onclick="collapseDone()">Show less</button>`;
       }
     }
@@ -817,6 +1081,7 @@
         renderCol('col-inprogress-cards', data.inProgress, false, false);
         renderCol('col-blocked-cards',    data.blocked,    true,  false);
         renderCol('col-done-cards',       data.done,       false, true);
+        renderJimmyQueue(data);
         document.getElementById('tb-refresh-note').textContent =
           'Updated ' + new Date().toLocaleTimeString();
       } catch(e) {
@@ -892,6 +1157,7 @@
 
     /* ── Drag and drop ── */
     let _dragState = null;
+    let _isDraggingCard = false;
 
     function initDragDrop() {
       // Drag start on cards
@@ -901,10 +1167,12 @@
         _dragState = { taskId: card.dataset.taskId, section: card.dataset.section };
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', card.dataset.taskId);
+    _isDraggingCard = true;
         setTimeout(() => card.classList.add('is-dragging'), 0);
       });
 
       document.getElementById('kanban-board').addEventListener('dragend', e => {
+    setTimeout(() => { _isDraggingCard = false; }, 50);
         document.querySelectorAll('.kb-card.is-dragging').forEach(c => c.classList.remove('is-dragging'));
         document.querySelectorAll('.kb-col-body.drag-over, .kb-col-body.drag-over-blocked').forEach(c => {
           c.classList.remove('drag-over', 'drag-over-blocked');
@@ -1050,6 +1318,7 @@
     });
 
     initDragDrop();
+    initCardModal();
     loadBoard();
     setInterval(loadBoard, 60000);
 
@@ -1118,7 +1387,164 @@
         document.getElementById('tb-sync-ts').textContent =
           '· synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
     }).catch(()=>{});
+
+    /* ── Task Edit Modal ── */
+    let _isDraggingCard = false;
+    let _tmPath = null;
+
+    function _esc(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function openTaskModal(taskId, encodedPath) {
+      const taskPath = decodeURIComponent(encodedPath);
+      _tmPath = taskPath;
+      const overlay  = document.getElementById('task-modal-overlay');
+      const tmId     = document.getElementById('tm-id');
+      const tmBody   = document.getElementById('tm-body');
+      const tmFull   = document.getElementById('tm-fullview');
+      const saveBtn  = document.getElementById('tm-save-btn');
+      const statusEl = document.getElementById('tm-status-msg');
+      tmId.textContent    = taskId;
+      tmFull.href         = '/vault/doc?path=' + encodeURIComponent(taskPath);
+      tmBody.innerHTML    = '<div style="color:#6b7280;padding:2rem;text-align:center">Loading\u2026</div>';
+      saveBtn.disabled    = false;
+      saveBtn.textContent = 'Save Changes';
+      statusEl.textContent = '';
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      try {
+        const d = await fetch('/api/vault/task?path=' + encodeURIComponent(taskPath)).then(r => r.json());
+        if (d.error) throw new Error(d.error);
+        _tmRenderForm(d);
+      } catch(e) {
+        tmBody.innerHTML = `<div style="color:#f87171;padding:1rem">\u26a0\ufe0f ${e.message}</div>`;
+      }
+    }
+
+    function _tmRenderForm(d) {
+      const body    = document.getElementById('tm-body');
+      const AGENTS  = ['spike','steve','lex','bill','luther','peter','jimmy'];
+      const PRIS    = ['Critical','High','Medium','Low'];
+      const ST_MAP  = { inbox:'Inbox', in_progress:'In Progress', inProgress:'In Progress', blocked:'Blocked', done:'Done' };
+
+      const agentOpts = ['<option value="">\u2014 none \u2014</option>',
+        ...AGENTS.map(a => `<option value="${a}" ${(d.assignedTo||'').toLowerCase()===a?'selected':''}>${a.charAt(0).toUpperCase()+a.slice(1)}</option>`)
+      ].join('');
+
+      const priOpts = PRIS.map(p =>
+        `<option value="${p}" ${(d.priority||'')===p?'selected':''}>${p}</option>`
+      ).join('');
+
+      const curSt = (d.status||'').replace('inProgress','in_progress');
+      const stOpts = Object.entries(ST_MAP)
+        .filter(([k]) => k !== 'inProgress')
+        .map(([k,lbl]) => `<option value="${k}" ${curSt===k?'selected':''}>${lbl}</option>`)
+        .join('');
+
+      const bodyPrev = (d.bodyPreview||'').slice(0,800);
+      body.innerHTML = `
+        <div class="tm-field">
+          <label>Short Name <span style="color:#60a5fa;font-size:0.65rem;text-transform:none;letter-spacing:0;font-weight:400">(shown on card \u2014 keep it brief)</span></label>
+          <input type="text" id="tm-short-name" value="${_esc(d.shortName||'')}" placeholder="e.g. GCP Spend Report" maxlength="60">
+        </div>
+        <div class="tm-field">
+          <label>Full Title</label>
+          <input type="text" id="tm-title" value="${_esc(d.title||'')}">
+        </div>
+        <div class="tm-row">
+          <div class="tm-field"><label>Priority</label><select id="tm-priority">${priOpts}</select></div>
+          <div class="tm-field"><label>Deadline</label><input type="date" id="tm-deadline" value="${_esc(d.deadline||'')}"></div>
+        </div>
+        <div class="tm-row">
+          <div class="tm-field"><label>Agent</label><select id="tm-agent">${agentOpts}</select></div>
+          <div class="tm-field"><label>Status</label><select id="tm-status">${stOpts}</select></div>
+        </div>
+        ${bodyPrev ? `<div class="tm-field">
+          <label>Task Body <span style="color:#4b9edb;font-size:0.65rem;text-transform:none;letter-spacing:0;font-weight:400">(\u2194 read-only \u2014 <a href="/vault/doc?path=${encodeURIComponent(_tmPath||'')}" target="_blank" style="color:#4b9edb">edit full file</a>)</span></label>
+          <textarea readonly style="opacity:.55;cursor:default;font-size:0.75rem;font-family:monospace" rows="4">${_esc(bodyPrev)}</textarea>
+        </div>` : ''}`;
+      document.getElementById('tm-short-name')?.focus();
+    }
+
+    async function _tmSave() {
+      if (!_tmPath) return;
+      const saveBtn  = document.getElementById('tm-save-btn');
+      const statusEl = document.getElementById('tm-status-msg');
+      const updates  = {
+        short_name:  document.getElementById('tm-short-name')?.value.trim() || '',
+        title:       document.getElementById('tm-title')?.value.trim()      || '',
+        priority:    document.getElementById('tm-priority')?.value          || '',
+        deadline:    document.getElementById('tm-deadline')?.value          || '',
+        assigned_to: document.getElementById('tm-agent')?.value             || '',
+        status:      document.getElementById('tm-status')?.value            || '',
+      };
+      saveBtn.disabled    = true;
+      saveBtn.textContent = 'Saving\u2026';
+      statusEl.textContent = '';
+      try {
+        const r = await fetch('/api/vault/task?path=' + encodeURIComponent(_tmPath), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        }).then(res => res.json());
+        if (!r.ok) throw new Error(r.error || 'Save failed');
+        statusEl.textContent = '\u2713 Saved';
+        statusEl.style.color = '#6ee7b7';
+        saveBtn.textContent  = 'Save Changes';
+        saveBtn.disabled     = false;
+        setTimeout(() => { _tmClose(); loadBoard(); }, 700);
+      } catch(e) {
+        statusEl.textContent = '\u26a0\ufe0f ' + e.message;
+        statusEl.style.color = '#f87171';
+        saveBtn.textContent  = 'Save Changes';
+        saveBtn.disabled     = false;
+      }
+    }
+
+    function _tmClose() {
+      document.getElementById('task-modal-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+      _tmPath = null;
+    }
+
+    function initCardModal() {
+      document.getElementById('kanban-board').addEventListener('click', e => {
+        if (_isDraggingCard) return;
+        const card = e.target.closest('.kb-card');
+        if (!card) return;
+        if (e.target.closest('button,a,select,input,textarea')) return;
+        const tid  = card.dataset.taskId;
+        const tp   = card.dataset.taskPath;
+        if (tid && tp) openTaskModal(tid, tp);
+      });
+      document.getElementById('task-modal-overlay').addEventListener('click', e => {
+        if (e.target.id === 'task-modal-overlay') _tmClose();
+      });
+    }
+
   </script>
+
+<div id="task-modal-overlay" class="tm-overlay">
+  <div class="tm-dialog" role="dialog" aria-modal="true">
+    <div class="tm-header">
+      <code class="tm-id" id="tm-id">—</code>
+      <a id="tm-fullview" href="#" target="_blank" class="tm-fullview">View Full ↗</a>
+      <button class="tm-close" onclick="_tmClose()" aria-label="Close">✕</button>
+    </div>
+    <div class="tm-body" id="tm-body">
+      <div style="color:#6b7280;padding:2rem;text-align:center">Loading…</div>
+    </div>
+    <div class="tm-footer">
+      <span class="tm-status-msg" id="tm-status-msg"></span>
+      <div class="tm-footer-btns">
+        <button class="tm-btn-secondary" onclick="_tmClose()">Cancel</button>
+        <button class="tm-btn-primary" id="tm-save-btn" onclick="_tmSave()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="drop-panel">
     <h4 id="dp-title"></h4>
     <select id="dp-agent-select" style="display:none">
@@ -1127,6 +1553,8 @@
       <option value="steve">Steve</option>
       <option value="lex">Lex</option>
       <option value="bill">Bill</option>
+      <option value="luther">Luther</option>
+      <option value="peter">Peter</option>
     </select>
     <textarea id="dp-reason" placeholder="Reason for blocking…" style="display:none"></textarea>
     <div class="dp-actions">
