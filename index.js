@@ -450,7 +450,11 @@ const RESOLVE_AGENT_MAP = {
   'BrightMove-MBP':        { key: 'steve', label: 'Steve — Claude Cowork / BrightMove MBP', canWake: false },
   'BrightMove-MBP/Cursor': { key: 'lex',   label: 'Lex — Cursor / BrightMove MBP',          canWake: false },
   'H2FClanker1':           { key: 'bill',  label: 'Bill — ChatGPT / H2FClanker1',            canWake: false },
-  'Grok-Bot':              { key: 'luther', label: 'Luther/Peter — Grok Bot cloud',              canWake: false },
+  'Grok-Bot/Luther':       { key: 'luther', label: 'Luther — Grok Bot cloud',                   canWake: false },
+  'Grok-Bot/Peter':        { key: 'peter',  label: 'Peter — Grok Bot cloud',                    canWake: false },
+  'Grok-Bot/Buster':       { key: 'buster', label: 'Buster — Grok Bot cloud',                   canWake: false },
+  // Legacy flat key (fallback for old heartbeat files not yet moved)
+  'Grok-Bot':              { key: 'luther', label: 'Luther — Grok Bot cloud (legacy)',           canWake: false },
 };
 
 /** All agents as an ordered list for the picker. */
@@ -461,6 +465,7 @@ const RESOLVE_AGENTS_LIST = [
   { key: 'lex',   label: 'Lex — Cursor / BrightMove MBP',          canWake: false },
   { key: 'luther', label: 'Luther — Grok Bot cloud',              canWake: false },
   { key: 'peter',  label: 'Peter — Grok Bot cloud',               canWake: false },
+  { key: 'buster', label: 'Buster — Grok Bot cloud',              canWake: false },
 ];
 
 /**
@@ -791,6 +796,65 @@ app.post('/api/resolve/close', async (req, res) => {
   }
 });
 
+// POST /api/alerts/close-by-job — auto-close heartbeat alerts when a source recovers
+//
+// Called by monitors when they detect a FAILED → OK recovery for a specific
+// source/job.  Immediately stamps resolution_status: closed on the relevant
+// heartbeat file so the alert disappears from the feed without waiting for the
+// next scheduled monitor run.
+//
+// Body: { machine, job, note? }
+//   machine  — "H2FClanker2", "OpenClaw", etc.
+//   job      — job name, e.g. "bjb-disposition-monitor"
+//   note     — optional free-text recovery note (shown in history)
+//
+// Auth: same MCP_API_KEY used by agents
+app.post('/api/alerts/close-by-job', async (req, res) => {
+  // Lightweight bearer-token check (same key agents use for task APIs)
+  const auth = req.headers.authorization || '';
+  const expectedKey = process.env.MCP_API_KEY;
+  if (expectedKey && auth !== `Bearer ${expectedKey}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (!vaultReader) return vaultUnavailable(res);
+
+  const { machine, job, note } = req.body || {};
+  if (!machine || !job) {
+    return res.status(400).json({ error: '"machine" and "job" are required' });
+  }
+
+  try {
+    const result = await vaultReader.closeHeartbeatAlerts(machine, job, {
+      note: note || 'Source recovered — auto-closed on recovery detection.',
+      closedBy: 'auto-recovery',
+    });
+
+    if (result.closed > 0) {
+      // Commit the changes to vault so they're durable
+      const syncMsg = `spike: auto-close alert ${job} on ${machine} — recovered`;
+      const synced = await vaultSync(syncMsg);
+      return res.json({
+        ok: true,
+        closed: result.closed,
+        files: result.files,
+        synced: synced.ok,
+        syncWarning: synced.ok ? null : synced.stderr,
+      });
+    } else {
+      return res.json({
+        ok: true,
+        closed: 0,
+        files: [],
+        message: 'No open heartbeat alerts found for this machine/job combination.',
+      });
+    }
+  } catch (err) {
+    console.error(`[alerts/close-by-job] error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Helper: return a degraded response when the vault is unavailable
 function vaultUnavailable(res, details) {
   return res.status(503).json({ error: 'Vault not available', details: details || 'VaultReader not initialized' });
@@ -1093,21 +1157,39 @@ app.get('/api/swarm/summary', async (req, res) => {
       }
     }
 
-    // Fallback for Luther (Grok Bot) — runs on a cloud box, not on the LAN.
-    // Luther writes work logs to 03 - Agents/Grok-Bot/Luther/ and health-check
-    // logs to 08 - QA-and-Monitoring/Heartbeats/Grok-Bot/. Use the most recent
-    // dated .md file from either location as a proxy for last-seen.
-    const LUTHER_KEY = 'Grok-Bot';
-    if (!lastHeartbeat[LUTHER_KEY] || !lastHeartbeat[LUTHER_KEY].date) {
-      const [lutherHbDate, lutherLogDate] = await Promise.all([
-        vaultReader.getLatestEntryDate('08 - QA-and-Monitoring/Heartbeats/Grok-Bot').catch(() => null),
-        vaultReader.getLatestEntryDate('03 - Agents/Grok-Bot/Luther').catch(() => null),
-      ]);
-      const lutherDate = [lutherHbDate, lutherLogDate].filter(Boolean).sort().reverse()[0] || null;
-      if (lutherDate) {
-        lastHeartbeat[LUTHER_KEY] = {
+    // Fallback for Grok Bot agents (Luther, Peter, Buster) — each writes to their own
+    // Heartbeats/Grok-Bot/{Nickname}/ subfolder.  Build a separate lastHeartbeat entry
+    // per nickname so /swarm shows three distinct cards.
+    const GROK_NICKNAMES = [
+      { key: 'Grok-Bot/Luther', hbDir: '08 - QA-and-Monitoring/Heartbeats/Grok-Bot/Luther', logDir: '03 - Agents/Grok-Bot/Luther' },
+      { key: 'Grok-Bot/Peter',  hbDir: '08 - QA-and-Monitoring/Heartbeats/Grok-Bot/Peter',  logDir: '03 - Agents/Grok-Bot/Peter' },
+      { key: 'Grok-Bot/Buster', hbDir: '08 - QA-and-Monitoring/Heartbeats/Grok-Bot/Buster', logDir: '03 - Agents/Grok-Bot/Buster' },
+    ];
+    for (const { key, hbDir, logDir } of GROK_NICKNAMES) {
+      if (!lastHeartbeat[key] || !lastHeartbeat[key].date) {
+        const [hbDate, logDate] = await Promise.all([
+          vaultReader.getLatestEntryDate(hbDir).catch(() => null),
+          vaultReader.getLatestEntryDate(logDir).catch(() => null),
+        ]);
+        const best = [hbDate, logDate].filter(Boolean).sort().reverse()[0] || null;
+        if (best) {
+          const [, nickname] = key.split('/');
+          lastHeartbeat[key] = {
+            machine: 'Grok-Bot', subAgent: nickname,
+            date: best, isAlert: false, isHandled: false,
+            filename: 'work-log-fallback', type: 'work-log',
+          };
+        }
+      }
+    }
+    // Legacy flat key fallback (old flat Grok-Bot/ files before attribution split)
+    const LEGACY_GROK_KEY = 'Grok-Bot';
+    if (!lastHeartbeat[LEGACY_GROK_KEY] || !lastHeartbeat[LEGACY_GROK_KEY].date) {
+      const legacyDate = await vaultReader.getLatestEntryDate('08 - QA-and-Monitoring/Heartbeats/Grok-Bot').catch(() => null);
+      if (legacyDate) {
+        lastHeartbeat[LEGACY_GROK_KEY] = {
           machine: 'Grok-Bot', subAgent: null,
-          date: lutherDate, isAlert: false, isHandled: false,
+          date: legacyDate, isAlert: false, isHandled: false,
           filename: 'work-log-fallback', type: 'work-log',
         };
       }
@@ -2036,7 +2118,9 @@ app.get('/api/heartbeat-history', async (req, res) => {
       Steve:  ['BrightMove-MBP'],
       Lex:    ['BrightMove-MBP/Cursor'],
       Bill:   ['H2FClanker1'],
-      Luther: ['Grok-Bot'],
+      Luther: ['Grok-Bot/Luther', 'Grok-Bot'],
+      Peter:  ['Grok-Bot/Peter'],
+      Buster: ['Grok-Bot/Buster'],
     };
 
     const history = {};

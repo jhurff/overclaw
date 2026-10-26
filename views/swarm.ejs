@@ -553,7 +553,9 @@
                 { name:'Steve',  keys:['BrightMove-MBP'] },
                 { name:'Lex',    keys:['BrightMove-MBP/Cursor'] },
                 { name:'Bill',   keys:['H2FClanker1'] },
-                { name:'Luther', keys:['Grok-Bot'] },
+                { name:'Luther', keys:['Grok-Bot/Luther', 'Grok-Bot'] },
+                { name:'Peter',  keys:['Grok-Bot/Peter'] },
+                { name:'Buster', keys:['Grok-Bot/Buster'] },
               ];
               const machineRaw  = a.machine !== 'unknown' ? a.machine : null;
               const alertAgent  = ALERT_AGENTS.find(ag =>
@@ -744,7 +746,12 @@
         if (type.includes('cursor'))                           return ['BrightMove-MBP/Cursor'];
         if (mach.includes('brightmove') || mach.includes('macbook')) return ['BrightMove-MBP'];
         if (mach.includes('h2fclanker1'))                      return ['H2FClanker1'];
-        if (mach.includes('grok bot') || type.includes('grok')) return ['Grok-Bot'];
+        // Grok Bot: return per-nickname key so Luther / Peter / Buster each get their own card
+        if (mach.includes('grok bot') || type.includes('grok')) {
+          if (nick === 'peter')  return ['Grok-Bot/Peter'];
+          if (nick === 'buster') return ['Grok-Bot/Buster'];
+          return ['Grok-Bot/Luther', 'Grok-Bot']; // Luther + legacy flat key
+        }
         return [reg.nickname || 'unknown'];
       }
       const _HM_COLORS = {};
