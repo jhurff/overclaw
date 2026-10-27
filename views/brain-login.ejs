@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    .bl-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-deep, #0a0a16); }
+    .bl-card { background: var(--surface-2, #1a1a2e); border: 1px solid var(--border, #2a2a4a); border-radius: 14px; padding: 40px 44px; width: 100%; max-width: 380px; box-shadow: 0 12px 48px rgba(0,0,0,.5); }
+    .bl-logo { font-size: 26px; font-weight: 800; color: #e0e4f0; letter-spacing: -.5px; margin-bottom: 6px; }
+    .bl-sub { font-size: 14px; color: #556; margin-bottom: 28px; }
+    .bl-label { display: block; font-size: 12px; font-weight: 600; color: #a0a8c0; margin-bottom: 6px; }
+    .bl-input { width: 100%; background: var(--surface-3, #111122); border: 1px solid var(--border, #2a2a4a); border-radius: 8px; color: #e0e4f0; padding: 10px 14px; font-size: 14px; box-sizing: border-box; margin-bottom: 16px; }
+    .bl-input:focus { outline: none; border-color: #6366f1; }
+    .bl-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+    .bl-btn:hover { background: #4f51d0; }
+    .bl-err { color: #f87171; font-size: 13px; margin-top: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="bl-page">
+    <div class="bl-card">
+      <div class="bl-logo">🧠 OverClaw</div>
+      <div class="bl-sub">Sign in to access the AI Brain</div>
+      <form id="loginForm" onsubmit="doLogin(event)">
+        <label class="bl-label">Username</label>
+        <input class="bl-input" type="text" id="username" autocomplete="username" required autofocus>
+        <label class="bl-label">Password</label>
+        <input class="bl-input" type="password" id="password" autocomplete="current-password" required>
+        <button class="bl-btn" type="submit">Sign in</button>
+        <div class="bl-err" id="errMsg"></div>
+      </form>
+    </div>
+  </div>
+<script>
+async function doLogin(e) {
+  e.preventDefault();
+  const errEl = document.getElementById('errMsg');
+  errEl.style.display = 'none';
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  try {
+    const r = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await r.json();
+    if (r.ok && data.ok) {
+      const dest = new URLSearchParams(location.search).get('next') || '/brain';
+      location.href = dest;
+    } else {
+      errEl.textContent = data.error || 'Login failed';
+      errEl.style.display = '';
+    }
+  } catch {
+    errEl.textContent = 'Connection error';
+    errEl.style.display = '';
+  }
+}
+</script>
+</body>
+</html>

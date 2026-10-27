@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .bh-wrap { padding: 28px 36px; max-width: 860px; }
+    .bh-back { color: #6366f1; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 18px; }
+    .bh-back:hover { text-decoration: underline; }
+    .bh-title { font-size: 18px; font-weight: 700; color: #e0e4f0; margin-bottom: 4px; }
+    .bh-path { font-size: 12px; color: #555; margin-bottom: 20px; }
+    .bh-ver { border: 1px solid var(--border,#2a2a4a); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; }
+    .bh-ver-num { font-size: 22px; font-weight: 800; color: #6366f1; min-width: 36px; }
+    .bh-ver-meta { flex: 1; }
+    .bh-ver-by { font-size: 13px; color: #c0c8e0; font-weight: 600; }
+    .bh-ver-when { font-size: 12px; color: #666; }
+    .bh-ver-note { font-size: 12px; color: #888; font-style: italic; }
+    .bh-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+    .bh-btn-primary { background: #6366f1; color: #fff; }
+    .bh-btn-secondary { background: var(--surface-3,#111122); color: #aaa; border: 1px solid var(--border,#2a2a4a); }
+    .bh-btn:hover { opacity: .85; }
+    #versionPreview { margin-top: 20px; border: 1px solid var(--border,#2a2a4a); border-radius: 8px; padding: 20px; display: none; }
+    #versionPreview pre { white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #c0c8e0; }
+    .bh-empty { color: #555; font-size: 14px; text-align: center; padding: 40px; }
+  </style>
+</head>
+<body class="oc-body">
+  <header class="oc-topbar">
+    <span class="oc-topbar-logo">OVERCLAW</span>
+    <span class="oc-topbar-title">⏱ Version History</span>
+  </header>
+  <div class="oc-layout">
+    <%- include('partials/sidebar', { currentPath: '/brain' }) %>
+    <main class="oc-main-content">
+      <div class="bh-wrap">
+        <a class="bh-back" href="/brain?path=<%= encodeURIComponent(docPath) %>">← Back to document</a>
+        <div class="bh-title">Version History</div>
+        <div class="bh-path" id="pathDisplay"><%= docPath %></div>
+        <div id="historyList"><div class="bh-empty">Loading…</div></div>
+        <div id="versionPreview">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span id="previewTitle" style="font-size:14px;font-weight:700;color:#e0e4f0"></span>
+            <button class="bh-btn bh-btn-primary" onclick="restoreVersion()">↩ Restore this version</button>
+            <button class="bh-btn bh-btn-secondary" onclick="closePreview()">Close</button>
+          </div>
+          <pre id="previewContent"></pre>
+        </div>
+      </div>
+    </main>
+  </div>
+<script>
+const docPath = '<%= docPath.replace(/'/g, "\\'") %>';
+let previewVersion = null;
+
+async function boot() {
+  if (!docPath) {
+    document.getElementById('historyList').innerHTML = '<div class="bh-empty">No document path specified.</div>';
+    return;
+  }
+  const r = await fetch('/api/brain/history?path=' + encodeURIComponent(docPath));
+  if (r.status === 401) { location.href = '/brain/login'; return; }
+  const data = await r.json();
+  const history = data.history || [];
+  if (!history.length) {
+    document.getElementById('historyList').innerHTML = '<div class="bh-empty">No saved versions yet. Versions are created each time a document is edited.</div>';
+    return;
+  }
+  document.getElementById('historyList').innerHTML = history.map(v => `
+    <div class="bh-ver">
+      <div class="bh-ver-num">v${v.version}</div>
+      <div class="bh-ver-meta">
+        <div class="bh-ver-by">${esc(v.saved_by || 'unknown')}</div>
+        <div class="bh-ver-when">${new Date(v.saved_at).toLocaleString()}</div>
+        ${v.change_note ? `<div class="bh-ver-note">${esc(v.change_note)}</div>` : ''}
+      </div>
+      <div style="font-size:12px;color:#555">${(v.size_bytes/1024).toFixed(1)} KB</div>
+      <button class="bh-btn bh-btn-secondary" onclick="previewVer(${v.version})">View</button>
+      <button class="bh-btn bh-btn-primary" onclick="confirmRestore(${v.version})">↩ Restore</button>
+    </div>
+  `).join('');
+}
+
+async function previewVer(v) {
+  previewVersion = v;
+  const r = await fetch('/api/brain/version?path=' + encodeURIComponent(docPath) + '&v=' + v);
+  const data = await r.json();
+  document.getElementById('previewTitle').textContent = 'Version ' + v;
+  document.getElementById('previewContent').textContent = data.content || '';
+  document.getElementById('versionPreview').style.display = '';
+}
+
+function closePreview() {
+  document.getElementById('versionPreview').style.display = 'none';
+}
+
+async function confirmRestore(v) {
+  if (!confirm('Restore version ' + v + '? The current document will be saved as a new version first.')) return;
+  const r = await fetch('/api/brain/restore', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: docPath, version: v })
+  });
+  const data = await r.json();
+  if (data.ok) {
+    alert('Restored to version ' + v);
+    location.href = '/brain?path=' + encodeURIComponent(docPath);
+  }
+}
+
+async function restoreVersion() {
+  if (previewVersion) confirmRestore(previewVersion);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+boot();
+</script>
+</body>
+</html>

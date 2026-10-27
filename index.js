@@ -2,9 +2,11 @@ const express = require('express');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs').promises; // For async file operations
+const crypto = require('crypto');
 const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
 const VaultReader = require('./lib/VaultReader'); // Vault integration
 const McpServer  = require('./lib/McpServer');   // MCP protocol server
+const BrainStore = require('./lib/BrainStore');  // Document DB
 
 const app = express();
 
@@ -51,6 +53,41 @@ try {
 } catch (err) {
   console.warn(`VaultReader init failed: ${err.message} — vault routes will return degraded responses`);
   vaultReader = null;
+}
+
+// ---------------------------------------------------------------------------
+// BrainStore — centralized document DB (replaces Git/vault-sync)
+// ---------------------------------------------------------------------------
+const BRAIN_DB_PATH = process.env.BRAIN_DB_PATH
+  || path.join(__dirname, 'data', 'brain.db');
+let brainStore;
+try {
+  brainStore = new BrainStore(BRAIN_DB_PATH);
+  console.log(`BrainStore initialized: ${BRAIN_DB_PATH} (${brainStore.stats().documents} docs)`);
+} catch (err) {
+  console.warn(`BrainStore init failed: ${err.message}`);
+  brainStore = null;
+}
+
+// Seed admin user from env if users table is empty
+if (brainStore) {
+  const bcrypt = require('bcrypt');
+  const adminUser = process.env.OVERCLAW_ADMIN_USER;
+  const adminPass = process.env.OVERCLAW_ADMIN_PASS;
+  if (adminUser && adminPass) {
+    const existing = brainStore.getUserByUsername(adminUser);
+    if (!existing) {
+      bcrypt.hash(adminPass, 10).then(hash => {
+        brainStore.createUser({
+          id: 'admin-' + crypto.randomBytes(4).toString('hex'),
+          username: adminUser,
+          passwordHash: hash,
+          role: 'admin'
+        });
+        console.log(`BrainStore: seeded admin user '${adminUser}'`);
+      }).catch(() => {});
+    }
+  }
 }
 
 // Set EJS as the templating engine
@@ -2573,8 +2610,8 @@ app.post('/api/gap/record', async (req, res) => {
 const MCP_API_KEY = process.env.MCP_API_KEY || ocConfig.mcpApiKey || null;
 
 const mcpServer = vaultReader
-  ? new McpServer({ vaultReader, vaultPath: VAULT_PATH, clawBridge })
-  : null;
+  ? new McpServer({ vaultReader, vaultPath: VAULT_PATH, clawBridge, brainStore })
+  : (brainStore ? new McpServer({ vaultReader: null, vaultPath: VAULT_PATH, clawBridge, brainStore }) : null);
 
 /** Require Bearer token or X-Api-Key when MCP_API_KEY is configured. */
 function mcpAuth(req, res, next) {
@@ -2841,6 +2878,212 @@ if (vaultReader) {
   console.log(`Vault: auto-sync enabled every ${VAULT_SYNC_INTERVAL_MS / 60000} minutes`);
 }
 
+// ---------------------------------------------------------------------------
+// Brain Auth middleware — bearer token (agents) OR session cookie (users)
+// ---------------------------------------------------------------------------
+function brainAuth(req, res, next) {
+  // 1. Bearer token (agents)
+  const auth = req.headers.authorization || '';
+  const bearerKey = auth.startsWith('Bearer ') ? auth.slice(7).trim()
+                  : (req.headers['x-api-key'] || '').trim();
+  if (MCP_API_KEY && bearerKey === MCP_API_KEY) {
+    req.brainActor = { type: 'agent', name: req.headers['x-agent-name'] || 'agent' };
+    return next();
+  }
+  // 2. Session cookie (browser users)
+  if (brainStore) {
+    const cookies = parseCookies(req.headers.cookie || '');
+    const token   = cookies['brain_session'];
+    if (token) {
+      const session = brainStore.getSession(token);
+      if (session) {
+        req.brainActor = { type: 'user', name: session.username, role: session.role };
+        return next();
+      }
+    }
+  }
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
+function parseCookies(str) {
+  const out = {};
+  for (const part of str.split(';')) {
+    const [k, ...v] = part.trim().split('=');
+    if (k) out[k.trim()] = decodeURIComponent(v.join('='));
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Auth routes — /auth/login, /auth/logout, /auth/me
+// ---------------------------------------------------------------------------
+const bcrypt = require('bcrypt');
+
+app.post('/auth/login', async (req, res) => {
+  if (!brainStore) return res.status(503).json({ error: 'BrainStore unavailable' });
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'username and password required' });
+  const user = brainStore.getUserByUsername(username);
+  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+  const token = crypto.randomBytes(32).toString('hex');
+  brainStore.createSession({ token, userId: user.id, ip: req.ip });
+  brainStore.updateLastLogin(user.id);
+  res.setHeader('Set-Cookie',
+    `brain_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30*24*3600}`);
+  res.json({ ok: true, username: user.username, role: user.role });
+});
+
+app.post('/auth/logout', (req, res) => {
+  const cookies = parseCookies(req.headers.cookie || '');
+  if (cookies['brain_session'] && brainStore) {
+    brainStore.deleteSession(cookies['brain_session']);
+  }
+  res.setHeader('Set-Cookie', 'brain_session=; Path=/; Max-Age=0');
+  res.json({ ok: true });
+});
+
+app.get('/auth/me', brainAuth, (req, res) => {
+  res.json({ actor: req.brainActor });
+});
+
+// ---------------------------------------------------------------------------
+// Brain REST API — /api/brain/*
+// ---------------------------------------------------------------------------
+
+function requireBrain(req, res) {
+  if (!brainStore) { res.status(503).json({ error: 'BrainStore unavailable' }); return false; }
+  return true;
+}
+
+// GET /api/brain/doc?path=
+app.get('/api/brain/doc', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const docPath = req.query.path;
+  if (!docPath) return res.status(400).json({ error: 'path required' });
+  const doc = brainStore.getDoc(docPath);
+  if (!doc) return res.status(404).json({ error: 'Not found' });
+  res.json(doc);
+});
+
+// PUT /api/brain/doc?path=  body: { content, changeNote? }
+app.put('/api/brain/doc', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const docPath = req.query.path;
+  if (!docPath) return res.status(400).json({ error: 'path required' });
+  const { content, changeNote } = req.body || {};
+  if (typeof content !== 'string') return res.status(400).json({ error: 'content (string) required' });
+  const updatedBy = req.brainActor?.name || 'unknown';
+  const result = brainStore.putDoc(docPath, content, { updatedBy, changeNote });
+  res.json({ ok: true, ...result, path: docPath });
+});
+
+// DELETE /api/brain/doc?path=
+app.delete('/api/brain/doc', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const docPath = req.query.path;
+  if (!docPath) return res.status(400).json({ error: 'path required' });
+  const result = brainStore.deleteDoc(docPath);
+  res.json({ ok: true, ...result });
+});
+
+// POST /api/brain/move  body: { from, to }
+app.post('/api/brain/move', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const { from, to } = req.body || {};
+  if (!from || !to) return res.status(400).json({ error: 'from and to required' });
+  try {
+    const result = brainStore.moveDoc(from, to, { updatedBy: req.brainActor?.name || 'unknown' });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// GET /api/brain/list?dir=&recursive=
+app.get('/api/brain/list', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const dir       = req.query.dir || '';
+  const recursive = req.query.recursive === 'true' || req.query.recursive === '1';
+  const items     = brainStore.listDir(dir, { recursive });
+  res.json({ dir, items });
+});
+
+// GET /api/brain/tree?dir=
+app.get('/api/brain/tree', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const dir  = req.query.dir || '';
+  const tree = brainStore.getTree(dir);
+  res.json(tree);
+});
+
+// GET /api/brain/search?q=&dir=&limit=
+app.get('/api/brain/search', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const q     = req.query.q || '';
+  const dir   = req.query.dir || '';
+  const limit = parseInt(req.query.limit) || 20;
+  if (!q.trim()) return res.status(400).json({ error: 'q required' });
+  const results = brainStore.search(q, { limit, dir });
+  res.json({ q, results });
+});
+
+// GET /api/brain/history?path=&limit=
+app.get('/api/brain/history', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const docPath = req.query.path;
+  if (!docPath) return res.status(400).json({ error: 'path required' });
+  const limit   = parseInt(req.query.limit) || 50;
+  const history = brainStore.getHistory(docPath, { limit });
+  res.json({ path: docPath, history });
+});
+
+// GET /api/brain/version?path=&v=
+app.get('/api/brain/version', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const docPath = req.query.path;
+  const version = parseInt(req.query.v);
+  if (!docPath || !version) return res.status(400).json({ error: 'path and v required' });
+  const ver = brainStore.getVersion(docPath, version);
+  if (!ver) return res.status(404).json({ error: 'Version not found' });
+  res.json(ver);
+});
+
+// POST /api/brain/restore  body: { path, version }
+app.post('/api/brain/restore', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  const { path: docPath, version } = req.body || {};
+  if (!docPath || !version) return res.status(400).json({ error: 'path and version required' });
+  try {
+    const result = brainStore.restoreVersion(docPath, version, { updatedBy: req.brainActor?.name || 'unknown' });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// GET /api/brain/stats
+app.get('/api/brain/stats', brainAuth, (req, res) => {
+  if (!requireBrain(req, res)) return;
+  res.json(brainStore.stats());
+});
+
+// Browser UI routes
+app.get('/brain', brainAuth, (req, res) => {
+  res.render('brain-browse', { title: 'AI Brain', actor: req.brainActor });
+});
+app.get('/brain/doc', brainAuth, (req, res) => {
+  res.render('brain-doc', { title: 'AI Brain — Document', actor: req.brainActor, docPath: req.query.path || '' });
+});
+app.get('/brain/history', brainAuth, (req, res) => {
+  res.render('brain-history', { title: 'AI Brain — History', actor: req.brainActor, docPath: req.query.path || '' });
+});
+app.get('/brain/login', (req, res) => {
+  res.render('brain-login', { title: 'OverClaw — Sign In' });
+});
+
+// ---------------------------------------------------------------------------
 // Start the server
 const bindHost = process.env.BIND_HOST || ocConfig.bindHost || '127.0.0.1';
 app.listen(port, bindHost, () => {
