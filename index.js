@@ -2673,15 +2673,16 @@ app.post('/mcp', mcpAuth, async (req, res) => {
   if (!body) return res.status(400).json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error: empty body' } });
 
   try {
+    const ctx = { agentName: req.headers['x-agent-name'] || 'agent' };
     // Batch requests
     if (Array.isArray(body)) {
-      const results = (await Promise.all(body.map(msg => mcpServer.dispatch(msg)))).filter(r => r !== null);
+      const results = (await Promise.all(body.map(msg => mcpServer.dispatch(msg, ctx)))).filter(r => r !== null);
       return res.json(results);
     }
     if (body.jsonrpc !== '2.0')
       return res.status(400).json({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid Request' } });
 
-    const result = await mcpServer.dispatch(body);
+    const result = await mcpServer.dispatch(body, ctx);
     // Notifications (no id) — 202 with no body
     if (result === null) return res.status(202).end();
     res.json(result);
