@@ -2303,8 +2303,13 @@ app.put('/api/brain/doc', brainAuth, (req, res) => {
   const { content, changeNote } = req.body || {};
   if (typeof content !== 'string') return res.status(400).json({ error: 'content (string) required' });
   const updatedBy = req.brainActor?.name || 'unknown';
-  const result = brainStore.putDoc(docPath, content, { updatedBy, changeNote });
-  res.json({ ok: true, ...result, path: docPath });
+  try {
+    const result = brainStore.putDoc(docPath, content, { updatedBy, changeNote });
+    res.json({ ok: true, ...result, path: docPath });
+  } catch (err) {
+    console.error('[brain PUT] error:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // DELETE /api/brain/doc?path=
