@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <style>
+    .oc-main-content  { overflow: hidden !important; height: calc(100vh - 60px); }
+    .oc-dashboard-area { padding: 0 !important; overflow: hidden !important; display: flex !important; flex-direction: column !important; }
+    .bb-wrap   { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+    .bb-tree   { width: 300px; min-width: 220px; max-width: 420px; background: var(--surface-2, #1a1a2e); border-right: 1px solid var(--border, #2a2a4a); display: flex; flex-direction: column; overflow: hidden; resize: horizontal; }
+    .bb-tree-head { padding: 12px 14px; border-bottom: 1px solid var(--border, #2a2a4a); display: flex; align-items: center; gap: 8px; }
+    .bb-tree-search { flex: 1; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 5px 10px; font-size: 13px; }
+    .bb-tree-body  { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .bb-dir  { padding: 4px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: #a0a8c0; display: flex; align-items: center; gap: 6px; user-select: none; }
+    .bb-dir:hover { background: rgba(255,255,255,.04); }
+    .bb-dir .arrow { font-size: 10px; transition: transform .15s; display: inline-block; width: 12px; }
+    .bb-dir.open .arrow { transform: rotate(90deg); }
+    .bb-file { padding: 3px 12px 3px 28px; cursor: pointer; font-size: 12.5px; color: #7a84a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bb-file:hover { background: rgba(255,255,255,.04); color: #c0c8e0; }
+    .bb-file.active { background: rgba(99,102,241,.15); color: #a0aaff; }
+    .bb-children { display: none; }
+    .bb-children.open { display: block; }
+    .bb-main  { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .bb-toolbar { padding: 10px 16px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .bb-path-display { flex: 1; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bb-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+    .bb-btn-primary { background: #6366f1; color: #fff; }
+    .bb-btn-secondary { background: var(--surface-3,#111122); color: #aaa; border: 1px solid var(--border,#2a2a4a); }
+    .bb-btn:hover { opacity: .85; }
+    .bb-doc   { flex: 1; display: flex; overflow: hidden; }
+    .bb-preview { flex: 1; overflow-y: auto; padding: 28px 36px; line-height: 1.7; font-size: 15px; }
+    .bb-preview h1,h2,h3 { color: #e0e4f0; }
+    .bb-editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .bb-editor { flex: 1; resize: none; background: #0d0d1a; color: #c8d0e8; font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 20px; border: none; outline: none; overflow-y: auto; }
+    .bb-empty { display: flex; align-items: center; justify-content: center; flex: 1; color: #555; font-size: 14px; }
+    .bb-search-panel { position: absolute; top: 60px; right: 20px; width: 360px; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a); border-radius: 10px; padding: 14px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,.4); display: none; }
+    .bb-search-panel.open { display: block; }
+    .bb-search-input { width: 100%; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 7px 12px; font-size: 13px; box-sizing: border-box; }
+    .bb-sr { padding: 8px 10px; border-bottom: 1px solid var(--border,#2a2a4a); cursor: pointer; }
+    .bb-sr:hover { background: rgba(255,255,255,.04); }
+    .bb-sr-path { font-size: 11px; color: #6366f1; }
+    .bb-sr-snip { font-size: 12px; color: #999; margin-top: 2px; }
+    .bb-sr-snip mark { background: rgba(99,102,241,.3); color: #a0aaff; border-radius: 2px; }
+    .bb-stats { font-size: 11px; color: #555; padding: 0 14px 8px; }
+    .bb-new-bar { display: none; padding: 8px 16px; background: var(--surface-3,#111122); border-bottom: 1px solid var(--border,#2a2a4a); align-items: center; gap: 8px; }
+    .bb-new-bar.open { display: flex; }
+    .bb-new-input { flex: 1; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 5px 10px; font-size: 13px; }
+    .bb-tab { padding: 4px 12px; border-radius: 6px 6px 0 0; font-size: 12px; cursor: pointer; border: 1px solid transparent; }
+    .bb-tab.active { border-color: var(--border,#2a2a4a); border-bottom-color: transparent; background: var(--surface-2,#1a1a2e); color: #a0aaff; }
+    .bb-tab-bar { display: flex; gap: 4px; padding: 4px 16px 0; border-bottom: 1px solid var(--border,#2a2a4a); }
+  </style>
+</head>
+<body class="oc-body">
+  <header class="oc-topbar">
+    <span class="oc-topbar-logo">OVERCLAW</span>
+    <span class="oc-topbar-title">🧠 AI Brain</span>
+    <nav class="oc-topbar-nav">
+      <button class="bb-btn bb-btn-secondary" onclick="toggleSearch()">🔍 Search</button>
+      <button class="bb-btn bb-btn-secondary" onclick="toggleNew()">＋ New Doc</button>
+      <a href="/brain/history" id="histBtn" class="bb-btn bb-btn-secondary" style="display:none;text-decoration:none">⏱ History</a>
+      <% if (actor.type === 'user') { %>
+        <span style="color:#666;font-size:12px;margin-left:8px"><%= actor.name %> (<%= actor.role %>)</span>
+        <button class="bb-btn bb-btn-secondary" onclick="logout()">Sign out</button>
+      <% } %>
+    </nav>
+  </header>
+
+  <div class="oc-layout">
+    <%- include('partials/sidebar', { currentPath: '/brain' }) %>
+    <main class="oc-main-content">
+      <div class="oc-dashboard-area">
+
+        <!-- Global search panel -->
+        <div class="bb-search-panel" id="searchPanel">
+          <input class="bb-search-input" id="searchInput" placeholder="Search all documents…" oninput="doSearch(this.value)">
+          <div id="searchResults" style="margin-top:8px;max-height:320px;overflow-y:auto"></div>
+        </div>
+
+        <!-- New document bar -->
+        <div class="bb-new-bar" id="newBar">
+          <span style="font-size:13px;color:#aaa">New doc path:</span>
+          <input class="bb-new-input" id="newPathInput" placeholder="e.g. 03 - Agents/notes/my-note.md">
+          <button class="bb-btn bb-btn-primary" onclick="createNewDoc()">Create</button>
+          <button class="bb-btn bb-btn-secondary" onclick="toggleNew()">Cancel</button>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="bb-stats" id="statsBar">Loading…</div>
+
+        <!-- Main two-pane -->
+        <div class="bb-wrap">
+          <!-- Tree pane -->
+          <div class="bb-tree">
+            <div class="bb-tree-head">
+              <span style="font-size:13px;font-weight:700;color:#c0c8e0">📁 Documents</span>
+              <input class="bb-tree-search" id="treeFilter" placeholder="Filter…" oninput="filterTree(this.value)">
+            </div>
+            <div class="bb-tree-body" id="treeBody">Loading…</div>
+          </div>
+
+          <!-- Doc pane -->
+          <div class="bb-main">
+            <div class="bb-toolbar" id="docToolbar" style="display:none">
+              <span class="bb-path-display" id="docPathDisplay"></span>
+              <div class="bb-tab-bar" id="tabBar">
+                <span class="bb-tab active" id="tabPreview" onclick="setTab('preview')">Preview</span>
+                <span class="bb-tab" id="tabEdit" onclick="setTab('edit')">Edit</span>
+              </div>
+              <button class="bb-btn bb-btn-primary" id="saveBtn" onclick="saveDoc()" style="display:none">💾 Save</button>
+              <button class="bb-btn bb-btn-secondary" onclick="viewHistory()">⏱ History</button>
+              <button class="bb-btn bb-btn-secondary" onclick="deleteDoc()">🗑 Delete</button>
+            </div>
+            <div class="bb-doc" id="docArea">
+              <div class="bb-empty">Select a document from the tree, or use + New Doc</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+<script>
+let currentPath = null;
+let currentContent = '';
+let currentMode = 'preview'; // 'preview' | 'edit'
+let treeData = null;
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+async function boot() {
+  loadStats();
+  const tree = await fetchJSON('/api/brain/tree');
+  treeData = tree;
+  renderTree(tree, document.getElementById('treeBody'));
+  // Re-open doc from URL if present
+  const params = new URLSearchParams(location.search);
+  if (params.get('path')) openDoc(params.get('path'));
+}
+
+async function loadStats() {
+  const s = await fetchJSON('/api/brain/stats');
+  document.getElementById('statsBar').textContent =
+    `${s.documents.toLocaleString()} documents · ${s.versions.toLocaleString()} versions · ${(s.db_file_bytes/1024/1024).toFixed(1)} MB`;
+}
+
+// ── Tree rendering ─────────────────────────────────────────────────────────
+function renderTree(node, container, depth = 0) {
+  container.innerHTML = '';
+  for (const child of (node.children || [])) {
+    if (child.type === 'dir') {
+      const dirEl = document.createElement('div');
+      dirEl.dataset.path = child.path;
+      const arrow = '<span class="arrow">▶</span>';
+      dirEl.innerHTML = `<div class="bb-dir" onclick="toggleDir(this)" data-path="${child.path}">${arrow} 📁 ${esc(child.name)}</div><div class="bb-children"></div>`;
+      const childContainer = dirEl.querySelector('.bb-children');
+      renderTree(child, childContainer, depth + 1);
+      container.appendChild(dirEl);
+    } else {
+      const fileEl = document.createElement('div');
+      fileEl.className = 'bb-file';
+      fileEl.dataset.path = child.path;
+      fileEl.textContent = child.name.replace(/\.md$/, '');
+      fileEl.title = child.path;
+      fileEl.onclick = () => openDoc(child.path);
+      container.appendChild(fileEl);
+    }
+  }
+}
+
+function toggleDir(el) {
+  el.classList.toggle('open');
+  const children = el.nextElementSibling;
+  if (children) children.classList.toggle('open');
+}
+
+function filterTree(q) {
+  if (!q.trim()) {
+    document.getElementById('treeBody').innerHTML = '';
+    renderTree(treeData, document.getElementById('treeBody'));
+    return;
+  }
+  q = q.toLowerCase();
+  const all = getAllFiles(treeData);
+  const filtered = all.filter(f => f.path.toLowerCase().includes(q));
+  const container = document.getElementById('treeBody');
+  container.innerHTML = filtered.map(f =>
+    `<div class="bb-file" data-path="${esc(f.path)}" onclick="openDoc('${esc(f.path)}')" title="${esc(f.path)}">${esc(f.path)}</div>`
+  ).join('');
+}
+
+function getAllFiles(node, out = []) {
+  for (const c of (node.children || [])) {
+    if (c.type === 'file') out.push(c);
+    else getAllFiles(c, out);
+  }
+  return out;
+}
+
+// ── Document loading ────────────────────────────────────────────────────────
+async function openDoc(docPath) {
+  currentPath = docPath;
+  history.replaceState(null, '', '/brain?path=' + encodeURIComponent(docPath));
+
+  // Highlight in tree
+  document.querySelectorAll('.bb-file.active').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll(`.bb-file[data-path="${CSS.escape(docPath)}"]`).forEach(el => {
+    el.classList.add('active');
+    // Open parent dirs
+    let p = el.parentElement;
+    while (p && p !== document.getElementById('treeBody')) {
+      if (p.classList.contains('bb-children')) { p.classList.add('open'); }
+      if (p.classList.contains('bb-dir')) { p.classList.add('open'); }
+      p = p.parentElement;
+    }
+  });
+
+  document.getElementById('docToolbar').style.display = 'flex';
+  document.getElementById('histBtn').style.display = '';
+  document.getElementById('histBtn').href = '/brain/history?path=' + encodeURIComponent(docPath);
+  document.getElementById('docPathDisplay').textContent = docPath;
+
+  const doc = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(docPath));
+  currentContent = doc.content;
+  setTab(currentMode === 'edit' ? 'edit' : 'preview');
+}
+
+function setTab(mode) {
+  currentMode = mode;
+  document.getElementById('tabPreview').classList.toggle('active', mode === 'preview');
+  document.getElementById('tabEdit').classList.toggle('active', mode === 'edit');
+  document.getElementById('saveBtn').style.display = mode === 'edit' ? '' : 'none';
+
+  const area = document.getElementById('docArea');
+  if (mode === 'preview') {
+    area.innerHTML = `<div class="bb-preview" id="preview"></div>`;
+    document.getElementById('preview').innerHTML = marked.parse(currentContent || '');
+  } else {
+    area.innerHTML = `<div class="bb-editor-wrap"><textarea class="bb-editor" id="editorTA" oninput="currentContent=this.value">${esc(currentContent)}</textarea></div>`;
+  }
+}
+
+async function saveDoc() {
+  if (!currentPath) return;
+  const content = document.getElementById('editorTA')?.value ?? currentContent;
+  const r = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(currentPath), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content })
+  });
+  if (r.ok) { currentContent = content; showToast('Saved ✓'); }
+}
+
+async function deleteDoc() {
+  if (!currentPath || !confirm('Delete ' + currentPath + '?')) return;
+  await fetch('/api/brain/doc?path=' + encodeURIComponent(currentPath), { method: 'DELETE' });
+  currentPath = null;
+  document.getElementById('docArea').innerHTML = '<div class="bb-empty">Document deleted</div>';
+  document.getElementById('docToolbar').style.display = 'none';
+  boot();
+}
+
+function viewHistory() {
+  if (currentPath) location.href = '/brain/history?path=' + encodeURIComponent(currentPath);
+}
+
+// ── New document ────────────────────────────────────────────────────────────
+function toggleNew() {
+  const bar = document.getElementById('newBar');
+  bar.classList.toggle('open');
+  if (bar.classList.contains('open')) document.getElementById('newPathInput').focus();
+}
+
+async function createNewDoc() {
+  const p = document.getElementById('newPathInput').value.trim();
+  if (!p) return;
+  const r = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(p), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: `# ${p.split('/').pop().replace(/\.md$/,'')}\n\n` })
+  });
+  if (r.ok) {
+    toggleNew();
+    const tree = await fetchJSON('/api/brain/tree');
+    treeData = tree;
+    renderTree(tree, document.getElementById('treeBody'));
+    openDoc(p);
+    setTab('edit');
+  }
+}
+
+// ── Search ──────────────────────────────────────────────────────────────────
+let searchTimer;
+function toggleSearch() {
+  const p = document.getElementById('searchPanel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) document.getElementById('searchInput').focus();
+}
+
+function doSearch(q) {
+  clearTimeout(searchTimer);
+  if (!q.trim()) { document.getElementById('searchResults').innerHTML = ''; return; }
+  searchTimer = setTimeout(async () => {
+    const r = await fetchJSON('/api/brain/search?q=' + encodeURIComponent(q) + '&limit=15');
+    const html = (r.results || []).map(item =>
+      `<div class="bb-sr" onclick="openDoc('${esc(item.path)}');toggleSearch()">
+        <div class="bb-sr-path">${esc(item.path)}</div>
+        <div class="bb-sr-snip">${item.snippet}</div>
+      </div>`
+    ).join('') || '<div style="padding:8px;color:#555;font-size:13px">No results</div>';
+    document.getElementById('searchResults').innerHTML = html;
+  }, 250);
+}
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+async function logout() {
+  await fetch('/auth/logout', { method: 'POST' });
+  location.href = '/brain/login';
+}
+
+// ── Utilities ───────────────────────────────────────────────────────────────
+async function fetchJSON(url, opts) {
+  const r = await fetch(url, opts);
+  if (r.status === 401) { location.href = '/brain/login'; return {}; }
+  return r.json().catch(() => ({}));
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#6366f1;color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;z-index:999;';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+boot();
+</script>
+</body>
+</html>
