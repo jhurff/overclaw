@@ -32,13 +32,20 @@
           Fields marked ⚠️ require a service restart to take effect.
         </p>
         <form id="settings-form" class="oc-settings-form">
-          <div class="oc-settings-section">📁 Vault &amp; Brain</div>
+          <div class="oc-settings-section">🧠 AI Brain</div>
           <div class="oc-field">
-            <label for="brainPath">Brain Path — Obsidian Vault Location</label>
+            <label for="brainPath">Git Archive Path — read-only frozen vault (legacy)</label>
             <input type="text" id="brainPath" name="brainPath"
               value="<%= ocConfig.brainPath %>"
               placeholder="~/My-AI-Brain">
-            <div class="hint warn">⚠️ Requires service restart</div>
+            <div class="hint">The old Obsidian/Git vault. Frozen — no longer written to. Brain DB is the live store.</div>
+          </div>
+          <div class="oc-field">
+            <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:10px 14px;font-size:13px;color:#a0a8c0;line-height:1.6">
+              💾 <strong style="color:#e0e4f0">Brain DB:</strong> <code style="color:#818cf8">data/brain.db</code> — <%= typeof brainStats !== 'undefined' ? brainStats.documents.toLocaleString() + ' docs, ' + (brainStats.db_file_bytes/1024/1024).toFixed(1) + ' MB' : 'SQLite document store' %><br>
+              🔗 <strong style="color:#e0e4f0">Browse &amp; edit:</strong> <a href="/brain" style="color:#818cf8">/brain</a> &nbsp;&nbsp;
+              🔍 <strong style="color:#e0e4f0">API:</strong> <code style="color:#818cf8">/api/brain/*</code> (Bearer MCP_API_KEY)
+            </div>
           </div>
           <div class="oc-settings-section">🌐 Runtime</div>
           <div class="oc-field">
@@ -50,7 +57,7 @@
           </div>
           <div class="oc-settings-section">⚡ Behavior</div>
           <div class="oc-field">
-            <label for="scanFrequencySeconds">Vault Scan Frequency</label>
+            <label for="scanFrequencySeconds">Background Scan Frequency</label>
             <select id="scanFrequencySeconds" name="scanFrequencySeconds" style="max-width:220px">
               <option value="60"   <%= ocConfig.scanFrequencySeconds == 60   ? 'selected' : '' %>>Every 1 minute</option>
               <option value="300"  <%= ocConfig.scanFrequencySeconds == 300  ? 'selected' : '' %>>Every 5 minutes</option>
@@ -66,14 +73,7 @@
               placeholder="ws://127.0.0.1:18789">
             <div class="hint warn">⚠️ Requires service restart</div>
           </div>
-          <div class="oc-field" style="display:flex;align-items:flex-start;gap:.5rem">
-            <input type="checkbox" id="vaultAutoPullOnLoad" name="vaultAutoPullOnLoad"
-              style="margin-top:.2rem;width:auto"
-              <%= ocConfig.vaultAutoPullOnLoad ? 'checked' : '' %>>
-            <div>
-              <label for="vaultAutoPullOnLoad" style="text-transform:none;font-size:.82rem;color:#cbd5e1;cursor:pointer">Auto-pull vault on each API request</label>
-              <div class="hint">Runs <code>git pull</code> in the vault directory before reading data</div>
-            </div>
+                      </div>
           </div>
           <div style="margin-top:1.25rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
             <button type="submit" class="oc-save-btn">Save Settings</button>
@@ -150,7 +150,6 @@
         port: parseInt(document.getElementById('port').value,10),
         scanFrequencySeconds: parseInt(document.getElementById('scanFrequencySeconds').value,10),
         openclawGatewayUrl: document.getElementById('openclawGatewayUrl').value.trim(),
-        vaultAutoPullOnLoad: document.getElementById('vaultAutoPullOnLoad').checked,
       };
       try{
         const r=await fetch('/api/overclaw-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});

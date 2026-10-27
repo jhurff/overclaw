@@ -391,7 +391,7 @@ app.get('/config', async (req, res) => {
     openclawGatewayUrl:   cfg.openclawGatewayUrl   || 'ws://127.0.0.1:18789',
     vaultAutoPullOnLoad:  cfg.vaultAutoPullOnLoad  !== false,
   };
-  res.render('config', { title: 'OverClaw Settings', currentPath: '/config', ocConfig: ocCfg });
+  res.render('config', { title: 'OverClaw Settings', currentPath: '/config', ocConfig: ocCfg, brainStats: brainStore ? brainStore.stats() : null });
 });
 
 // Sessions Viewer screen route
