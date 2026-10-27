@@ -1,0 +1,41 @@
+<script>
+(function() {
+  const toggle = document.getElementById('theme-toggle');
+  const sidebar = document.getElementById('oc-sidebar');
+  const sidebarBtn = document.getElementById('sidebar-toggle');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+  // ── Theme ──────────────────────────────────────────────────────────────
+  let theme = localStorage.getItem('overclaw-theme') || (prefersDark.matches ? 'dark' : 'light');
+
+  function applyTheme(t) {
+    document.body.classList.toggle('light-mode', t === 'light');
+    document.body.classList.toggle('dark-mode',  t === 'dark');
+    if (toggle) toggle.textContent = t === 'dark' ? '🌙' : '☀️';
+  }
+
+  applyTheme(theme);
+
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      theme = theme === 'light' ? 'dark' : 'light';
+      applyTheme(theme);
+      localStorage.setItem('overclaw-theme', theme);
+    });
+  }
+
+  prefersDark.addEventListener('change', e => {
+    if (!localStorage.getItem('overclaw-theme')) {
+      theme = e.matches ? 'dark' : 'light';
+      applyTheme(theme);
+    }
+  });
+
+  // ── Sidebar toggle ─────────────────────────────────────────────────────
+  if (sidebarBtn && sidebar) {
+    sidebarBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+    });
+  }
+})();
+</script>
