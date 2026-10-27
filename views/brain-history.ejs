@@ -7,24 +7,64 @@
   <link rel="stylesheet" href="/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    .bh-wrap { padding: 28px 36px; max-width: 860px; }
-    .bh-back { color: #6366f1; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 18px; }
+    .bh-page   { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+    .bh-topbar { padding: 10px 18px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .bh-back   { color: #6366f1; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; }
     .bh-back:hover { text-decoration: underline; }
-    .bh-title { font-size: 18px; font-weight: 700; color: #e0e4f0; margin-bottom: 4px; }
-    .bh-path { font-size: 12px; color: #555; margin-bottom: 20px; }
-    .bh-ver { border: 1px solid var(--border,#2a2a4a); border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; }
-    .bh-ver-num { font-size: 22px; font-weight: 800; color: #6366f1; min-width: 36px; }
-    .bh-ver-meta { flex: 1; }
-    .bh-ver-by { font-size: 13px; color: #c0c8e0; font-weight: 600; }
-    .bh-ver-when { font-size: 12px; color: #666; }
-    .bh-ver-note { font-size: 12px; color: #888; font-style: italic; }
-    .bh-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
-    .bh-btn-primary { background: #6366f1; color: #fff; }
+    .bh-title  { font-size: 15px; font-weight: 700; color: #e0e4f0; }
+    .bh-path   { font-size: 11px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+    .bh-body   { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+    /* Version list */
+    .bh-list   { width: 300px; min-width: 220px; border-right: 1px solid var(--border,#2a2a4a); overflow-y: auto; flex-shrink: 0; }
+    .bh-ver    { padding: 12px 14px; border-bottom: 1px solid var(--border,#2a2a4a); cursor: pointer; display: flex; align-items: flex-start; gap: 10px; }
+    .bh-ver:hover { background: rgba(255,255,255,.04); }
+    .bh-ver.active { background: rgba(99,102,241,.12); border-left: 3px solid #6366f1; }
+    .bh-ver-num  { font-size: 18px; font-weight: 800; color: #6366f1; min-width: 32px; line-height: 1.2; }
+    .bh-ver-meta { flex: 1; min-width: 0; }
+    .bh-ver-by   { font-size: 12px; font-weight: 600; color: #c0c8e0; }
+    .bh-ver-when { font-size: 11px; color: #666; }
+    .bh-ver-note { font-size: 11px; color: #888; font-style: italic; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bh-ver-size { font-size: 10px; color: #555; white-space: nowrap; }
+
+    /* Content panel */
+    .bh-panel  { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .bh-ptoolbar { padding: 8px 14px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .bh-btn    { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+    .bh-btn-primary   { background: #6366f1; color: #fff; }
     .bh-btn-secondary { background: var(--surface-3,#111122); color: #aaa; border: 1px solid var(--border,#2a2a4a); }
+    .bh-btn-danger    { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
     .bh-btn:hover { opacity: .85; }
-    #versionPreview { margin-top: 20px; border: 1px solid var(--border,#2a2a4a); border-radius: 8px; padding: 20px; display: none; }
-    #versionPreview pre { white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #c0c8e0; }
-    .bh-empty { color: #555; font-size: 14px; text-align: center; padding: 40px; }
+    .bh-btn:disabled { opacity: .4; cursor: default; }
+    .bh-tab    { padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid transparent; color: #888; }
+    .bh-tab.active { border-color: var(--border,#2a2a4a); background: var(--surface-2,#1a1a2e); color: #a0aaff; }
+
+    .bh-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    .bh-empty   { color: #555; font-size: 14px; text-align: center; padding: 60px 20px; }
+
+    /* Rendered markdown */
+    .bh-preview h1,h2,h3,h4 { color: #e0e4f0; margin-top: 1.2em; }
+    .bh-preview p { color: #b0b8d0; line-height: 1.7; }
+    .bh-preview code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .bh-preview pre { background: rgba(0,0,0,.3); padding: 12px; border-radius: 8px; overflow-x: auto; }
+
+    /* Raw text */
+    .bh-raw    { white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #c0c8e0; line-height: 1.6; }
+
+    /* Diff */
+    .diff-line      { display: flex; gap: 8px; font-family: monospace; font-size: 12px; line-height: 1.6; padding: 1px 8px; }
+    .diff-line-num  { color: #555; min-width: 36px; text-align: right; flex-shrink: 0; user-select: none; }
+    .diff-line-text { flex: 1; white-space: pre-wrap; word-break: break-all; }
+    .diff-add  { background: rgba(34,197,94,.12); }
+    .diff-add .diff-line-text { color: #86efac; }
+    .diff-del  { background: rgba(239,68,68,.12); }
+    .diff-del .diff-line-text { color: #fca5a5; }
+    .diff-ctx  { }
+    .diff-ctx .diff-line-text { color: #8892aa; }
+    .diff-hunk { padding: 4px 8px; color: #6366f1; font-size: 11px; font-family: monospace; background: rgba(99,102,241,.06); }
+
+    .bh-current-badge { font-size: 10px; background: rgba(99,102,241,.2); color: #a0aaff; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+    .bh-empty-list { color: #555; font-size: 13px; padding: 24px; text-align: center; }
   </style>
 </head>
 <body class="oc-body">
@@ -37,88 +77,232 @@
   </header>
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
-    <main class="oc-main-content">
-      <div class="bh-wrap">
-        <a class="bh-back" href="/brain?path=<%= encodeURIComponent(docPath) %>">← Back to document</a>
-        <div class="bh-title">Version History</div>
-        <div class="bh-path" id="pathDisplay"><%= docPath %></div>
-        <div id="historyList"><div class="bh-empty">Loading…</div></div>
-        <div id="versionPreview">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-            <span id="previewTitle" style="font-size:14px;font-weight:700;color:#e0e4f0"></span>
-            <button class="bh-btn bh-btn-primary" onclick="restoreVersion()">↩ Restore this version</button>
-            <button class="bh-btn bh-btn-secondary" onclick="closePreview()">Close</button>
+    <main class="oc-dashboard-area" style="padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important">
+
+      <div class="bh-page">
+        <!-- Top bar -->
+        <div class="bh-topbar">
+          <a class="bh-back" href="/brain?path=<%= encodeURIComponent(docPath) %>">← Back to doc</a>
+          <span style="color:#2a2a4a">|</span>
+          <span class="bh-title">⏱ Version History</span>
+          <span class="bh-path" title="<%= docPath %>"><%= docPath %></span>
+          <span id="verCount" style="font-size:11px;color:#555;margin-left:auto"></span>
+        </div>
+
+        <!-- Two-pane body -->
+        <div class="bh-body">
+          <!-- Version list -->
+          <div class="bh-list" id="verList">
+            <div class="bh-empty-list">Loading…</div>
           </div>
-          <pre id="previewContent"></pre>
+
+          <!-- Content panel -->
+          <div class="bh-panel">
+            <div class="bh-ptoolbar" id="ptoolbar" style="display:none">
+              <span id="ptitle" style="font-size:13px;font-weight:700;color:#e0e4f0"></span>
+              <div style="display:flex;gap:4px;margin-left:8px">
+                <span class="bh-tab active" id="tabDiff"    onclick="setPanelTab('diff')">Diff</span>
+                <span class="bh-tab"        id="tabPreview" onclick="setPanelTab('preview')">Preview</span>
+                <span class="bh-tab"        id="tabRaw"     onclick="setPanelTab('raw')">Raw</span>
+              </div>
+              <div style="flex:1"></div>
+              <button class="bh-btn bh-btn-primary"    id="restoreBtn" onclick="doRestore()">↩ Restore</button>
+            </div>
+            <div class="bh-content" id="panelContent">
+              <div class="bh-empty">Select a version from the list</div>
+            </div>
+          </div>
         </div>
       </div>
+
     </main>
   </div>
-<script>
-const docPath = '<%= docPath.replace(/'/g, "\\'") %>';
-let previewVersion = null;
 
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script>
+const docPath      = <%- JSON.stringify(docPath) %>;
+let selectedVersion = null;
+let selectedContent = '';
+let currentContent  = '';
+let panelTab        = 'diff';
+
+// ── Boot ───────────────────────────────────────────────────────────────────
 async function boot() {
-  if (!docPath) {
-    document.getElementById('historyList').innerHTML = '<div class="bh-empty">No document path specified.</div>';
-    return;
-  }
-  const r = await fetch('/api/brain/history?path=' + encodeURIComponent(docPath));
-  if (r.status === 401) { location.href = '/brain/login'; return; }
-  const data = await r.json();
-  const history = data.history || [];
+  // Load current doc content + version list in parallel
+  const [docRes, histRes] = await Promise.all([
+    apiFetch('/api/brain/doc?path=' + enc(docPath)),
+    apiFetch('/api/brain/history?path=' + enc(docPath) + '&limit=100'),
+  ]);
+  if (!docRes || !histRes) return;
+  currentContent = docRes.content || '';
+  renderList(histRes.history || []);
+}
+
+function renderList(history) {
+  const list = document.getElementById('verList');
+  document.getElementById('verCount').textContent = history.length + ' version' + (history.length !== 1 ? 's' : '');
   if (!history.length) {
-    document.getElementById('historyList').innerHTML = '<div class="bh-empty">No saved versions yet. Versions are created each time a document is edited.</div>';
+    list.innerHTML = '<div class="bh-empty-list">No saved versions yet.<br>Versions are created each time you save a document.</div>';
     return;
   }
-  document.getElementById('historyList').innerHTML = history.map(v => `
-    <div class="bh-ver">
+  list.innerHTML = history.map(v => `
+    <div class="bh-ver" id="ver-${v.version}" onclick="selectVersion(${v.version}, this)">
       <div class="bh-ver-num">v${v.version}</div>
       <div class="bh-ver-meta">
         <div class="bh-ver-by">${esc(v.saved_by || 'unknown')}</div>
         <div class="bh-ver-when">${new Date(v.saved_at).toLocaleString()}</div>
         ${v.change_note ? `<div class="bh-ver-note">${esc(v.change_note)}</div>` : ''}
+        <div class="bh-ver-size">${(v.size_bytes/1024).toFixed(1)} KB</div>
       </div>
-      <div style="font-size:12px;color:#555">${(v.size_bytes/1024).toFixed(1)} KB</div>
-      <button class="bh-btn bh-btn-secondary" onclick="previewVer(${v.version})">View</button>
-      <button class="bh-btn bh-btn-primary" onclick="confirmRestore(${v.version})">↩ Restore</button>
     </div>
   `).join('');
 }
 
-async function previewVer(v) {
-  previewVersion = v;
-  const r = await fetch('/api/brain/version?path=' + encodeURIComponent(docPath) + '&v=' + v);
-  const data = await r.json();
-  document.getElementById('previewTitle').textContent = 'Version ' + v;
-  document.getElementById('previewContent').textContent = data.content || '';
-  document.getElementById('versionPreview').style.display = '';
+async function selectVersion(v, el) {
+  // Mark active
+  document.querySelectorAll('.bh-ver.active').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+
+  const data = await apiFetch('/api/brain/version?path=' + enc(docPath) + '&v=' + v);
+  if (!data) return;
+  selectedVersion = v;
+  selectedContent = data.content || '';
+
+  document.getElementById('ptitle').innerHTML = 'Version ' + v +
+    ' <span class="bh-current-badge">snapshot before this save</span>';
+  document.getElementById('ptoolbar').style.display = 'flex';
+  setPanelTab(panelTab);
 }
 
-function closePreview() {
-  document.getElementById('versionPreview').style.display = 'none';
-}
-
-async function confirmRestore(v) {
-  if (!confirm('Restore version ' + v + '? The current document will be saved as a new version first.')) return;
-  const r = await fetch('/api/brain/restore', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: docPath, version: v })
+// ── Panel tabs ─────────────────────────────────────────────────────────────
+function setPanelTab(tab) {
+  panelTab = tab;
+  ['diff','preview','raw'].forEach(t => {
+    document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1))
+      .classList.toggle('active', t === tab);
   });
-  const data = await r.json();
-  if (data.ok) {
-    alert('Restored to version ' + v);
-    location.href = '/brain?path=' + encodeURIComponent(docPath);
+  renderPanel();
+}
+
+function renderPanel() {
+  const el = document.getElementById('panelContent');
+  if (panelTab === 'diff') {
+    el.innerHTML = '<div class="bh-raw">' + renderDiff(selectedContent, currentContent) + '</div>';
+  } else if (panelTab === 'preview') {
+    el.innerHTML = '<div class="bh-preview">' + marked.parse(selectedContent) + '</div>';
+  } else {
+    el.innerHTML = '<pre class="bh-raw">' + esc(selectedContent) + '</pre>';
   }
 }
 
-async function restoreVersion() {
-  if (previewVersion) confirmRestore(previewVersion);
+// ── Diff renderer (unified, context 3 lines) ───────────────────────────────
+function renderDiff(oldText, newText) {
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
+  const lcs = computeLCS(oldLines, newLines);
+  const hunks = buildHunks(oldLines, newLines, lcs, 3);
+  if (!hunks.length) return '<div style="color:#555;padding:20px">No differences — this version matches the current document.</div>';
+  return hunks.map(renderHunk).join('');
 }
 
+function computeLCS(a, b) {
+  // Myers-inspired simple LCS via DP (capped at 500 lines each for perf)
+  const A = a.slice(0, 500), B = b.slice(0, 500);
+  const m = A.length, n = B.length;
+  const dp = Array.from({length: m+1}, () => new Uint16Array(n+1));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = A[i-1] === B[j-1] ? dp[i-1][j-1]+1 : Math.max(dp[i-1][j], dp[i][j-1]);
+  // Backtrack
+  const ops = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && A[i-1] === B[j-1]) { ops.push({t:'=',ai:i-1,bi:j-1}); i--; j--; }
+    else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.push({t:'+',bi:j-1}); j--; }
+    else { ops.push({t:'-',ai:i-1}); i--; }
+  }
+  return ops.reverse();
+}
+
+function buildHunks(oldLines, newLines, ops, ctx) {
+  // Group ops into visible hunks with context
+  const lines = [];
+  for (const op of ops) {
+    if (op.t === '=') lines.push({type:'ctx', old:op.ai, new:op.bi, text:oldLines[op.ai]});
+    else if (op.t === '-') lines.push({type:'del', old:op.ai, text:oldLines[op.ai]});
+    else lines.push({type:'add', new:op.bi, text:newLines[op.bi]});
+  }
+  // Mark which ctx lines are "near" a change
+  const changed = lines.map(l => l.type !== 'ctx');
+  const visible = lines.map((l,i) => {
+    if (l.type !== 'ctx') return true;
+    for (let d = -ctx; d <= ctx; d++) {
+      if (changed[i+d]) return true;
+    }
+    return false;
+  });
+  // Build hunks (groups of visible lines)
+  const hunks = [];
+  let cur = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (visible[i]) {
+      if (!cur) { cur = []; hunks.push(cur); }
+      cur.push(lines[i]);
+    } else {
+      cur = null;
+    }
+  }
+  return hunks;
+}
+
+function renderHunk(lines) {
+  const firstOld = lines.find(l => l.old !== undefined)?.old ?? '?';
+  const firstNew = lines.find(l => l.new !== undefined)?.new ?? '?';
+  let html = `<div class="diff-hunk">@@ -${firstOld+1} +${firstNew+1} @@</div>`;
+  for (const l of lines) {
+    const cls = l.type === 'add' ? 'diff-add' : l.type === 'del' ? 'diff-del' : 'diff-ctx';
+    const pfx = l.type === 'add' ? '+' : l.type === 'del' ? '-' : ' ';
+    const lineNum = l.old !== undefined ? String(l.old+1) : '';
+    html += `<div class="diff-line ${cls}">
+      <span class="diff-line-num">${lineNum}</span>
+      <span class="diff-line-text">${pfx} ${esc(l.text)}</span>
+    </div>`;
+  }
+  return html;
+}
+
+// ── Restore ────────────────────────────────────────────────────────────────
+async function doRestore() {
+  if (!selectedVersion) return;
+  if (!confirm('Restore version ' + selectedVersion + '?\nThe current document will be saved as a new version first.')) return;
+  const btn = document.getElementById('restoreBtn');
+  btn.disabled = true; btn.textContent = '⏳ Restoring…';
+  const r = await fetch('/api/brain/restore', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: docPath, version: selectedVersion })
+  });
+  if (r.status === 401) { location.href = '/brain/login'; return; }
+  const data = await r.json();
+  if (data.ok) {
+    location.href = '/brain?path=' + enc(docPath);
+  } else {
+    alert('Restore failed: ' + (data.error || 'unknown'));
+    btn.disabled = false; btn.textContent = '↩ Restore';
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+async function apiFetch(url) {
+  const r = await fetch(url);
+  if (r.status === 401) { location.href = '/brain/login?next=' + encodeURIComponent(location.href); return null; }
+  if (!r.ok) { console.error('API error', r.status, url); return null; }
+  return r.json().catch(() => null);
+}
+
+function enc(s) { return encodeURIComponent(s); }
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 boot();
