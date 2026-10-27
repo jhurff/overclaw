@@ -244,13 +244,29 @@ function setTab(mode) {
 
 async function saveDoc() {
   if (!currentPath) return;
-  const content = document.getElementById('editorTA')?.value ?? currentContent;
-  const r = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(currentPath), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content })
-  });
-  if (r.ok) { currentContent = content; showToast('Saved ✓'); }
+  const ta = document.getElementById('editorTA');
+  const content = ta ? ta.value : currentContent;
+  const saveBtn = document.getElementById('saveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving…'; }
+  try {
+    const r = await fetch('/api/brain/doc?path=' + encodeURIComponent(currentPath), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    if (r.status === 401) { location.href = '/brain/login'; return; }
+    const data = await r.json();
+    if (data.ok) {
+      currentContent = content;
+      showToast('Saved ✓');
+    } else {
+      showToast('Save failed: ' + (data.error || 'unknown'));
+    }
+  } catch (e) {
+    showToast('Save error: ' + e.message);
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save'; }
+  }
 }
 
 async function deleteDoc() {
