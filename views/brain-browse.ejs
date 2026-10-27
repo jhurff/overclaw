@@ -6,11 +6,14 @@
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <!-- Markdown rendering -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <!-- CodeMirror 6 -->
+  <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
   <style>
     /* Brain browse — two-pane layout; oc-main-content sizing handled by global styles.css */
     .bb-wrap   { display: flex; flex: 1; overflow: hidden; min-height: 0; }
-    .bb-tree   { width: 300px; min-width: 220px; max-width: 420px; background: var(--surface-2, #1a1a2e); border-right: 1px solid var(--border, #2a2a4a); display: flex; flex-direction: column; overflow: hidden; resize: horizontal; }
+    .bb-tree   { width: 280px; min-width: 200px; max-width: 400px; background: var(--surface-2, #1a1a2e); border-right: 1px solid var(--border, #2a2a4a); display: flex; flex-direction: column; overflow: hidden; resize: horizontal; }
     .bb-tree-head { padding: 12px 14px; border-bottom: 1px solid var(--border, #2a2a4a); display: flex; align-items: center; gap: 8px; }
     .bb-tree-search { flex: 1; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 5px 10px; font-size: 13px; }
     .bb-tree-body  { flex: 1; overflow-y: auto; padding: 8px 0; }
@@ -24,19 +27,53 @@
     .bb-children { display: none; }
     .bb-children.open { display: block; }
     .bb-main  { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .bb-toolbar { padding: 10px 16px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .bb-toolbar { padding: 8px 14px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
     .bb-path-display { flex: 1; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bb-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
     .bb-btn-primary { background: #6366f1; color: #fff; }
     .bb-btn-secondary { background: var(--surface-3,#111122); color: #aaa; border: 1px solid var(--border,#2a2a4a); }
     .bb-btn:hover { opacity: .85; }
-    .bb-doc   { flex: 1; display: flex; overflow: hidden; }
-    .bb-preview { flex: 1; overflow-y: auto; padding: 28px 36px; line-height: 1.7; font-size: 15px; }
-    .bb-preview h1,h2,h3 { color: #e0e4f0; }
-    .bb-editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .bb-editor { flex: 1; resize: none; background: #0d0d1a; color: #c8d0e8; font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 20px; border: none; outline: none; overflow-y: auto; }
-    .bb-empty { display: flex; align-items: center; justify-content: center; flex: 1; color: #555; font-size: 14px; }
-    .bb-search-panel { position: absolute; top: 60px; right: 20px; width: 360px; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a); border-radius: 10px; padding: 14px; z-index: 100; box-shadow: 0 8px 32px rgba(0,0,0,.4); display: none; }
+    .bb-btn:disabled { opacity: .4; cursor: default; }
+    .bb-doc   { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+    /* Preview — rich rendered markdown */
+    .bb-preview {
+      flex: 1; overflow-y: auto; padding: 28px 40px; line-height: 1.8; font-size: 15px;
+      color: #c8d4e8;
+    }
+    .bb-preview h1 { font-size: 2em; font-weight: 800; color: #e8ecf8; border-bottom: 1px solid var(--border,#2a2a4a); padding-bottom: .3em; margin-bottom: .6em; }
+    .bb-preview h2 { font-size: 1.5em; font-weight: 700; color: #dde3f5; border-bottom: 1px solid var(--border,#2a2a4a); padding-bottom: .2em; }
+    .bb-preview h3 { font-size: 1.2em; font-weight: 700; color: #d0d8f0; }
+    .bb-preview h4,h5,h6 { font-weight: 600; color: #b8c4e0; }
+    .bb-preview p { margin: .6em 0; }
+    .bb-preview a { color: #818cf8; text-decoration: none; }
+    .bb-preview a:hover { text-decoration: underline; }
+    .bb-preview code { background: rgba(255,255,255,.07); padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: .88em; color: #a5b4fc; }
+    .bb-preview pre { background: #0d0d1a; border: 1px solid var(--border,#2a2a4a); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 1em 0; }
+    .bb-preview pre code { background: none; padding: 0; color: inherit; font-size: 13px; }
+    .bb-preview blockquote { border-left: 3px solid #6366f1; margin: 1em 0; padding: .4em 1em; background: rgba(99,102,241,.07); color: #a0a8c0; border-radius: 0 6px 6px 0; }
+    .bb-preview table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+    .bb-preview th { background: rgba(99,102,241,.12); color: #a0aaff; font-weight: 600; }
+    .bb-preview th, .bb-preview td { border: 1px solid var(--border,#2a2a4a); padding: 8px 12px; text-align: left; font-size: 13px; }
+    .bb-preview tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+    .bb-preview ul, .bb-preview ol { padding-left: 1.5em; }
+    .bb-preview li { margin: .25em 0; }
+    .bb-preview hr { border: none; border-top: 1px solid var(--border,#2a2a4a); margin: 1.5em 0; }
+    .bb-preview img { max-width: 100%; border-radius: 6px; }
+    .bb-preview input[type=checkbox] { margin-right: 6px; }
+    /* frontmatter block */
+    .bb-frontmatter { background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-family: monospace; font-size: 12px; color: #8892aa; white-space: pre-wrap; }
+
+    /* CodeMirror editor wrapper */
+    .bb-editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #0a0a16; }
+    .bb-cm-wrap { flex: 1; overflow: hidden; }
+    .bb-cm-wrap .cm-editor { height: 100%; font-size: 13px; }
+    .bb-cm-wrap .cm-scroller { overflow: auto; padding: 16px; box-sizing: border-box; }
+    .bb-cm-wrap .cm-content { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .bb-cm-wrap .cm-focused { outline: none; }
+
+    .bb-empty { display: flex; align-items: center; justify-content: center; flex: 1; color: #555; font-size: 14px; flex-direction: column; gap: 8px; }
+    .bb-search-panel { position: absolute; top: 0; right: 0; width: 380px; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a); border-radius: 10px; padding: 14px; z-index: 200; box-shadow: 0 8px 32px rgba(0,0,0,.5); display: none; }
     .bb-search-panel.open { display: block; }
     .bb-search-input { width: 100%; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 7px 12px; font-size: 13px; box-sizing: border-box; }
     .bb-sr { padding: 8px 10px; border-bottom: 1px solid var(--border,#2a2a4a); cursor: pointer; }
@@ -48,9 +85,18 @@
     .bb-new-bar { display: none; padding: 8px 16px; background: var(--surface-3,#111122); border-bottom: 1px solid var(--border,#2a2a4a); align-items: center; gap: 8px; }
     .bb-new-bar.open { display: flex; }
     .bb-new-input { flex: 1; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 5px 10px; font-size: 13px; }
-    .bb-tab { padding: 4px 12px; border-radius: 6px 6px 0 0; font-size: 12px; cursor: pointer; border: 1px solid transparent; }
+    .bb-tab { padding: 4px 12px; border-radius: 6px 6px 0 0; font-size: 12px; cursor: pointer; border: 1px solid transparent; color: #888; }
     .bb-tab.active { border-color: var(--border,#2a2a4a); border-bottom-color: transparent; background: var(--surface-2,#1a1a2e); color: #a0aaff; }
     .bb-tab-bar { display: flex; gap: 4px; padding: 4px 16px 0; border-bottom: 1px solid var(--border,#2a2a4a); }
+    .bb-unsaved { font-size: 11px; color: #f59e0b; margin-left: 4px; }
+    /* light mode overrides */
+    body.light-mode .bb-preview { color: #374151; }
+    body.light-mode .bb-preview h1,body.light-mode .bb-preview h2,body.light-mode .bb-preview h3 { color: #111827; }
+    body.light-mode .bb-preview code { background: rgba(0,0,0,.06); color: #4338ca; }
+    body.light-mode .bb-preview pre { background: #f8fafc; border-color: #e2e8f0; }
+    body.light-mode .bb-preview blockquote { background: rgba(99,102,241,.05); color: #4b5563; }
+    body.light-mode .bb-preview a { color: #4338ca; }
+    body.light-mode .bb-editor-wrap { background: #f8fafc; }
   </style>
 </head>
 <body class="oc-body">
@@ -123,10 +169,82 @@
     </main>
   </div>
 
+
+<!-- CodeMirror 6 via CDN bundle -->
+<script type="module">
+import { EditorView, basicSetup } from 'https://esm.sh/codemirror@6';
+import { markdown, markdownLanguage } from 'https://esm.sh/@codemirror/lang-markdown@6';
+import { languages } from 'https://esm.sh/@codemirror/language-data@6';
+import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark@6';
+import { EditorState } from 'https://esm.sh/@codemirror/state@6';
+import { keymap } from 'https://esm.sh/@codemirror/view@6';
+import { defaultKeymap, historyKeymap } from 'https://esm.sh/@codemirror/commands@6';
+
+window._cmEditorView = null;
+window._cmReady = false;
+
+window._initCM = function(container, initialContent) {
+  if (window._cmEditorView) {
+    window._cmEditorView.destroy();
+    window._cmEditorView = null;
+  }
+  const isDark = !document.body.classList.contains('light-mode');
+  const extensions = [
+    basicSetup,
+    markdown({ base: markdownLanguage, codeLanguages: languages }),
+    EditorView.lineWrapping,
+    EditorView.updateListener.of(update => {
+      if (update.docChanged) {
+        window.currentContent = window._cmEditorView.state.doc.toString();
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) saveBtn.textContent = '💾 Save*';
+      }
+    }),
+    keymap.of([
+      { key: 'Mod-s', run: () => { window.saveDoc(); return true; } },
+    ]),
+  ];
+  if (isDark) extensions.push(oneDark);
+  window._cmEditorView = new EditorView({
+    state: EditorState.create({ doc: initialContent, extensions }),
+    parent: container,
+  });
+  window._cmReady = true;
+};
+</script>
+
+<!-- highlight.js for code blocks in preview -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<!-- marked for markdown rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script>
+// Configure marked with highlight.js
+marked.setOptions({
+  highlight: (code, lang) => {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value;
+    }
+    return hljs.highlightAuto(code).value;
+  },
+  breaks: true,
+  gfm: true,
+});
+
+// GFM task list support
+const renderer = new marked.Renderer();
+renderer.listitem = (text) => {
+  if (/^\[[ x]\]/.test(text)) {
+    const checked = text.startsWith('[x]');
+    const label = text.slice(4);
+    return `<li style="list-style:none;margin-left:-1em"><input type="checkbox" ${checked?'checked':''} disabled> ${label}</li>`;
+  }
+  return `<li>${text}</li>`;
+};
+marked.use({ renderer });
+
 let currentPath = null;
 let currentContent = '';
-let currentMode = 'preview'; // 'preview' | 'edit'
+let currentMode = 'preview';
 let treeData = null;
 
 // ── Boot ───────────────────────────────────────────────────────────────────
@@ -135,7 +253,6 @@ async function boot() {
   const tree = await fetchJSON('/api/brain/tree');
   treeData = tree;
   renderTree(tree, document.getElementById('treeBody'));
-  // Re-open doc from URL if present
   const params = new URLSearchParams(location.search);
   if (params.get('path')) openDoc(params.get('path'));
 }
@@ -153,8 +270,7 @@ function renderTree(node, container, depth = 0) {
     if (child.type === 'dir') {
       const dirEl = document.createElement('div');
       dirEl.dataset.path = child.path;
-      const arrow = '<span class="arrow">▶</span>';
-      dirEl.innerHTML = `<div class="bb-dir" onclick="toggleDir(this)" data-path="${child.path}">${arrow} 📁 ${esc(child.name)}</div><div class="bb-children"></div>`;
+      dirEl.innerHTML = `<div class="bb-dir" onclick="toggleDir(this)" data-path="${esc(child.path)}"><span class="arrow">▶</span> 📁 ${esc(child.name)}</div><div class="bb-children"></div>`;
       const childContainer = dirEl.querySelector('.bb-children');
       renderTree(child, childContainer, depth + 1);
       container.appendChild(dirEl);
@@ -199,20 +315,18 @@ function getAllFiles(node, out = []) {
   return out;
 }
 
-// ── Document loading ────────────────────────────────────────────────────────
+// ── Document loading ───────────────────────────────────────────────────────
 async function openDoc(docPath) {
   currentPath = docPath;
   history.replaceState(null, '', '/brain?path=' + encodeURIComponent(docPath));
 
-  // Highlight in tree
   document.querySelectorAll('.bb-file.active').forEach(el => el.classList.remove('active'));
   document.querySelectorAll(`.bb-file[data-path="${CSS.escape(docPath)}"]`).forEach(el => {
     el.classList.add('active');
-    // Open parent dirs
     let p = el.parentElement;
     while (p && p !== document.getElementById('treeBody')) {
-      if (p.classList.contains('bb-children')) { p.classList.add('open'); }
-      if (p.classList.contains('bb-dir')) { p.classList.add('open'); }
+      if (p.classList.contains('bb-children')) p.classList.add('open');
+      if (p.classList.contains('bb-dir')) p.classList.add('open');
       p = p.parentElement;
     }
   });
@@ -223,7 +337,7 @@ async function openDoc(docPath) {
   document.getElementById('docPathDisplay').textContent = docPath;
 
   const doc = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(docPath));
-  currentContent = doc.content;
+  currentContent = doc.content || '';
   setTab(currentMode === 'edit' ? 'edit' : 'preview');
 }
 
@@ -234,38 +348,65 @@ function setTab(mode) {
   document.getElementById('saveBtn').style.display = mode === 'edit' ? '' : 'none';
 
   const area = document.getElementById('docArea');
+
   if (mode === 'preview') {
-    area.innerHTML = `<div class="bb-preview" id="preview"></div>`;
-    document.getElementById('preview').innerHTML = marked.parse(currentContent || '');
+    if (window._cmEditorView) { window._cmEditorView.destroy(); window._cmEditorView = null; }
+    area.innerHTML = `<div class="bb-preview" id="mdPreview"></div>`;
+    renderPreview(document.getElementById('mdPreview'), currentContent);
   } else {
-    area.innerHTML = `<div class="bb-editor-wrap"><textarea class="bb-editor" id="editorTA" oninput="currentContent=this.value">${esc(currentContent)}</textarea></div>`;
+    area.innerHTML = `<div class="bb-editor-wrap"><div class="bb-cm-wrap" id="cmHost"></div></div>`;
+    // Give DOM a tick then init CodeMirror
+    setTimeout(() => {
+      const host = document.getElementById('cmHost');
+      if (host && window._initCM) window._initCM(host, currentContent);
+    }, 0);
   }
 }
 
+function renderPreview(el, md) {
+  // Strip/render YAML frontmatter separately
+  let content = md;
+  let fmHtml = '';
+  if (md.startsWith('---')) {
+    const end = md.indexOf('\n---', 3);
+    if (end !== -1) {
+      const fm = md.slice(4, end).trim();
+      fmHtml = `<div class="bb-frontmatter">${esc(fm)}</div>`;
+      content = md.slice(end + 4).trimStart();
+    }
+  }
+  el.innerHTML = fmHtml + marked.parse(content);
+  // Highlight any code blocks missed by marked
+  el.querySelectorAll('pre code:not([data-highlighted])').forEach(block => {
+    hljs.highlightElement(block);
+  });
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
 async function saveDoc() {
   if (!currentPath) return;
-  const ta = document.getElementById('editorTA');
-  const content = ta ? ta.value : currentContent;
+  // Get latest from CodeMirror if active
+  if (window._cmEditorView) currentContent = window._cmEditorView.state.doc.toString();
   const saveBtn = document.getElementById('saveBtn');
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving…'; }
   try {
     const r = await fetch('/api/brain/doc?path=' + encodeURIComponent(currentPath), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content: currentContent })
     });
     if (r.status === 401) { location.href = '/brain/login'; return; }
     const data = await r.json();
     if (data.ok) {
-      currentContent = content;
       showToast('Saved ✓');
+      if (saveBtn) saveBtn.textContent = '💾 Save';
     } else {
-      showToast('Save failed: ' + (data.error || 'unknown'));
+      showToast('Save failed: ' + (data.error || 'unknown error'));
     }
   } catch (e) {
     showToast('Save error: ' + e.message);
   } finally {
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save'; }
+    if (saveBtn) { saveBtn.disabled = false; }
   }
 }
 
@@ -282,7 +423,7 @@ function viewHistory() {
   if (currentPath) location.href = '/brain/history?path=' + encodeURIComponent(currentPath);
 }
 
-// ── New document ────────────────────────────────────────────────────────────
+// ── New document ───────────────────────────────────────────────────────────
 function toggleNew() {
   const bar = document.getElementById('newBar');
   bar.classList.toggle('open');
@@ -292,12 +433,13 @@ function toggleNew() {
 async function createNewDoc() {
   const p = document.getElementById('newPathInput').value.trim();
   if (!p) return;
+  const name = p.split('/').pop().replace(/\.md$/, '');
   const r = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(p), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: `# ${p.split('/').pop().replace(/\.md$/,'')}\n\n` })
+    body: JSON.stringify({ content: `# ${name}\n\n` })
   });
-  if (r.ok) {
+  if (r && r.ok) {
     toggleNew();
     const tree = await fetchJSON('/api/brain/tree');
     treeData = tree;
@@ -307,7 +449,7 @@ async function createNewDoc() {
   }
 }
 
-// ── Search ──────────────────────────────────────────────────────────────────
+// ── Search ─────────────────────────────────────────────────────────────────
 let searchTimer;
 function toggleSearch() {
   const p = document.getElementById('searchPanel');
@@ -330,13 +472,13 @@ function doSearch(q) {
   }, 250);
 }
 
-// ── Auth ────────────────────────────────────────────────────────────────────
+// ── Auth ───────────────────────────────────────────────────────────────────
 async function logout() {
   await fetch('/auth/logout', { method: 'POST' });
   location.href = '/brain/login';
 }
 
-// ── Utilities ───────────────────────────────────────────────────────────────
+// ── Utilities ──────────────────────────────────────────────────────────────
 async function fetchJSON(url, opts) {
   const r = await fetch(url, opts);
   if (r.status === 401) { location.href = '/brain/login'; return {}; }
@@ -350,10 +492,14 @@ function esc(s) {
 function showToast(msg) {
   const t = document.createElement('div');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#6366f1;color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;z-index:999;';
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#6366f1;color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.4);';
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2000);
+  setTimeout(() => t.remove(), 2500);
 }
+
+// Expose saveDoc globally for Ctrl+S keybinding in CM
+window.saveDoc = saveDoc;
+window.currentContent = currentContent;
 
 boot();
 </script>
