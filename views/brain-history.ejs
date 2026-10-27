@@ -28,11 +28,14 @@
   </style>
 </head>
 <body class="oc-body">
-  <header class="oc-topbar">
-    <span class="oc-topbar-logo">OVERCLAW</span>
-    <span class="oc-topbar-title">⏱ Version History</span>
+  <header class="oc-header">
+    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">VERSION HISTORY</span></a></div>
+    <div class="header-controls">
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
   </header>
-  <div class="oc-layout">
+  <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
     <main class="oc-main-content">
       <div class="bh-wrap">
