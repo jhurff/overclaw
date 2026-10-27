@@ -619,13 +619,10 @@
     async function syncVault() {
       const btn = document.getElementById('sync-btn');
       const ts  = document.getElementById('sw-sync-ts');
-      btn.disabled = true; btn.textContent = '↻ Syncing…';
+      btn.disabled = true; btn.textContent = '↻ Refreshing…';
       try {
-        const d = await fetch('/api/vault/sync', { method:'POST' }).then(r => r.json());
-        ts.textContent = d.ok
-          ? '· synced ' + new Date().toLocaleTimeString()
-          : '· sync failed: ' + (d.error || d.stderr || 'err');
-        if (d.ok) await loadSummary();
+        await loadSummary();
+        ts.textContent = '· refreshed ' + new Date().toLocaleTimeString();
       } catch(e) {
         ts.textContent = '· error: ' + e.message;
       } finally {
@@ -826,10 +823,10 @@
         </div>`;
       }).join('');
     }
-    fetch('/api/vault/status').then(r=>r.json()).then(d => {
-      if (d.lastSyncAt)
+    fetch('/api/brain/stats').then(r=>r.json()).then(d => {
+      if (d.last_updated)
         document.getElementById('sw-sync-ts').textContent =
-          '· synced ' + new Date(d.lastSyncAt).toLocaleTimeString();
+          '\u00b7 brain updated ' + new Date(d.last_updated).toLocaleTimeString();
     }).catch(()=>{});
   </script>
 </body>

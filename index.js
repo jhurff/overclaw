@@ -1533,6 +1533,119 @@ app.post('/api/security/scan', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/swarm/summary — combined swarm snapshot (BrainStore-native)
+// ---------------------------------------------------------------------------
+app.get('/api/swarm/summary', async (req, res) => {
+  try {
+    // Task board + agent registry from BrainStore
+    let taskBoard = { inbox:[], inProgress:[], blocked:[], done:[], stats:{} };
+    let agents = [];
+    if (brainStore) {
+      const boardDoc = brainStore.getDoc('03 - Agents/Coordination/Task Board.md');
+      if (boardDoc) {
+        const { parseTaskBoardSimple, parseAgentRegistrySimple } = require('./lib/McpServer');
+        // Use BrainStore stats directly
+        const searchRows = brainStore.listDir('03 - Agents', { recursive: false });
+        // Parse task board markdown
+        const boardLines = boardDoc.content.split('\n');
+        const sectionAliases = {
+          inbox: ['inbox'], inProgress: ['in progress','in-progress'],
+          blocked: ['blocked'], done: ['done'],
+        };
+        let curSection = null;
+        const sectionMap = {};
+        for (const line of boardLines) {
+          const m = line.match(/^##\s+(.+)/);
+          if (m) {
+            curSection = m[1].trim().toLowerCase();
+            sectionMap[curSection] = sectionMap[curSection] || [];
+          } else if (curSection) {
+            sectionMap[curSection].push(line);
+          }
+        }
+        for (const [heading, lines] of Object.entries(sectionMap)) {
+          let key = null;
+          if (sectionAliases.inbox.some(a => heading.includes(a))) key = 'inbox';
+          else if (sectionAliases.inProgress.some(a => heading.includes(a))) key = 'inProgress';
+          else if (sectionAliases.blocked.some(a => heading.includes(a))) key = 'blocked';
+          else if (sectionAliases.done.some(a => heading.includes(a))) key = 'done';
+          if (!key) continue;
+          const rows = [];
+          for (const line of lines) {
+            const t = line.trim();
+            if (!t.startsWith('|') || /^\|[\s\-:]+\|/.test(t)) continue;
+            const cells = t.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+            rows.push(cells);
+          }
+          taskBoard[key] = rows.slice(1).map(cells => {
+            if (!cells[0]) return null;
+            const m2 = cells[0].match(/TASK-[A-Z0-9]+-\d+/);
+            const taskId = m2 ? m2[0] : cells[0].replace(/\*\*/g,'').trim();
+            if (!taskId || /^[\s\-–—|]+$/.test(taskId)) return null;
+            return { taskId, title: (cells[1]||'').replace(/\*\*/g,'').trim(), agent: (cells[2]||'').trim() };
+          }).filter(Boolean);
+        }
+        taskBoard.stats = {
+          total: taskBoard.inbox.length + taskBoard.inProgress.length + taskBoard.blocked.length + taskBoard.done.length,
+          inbox: taskBoard.inbox.length, inProgress: taskBoard.inProgress.length,
+          blocked: taskBoard.blocked.length, done: taskBoard.done.length,
+        };
+        const agentDoc = brainStore.getDoc('03 - Agents/Agent Registry.md');
+        if (agentDoc) {
+          const lines2 = agentDoc.content.split('\n');
+          let inTable = false, header = null;
+          for (const line of lines2) {
+            const t = line.trim();
+            if (!t.startsWith('|')) { if (inTable) break; continue; }
+            if (/^\|[\s\-:|]+\|/.test(t)) continue;
+            const cells = t.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+            if (!inTable) {
+              if (cells.map(c=>c.toLowerCase()).some(c=>c.includes('nickname'))) {
+                inTable = true; header = cells.map(c=>c.toLowerCase().replace(/\s+/g,'_'));
+              }
+              continue;
+            }
+            if (cells.every(c=>c===''||c==='-')) continue;
+            const a = {}; header.forEach((k,i)=>{ a[k]=(cells[i]||'').replace(/\*\*/g,'').trim(); });
+            agents.push(a);
+          }
+        }
+      }
+    }
+
+    // Heartbeats + heatmap still from VaultReader (filesystem scan)
+    let heartbeats = [], heatmap = { days:[], agents:[] }, alerts = [];
+    if (vaultReader) {
+      [heartbeats, heatmap, alerts] = await Promise.all([
+        vaultReader.getHeartbeats({ limit: 200 }).catch(() => []),
+        vaultReader.getActivityHeatmap().catch(() => ({ days:[], agents:[] })),
+        vaultReader.getAlerts().catch(() => []),
+      ]);
+    }
+
+    // Last-heartbeat-per-machine map
+    const lastHeartbeat = {};
+    for (const hb of heartbeats) {
+      const key = hb.subAgent ? `${hb.machine}/${hb.subAgent}` : hb.machine;
+      if (!lastHeartbeat[key] || (hb.date || '') > (lastHeartbeat[key].date || ''))
+        lastHeartbeat[key] = hb;
+    }
+
+    // Flag stuck in-progress tasks (>48h with no deadline)
+    const now = Date.now();
+    (taskBoard.inProgress || []).forEach(t => flagStuckTask(t, now));
+    if (taskBoard.stats) taskBoard.stats.stuck = (taskBoard.inProgress||[]).filter(t=>t.isStuck).length;
+
+    const brainStats = brainStore ? brainStore.stats() : null;
+
+    res.json({ taskBoard, agents, heartbeats, heatmap, alerts, lastHeartbeat, brainStats });
+  } catch (err) {
+    console.error('[swarm/summary] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/security/swarm-posture — live AI swarm security posture checks
 app.get('/api/security/swarm-posture', async (req, res) => {
   const { execSync } = require('child_process');
