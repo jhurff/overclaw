@@ -2225,6 +2225,11 @@ function brainAuth(req, res, next) {
       }
     }
   }
+  // Neither bearer nor session — redirect browsers, reject API callers
+  const wantsBrowser = !auth && (req.headers.accept || '').includes('text/html');
+  if (wantsBrowser) {
+    return res.redirect('/brain/login?next=' + encodeURIComponent(req.originalUrl));
+  }
   return res.status(401).json({ error: 'Unauthorized' });
 }
 
