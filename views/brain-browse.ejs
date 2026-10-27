@@ -8,8 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <style>
-    .oc-main-content  { overflow: hidden !important; height: calc(100vh - 60px); }
-    .oc-dashboard-area { padding: 0 !important; overflow: hidden !important; display: flex !important; flex-direction: column !important; }
+    /* Brain browse — two-pane layout; oc-main-content sizing handled by global styles.css */
     .bb-wrap   { display: flex; flex: 1; overflow: hidden; min-height: 0; }
     .bb-tree   { width: 300px; min-width: 220px; max-width: 420px; background: var(--surface-2, #1a1a2e); border-right: 1px solid var(--border, #2a2a4a); display: flex; flex-direction: column; overflow: hidden; resize: horizontal; }
     .bb-tree-head { padding: 12px 14px; border-bottom: 1px solid var(--border, #2a2a4a); display: flex; align-items: center; gap: 8px; }
@@ -55,24 +54,24 @@
   </style>
 </head>
 <body class="oc-body">
-  <header class="oc-topbar">
-    <span class="oc-topbar-logo">OVERCLAW</span>
-    <span class="oc-topbar-title">🧠 AI Brain</span>
-    <nav class="oc-topbar-nav">
-      <button class="bb-btn bb-btn-secondary" onclick="toggleSearch()">🔍 Search</button>
-      <button class="bb-btn bb-btn-secondary" onclick="toggleNew()">＋ New Doc</button>
-      <a href="/brain/history" id="histBtn" class="bb-btn bb-btn-secondary" style="display:none;text-decoration:none">⏱ History</a>
+  <header class="oc-header">
+    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AI BRAIN</span></a></div>
+    <div class="header-controls" style="display:flex;align-items:center;gap:8px">
+      <button class="bb-btn bb-btn-secondary" onclick="toggleSearch()" style="padding:4px 10px;font-size:12px">🔍 Search</button>
+      <button class="bb-btn bb-btn-secondary" onclick="toggleNew()" style="padding:4px 10px;font-size:12px">＋ New</button>
+      <a href="/brain/history" id="histBtn" class="bb-btn bb-btn-secondary" style="display:none;text-decoration:none;padding:4px 10px;font-size:12px">⏱ History</a>
       <% if (actor.type === 'user') { %>
-        <span style="color:#666;font-size:12px;margin-left:8px"><%= actor.name %> (<%= actor.role %>)</span>
-        <button class="bb-btn bb-btn-secondary" onclick="logout()">Sign out</button>
+        <span style="color:#666;font-size:11px"><%= actor.name %></span>
+        <button class="bb-btn bb-btn-secondary" onclick="logout()" style="padding:4px 10px;font-size:12px">Sign out</button>
       <% } %>
-    </nav>
+      <button id="sidebar-toggle" class="control-button">☰</button>
+      <button id="theme-toggle" class="control-button">☀️</button>
+    </div>
   </header>
 
-  <div class="oc-layout">
+  <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
-    <main class="oc-main-content">
-      <div class="oc-dashboard-area">
+    <main class="oc-dashboard-area" style="padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important">
 
         <!-- Global search panel -->
         <div class="bb-search-panel" id="searchPanel">
