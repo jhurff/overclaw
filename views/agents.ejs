@@ -10,6 +10,15 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+<style>
+  .zone-badge { display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;vertical-align:middle;margin-left:4px; }
+  .zbadge-localhost   { background:rgba(99,102,241,.15);color:#a5b4fc; }
+  .zbadge-localnet    { background:rgba(16,185,129,.12);color:#6ee7b7; }
+  .zbadge-private_wan { background:rgba(245,158,11,.12);color:#fcd34d; }
+  .zbadge-public_wan  { background:rgba(239,68,68,.12); color:#fca5a5; }
+  .zbadge-unknown     { background:rgba(75,85,99,.15);  color:#9ca3af; }
+</style>
+
   <header class="oc-header">
     <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
     <div class="header-controls">
@@ -126,6 +135,7 @@
           <td><div class="oc-row-name">
             <span style="font-size:1.1rem;color:${r.color}">${r.emoji}</span>
             <span style="font-weight:700;color:${r.color}">${r.name}</span>
+            ${r.zone ? `<span class="zone-badge zbadge-${r.zone}">${r.zone.replace('_',' ')}</span>` : ''}
           </div></td>
           <td class="${r.type?'':'dim'}">${r.type||'—'}</td>
           <td style="font-size:.75rem;color:#9ca3af">${r.machine||'—'}</td>
@@ -162,10 +172,12 @@
 
     async function load(){
       try{
-        const [agents,summary]=await Promise.all([
+        const [agents,summary,cfg]=await Promise.all([
           fetch('/api/vault/agents').then(r=>r.json()),
           fetch('/api/swarm/summary').then(r=>r.json()),
+          fetch('/api/overclaw-config').then(r=>r.json()),
         ]);
+        const agentZones = cfg.agentZones || {};
         const hbMap=summary.lastHeartbeat||{};
         rows=agents.map(a=>{
           const name=a.nickname||a.agent||'Agent';
@@ -182,6 +194,7 @@
             statusLabel,statusCls:badgeCls(statusRaw),
             hbDate:hbDate||'',hbAgo:timeAgo(hbDate)||null,hbDot:hbDot(hbDate),
             since:a.registered||'',
+            zone: agentZones[name.toLowerCase()] || '',
           };
         });
         applyAndRender();
