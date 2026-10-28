@@ -116,9 +116,14 @@
 
           <div class="cfg-section">🧠 AI Brain</div>
           <div class="cfg-field">
-            <label class="cfg-label">Brain Path <span style="color:#4b5563;font-weight:400">(read-only — legacy vault path)</span></label>
-            <input class="cfg-input" id="brainPath" value="<%= ocConfig.brainPath %>" readonly>
-            <div class="cfg-hint">Active store: <code style="color:#818cf8">data/brain.db</code> — <%= brainStats ? brainStats.documents.toLocaleString() + ' docs, ' + (brainStats.db_file_bytes/1024/1024).toFixed(1) + ' MB' : 'unavailable' %></div>
+            <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:#a0a8c0;line-height:1.6">
+              <strong>DB:</strong> <code style="color:#818cf8">data/brain.db</code> &mdash;
+              <%= brainStats ? brainStats.documents.toLocaleString() + ' docs, ' + (brainStats.db_file_bytes/1024/1024).toFixed(1) + ' MB' : 'unavailable' %>
+              &nbsp;&middot;&nbsp;
+              <a href="/brain" style="color:#818cf8">Browse &amp; Edit</a>
+              &nbsp;&middot;&nbsp;
+              <code style="color:#818cf8;font-size:11px">/api/brain/*</code>
+            </div>
           </div>
 
           <div class="cfg-section">🌐 Runtime ⚠️</div>
@@ -248,26 +253,11 @@
 
         <!-- ═══ Agent Config Viewer ═══ -->
         <div class="cfg-pane" id="tab-agent-viewer">
-          <div id="config-viewer-content">
-            <div id="agent-select-container">
-              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">Select an Agent:</h3>
-              <select id="agent-selector" class="cfg-select"></select>
-            </div>
-            <div id="file-list-container" style="display:none">
-              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">
-                Files for <span id="selected-agent-name"></span>
-                <button id="back-to-agents" class="oc-button-secondary" style="margin-left:8px">← Back</button>
-              </h3>
-              <ul id="config-file-list" class="oc-list-group"></ul>
-            </div>
-            <div id="file-content-container" style="display:none">
-              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">
-                <span id="viewing-file-name"></span> / <span id="viewing-agent-name"></span>
-                <button id="back-to-file-list" class="oc-button-secondary" style="margin-left:8px">← Back</button>
-              </h3>
-              <pre id="file-content" class="oc-code-block"></pre>
-            </div>
-          </div>
+          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
+            Per-agent configuration, registry info, and links to their Brain documents.
+          </p>
+          <div id="avc-loading" style="color:#555;padding:16px 0">Loading&hellip;</div>
+          <div id="avc-grid" style="display:none;gap:12px"></div>
         </div>
 
       </div><!-- /cfg-wrap -->
@@ -495,60 +485,75 @@
       } catch(e) { toast('zone-toast', 'zone-err', false, e.message); }
     }
 
-    // ── Agent Config Viewer (legacy) ─────────────────────────────────────
+    // ── Agent Config Viewer ───────────────────────────────────────────────
     let viewerLoaded = false;
     async function loadAgentViewer() {
       if (viewerLoaded) return;
       viewerLoaded = true;
+      const loadEl = document.getElementById('avc-loading');
+      const grid   = document.getElementById('avc-grid');
       try {
-        const agents = await fetch('/api/agents').then(r => r.json());
-        const sel = document.getElementById('agent-selector');
-        sel.innerHTML = '<option value="">-- Select Agent --</option>';
-        agents.forEach(a => {
-          const o = document.createElement('option');
-          o.value = a.id; o.textContent = a.name;
-          sel.appendChild(o);
-        });
-        sel.addEventListener('change', e => {
-          if (e.target.value) fetchFiles(e.target.value, agents);
-        });
+        const [agents, cfg] = await Promise.all([
+          fetch('/api/vault/agents').then(r => r.json()),
+          fetch('/api/overclaw-config').then(r => r.json()),
+        ]);
+        const zones = cfg.agentZones || {};
+        const net   = cfg.network    || {};
+        const port  = cfg.port       || 8355;
+        const EMOJI = { Spike:'🦞', Steve:'📈', Lex:'💻', Bill:'🐟', Luther:'🤖' };
+        const COLOR = { Spike:'#f97316', Steve:'#3b82f6', Lex:'#a855f7', Bill:'#10b981', Luther:'#eab308' };
+        const ZONE_IP = {
+          localhost:   net.localhostIp  || '127.0.0.1',
+          localnet:    net.localnetIp   || '',
+          private_wan: net.privateWanIp || '',
+          public_wan:  net.publicWanIp  || '',
+        };
+        const ZONE_LABELS = { localhost:'localhost', localnet:'localnet', private_wan:'private WAN', public_wan:'public WAN' };
+
+        grid.style.display = 'grid';
+        grid.innerHTML = agents.map(a => {
+          const name  = a.nickname || a.agent || '?';
+          const key   = name.toLowerCase();
+          const zone  = zones[key] || 'localnet';
+          const ip    = ZONE_IP[zone] || '';
+          const mcp   = ip ? `http://${ip}:${port}/mcp` : '(IP not configured)';
+          const color = COLOR[name] || '#6b7280';
+          const emoji = EMOJI[name] || '🤖';
+          const role  = (a.primary_role || a.role || '').split(' — ')[0] || '—';
+          const machine = (a.machine || '—').replace(/\s*\(.*?\)\s*/g, '').trim();
+          const type  = a.type || '—';
+          const since = a.registered || '—';
+          const brainPath = encodeURIComponent('03 - Agents/Agent Registry.md');
+
+          return `<div style="background:var(--surface-2,#1a1a2e);border:1px solid var(--border,#2a2a4a);border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:0 14px;align-items:start">
+            <div style="font-size:1.6rem;line-height:1;padding-top:2px">${emoji}</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                <span style="font-weight:700;font-size:.95rem;color:${color}">${name}</span>
+                <span class="cfg-badge badge-${zone}">${ZONE_LABELS[zone] || zone}</span>
+                <span style="font-size:11px;color:#4b5563">${type}</span>
+              </div>
+              <div style="font-size:11.5px;color:#6b7280;margin-bottom:8px;line-height:1.5">
+                <strong style="color:#9ca3af">Role:</strong> ${role}<br>
+                <strong style="color:#9ca3af">Machine:</strong> ${machine}
+                &nbsp;&middot;&nbsp;<strong style="color:#9ca3af">Since:</strong> ${since}
+              </div>
+              <div style="font-family:monospace;font-size:11px;color:#818cf8;background:#0c0c1a;border:1px solid var(--border,#2a2a4a);border-radius:5px;padding:5px 9px;margin-bottom:10px;word-break:break-all">${mcp}</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <a href="/agents" class="cfg-badge" style="background:rgba(99,102,241,.12);color:#a5b4fc;text-decoration:none;cursor:pointer">🚀 Onboard</a>
+                <a href="/brain?path=${brainPath}" class="cfg-badge" style="background:rgba(99,102,241,.12);color:#a5b4fc;text-decoration:none">📋 Registry</a>
+                <a href="/activity?agent=${encodeURIComponent(name)}" class="cfg-badge" style="background:rgba(99,102,241,.12);color:#a5b4fc;text-decoration:none">📡 Activity</a>
+                <a href="/config#agent-zones" class="cfg-badge" style="background:rgba(245,158,11,.1);color:#fcd34d;text-decoration:none">⚙️ Change Zone</a>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+
+        loadEl.style.display = 'none';
       } catch(e) {
-        document.getElementById('agent-select-container').innerHTML =
-          `<p style="color:#f87171">Failed: ${e.message}</p>`;
+        loadEl.textContent = '❌ Failed to load: ' + e.message;
+        loadEl.style.color = '#f87171';
       }
-    }
-
-    async function fetchFiles(agentId, agents) {
-      const files = await fetch(`/api/agent-config-files/${agentId}`).then(r => r.json()).catch(() => []);
-      const list  = document.getElementById('config-file-list');
-      list.innerHTML = '';
-      (Array.isArray(files) ? files : []).forEach(f => {
-        const li = document.createElement('li'); li.className = 'oc-list-item';
-        const sp = document.createElement('span'); sp.className = 'oc-link';
-        sp.textContent = f.name; sp.style.cursor = 'pointer';
-        sp.onclick = () => fetchFileContent(agentId, f.path);
-        li.appendChild(sp);
-        list.appendChild(li);
-      });
-      document.getElementById('selected-agent-name').textContent = agents.find(a => a.id === agentId)?.name || agentId;
-      document.getElementById('agent-select-container').style.display = 'none';
-      document.getElementById('file-list-container').style.display = 'block';
-      document.getElementById('back-to-agents').onclick = () => {
-        document.getElementById('file-list-container').style.display = 'none';
-        document.getElementById('agent-select-container').style.display = 'block';
-      };
-    }
-
-    async function fetchFileContent(agentId, filePath) {
-      const data = await fetch(`/api/file-content?agentId=${agentId}&filePath=${encodeURIComponent(filePath)}`).then(r => r.json()).catch(e => ({ error: e.message }));
-      document.getElementById('file-content').textContent = data.content || data.error || '(empty)';
-      document.getElementById('viewing-file-name').textContent = filePath;
-      document.getElementById('file-list-container').style.display = 'none';
-      document.getElementById('file-content-container').style.display = 'block';
-      document.getElementById('back-to-file-list').onclick = () => {
-        document.getElementById('file-content-container').style.display = 'none';
-        document.getElementById('file-list-container').style.display = 'block';
-      };
     }
 
     // ── Toast helper ─────────────────────────────────────────────────────
