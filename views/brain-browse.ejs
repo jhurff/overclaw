@@ -6,97 +6,117 @@
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Markdown rendering -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
-  <!-- CodeMirror 6 -->
+  <!-- Toast UI Editor — Obsidian-style WYSIWYG markdown editor -->
   <link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+  <!-- highlight.js for code block syntax highlighting in preview -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <style>
-    /* Brain browse — two-pane layout; oc-main-content sizing handled by global styles.css */
+    /* ── Two-pane layout ─────────────────────────────────────────────────── */
     .bb-wrap   { display: flex; flex: 1; overflow: hidden; min-height: 0; }
-    .bb-tree   { width: 280px; min-width: 200px; max-width: 400px; background: var(--surface-2, #1a1a2e); border-right: 1px solid var(--border, #2a2a4a); display: flex; flex-direction: column; overflow: hidden; resize: horizontal; }
-    .bb-tree-head { padding: 12px 14px; border-bottom: 1px solid var(--border, #2a2a4a); display: flex; align-items: center; gap: 8px; }
-    .bb-tree-search { flex: 1; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 5px 10px; font-size: 13px; }
-    .bb-tree-body  { flex: 1; overflow-y: auto; padding: 8px 0; }
-    .bb-dir  { padding: 4px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: #a0a8c0; display: flex; align-items: center; gap: 6px; user-select: none; }
+
+    /* ── File tree ───────────────────────────────────────────────────────── */
+    .bb-tree   { width: 270px; min-width: 180px; max-width: 380px; background: var(--surface-2, #1a1a2e);
+                 border-right: 1px solid var(--border, #2a2a4a); display: flex; flex-direction: column; overflow: hidden; }
+    .bb-tree-head { padding: 10px 12px; border-bottom: 1px solid var(--border, #2a2a4a); display: flex; align-items: center; gap: 8px; }
+    .bb-tree-search { flex: 1; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
+                      border-radius: 5px; color: #ccc; padding: 5px 9px; font-size: 12.5px; }
+    .bb-tree-body  { flex: 1; overflow-y: auto; padding: 6px 0; }
+    .bb-dir  { padding: 4px 10px; cursor: pointer; font-size: 12.5px; font-weight: 600; color: #9098b8;
+               display: flex; align-items: center; gap: 5px; user-select: none; }
     .bb-dir:hover { background: rgba(255,255,255,.04); }
-    .bb-dir .arrow { font-size: 10px; transition: transform .15s; display: inline-block; width: 12px; }
+    .bb-dir .arrow { font-size: 9px; transition: transform .15s; display: inline-block; width: 10px; }
     .bb-dir.open .arrow { transform: rotate(90deg); }
-    .bb-file { padding: 3px 12px 3px 28px; cursor: pointer; font-size: 12.5px; color: #7a84a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bb-file:hover { background: rgba(255,255,255,.04); color: #c0c8e0; }
-    .bb-file.active { background: rgba(99,102,241,.15); color: #a0aaff; }
+    .bb-file { padding: 3px 10px 3px 26px; cursor: pointer; font-size: 12px; color: #6a7490;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bb-file:hover { background: rgba(255,255,255,.04); color: #b0b8d8; }
+    .bb-file.active { background: rgba(99,102,241,.15); color: #9fa8f8; font-weight: 600; }
     .bb-children { display: none; }
     .bb-children.open { display: block; }
-    .bb-main  { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .bb-toolbar { padding: 8px 14px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
-    .bb-path-display { flex: 1; font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Right pane ──────────────────────────────────────────────────────── */
+    .bb-main  { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .bb-top-bar { padding: 7px 12px; border-bottom: 1px solid var(--border,#2a2a4a);
+                  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; background: var(--surface-2,#1a1a2e); }
+    .bb-path-display { flex: 1; font-size: 11.5px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bb-btn { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
-    .bb-btn-primary { background: #6366f1; color: #fff; }
+    .bb-btn-primary   { background: #6366f1; color: #fff; }
     .bb-btn-secondary { background: var(--surface-3,#111122); color: #aaa; border: 1px solid var(--border,#2a2a4a); }
-    .bb-btn:hover { opacity: .85; }
-    .bb-btn:disabled { opacity: .4; cursor: default; }
+    .bb-btn:hover     { opacity: .85; }
+    .bb-btn:disabled  { opacity: .4; cursor: default; }
     .bb-doc   { flex: 1; display: flex; overflow: hidden; position: relative; }
 
-    /* Preview — rich rendered markdown */
-    .bb-preview {
-      flex: 1; overflow-y: auto; padding: 28px 40px; line-height: 1.8; font-size: 15px;
-      color: #c8d4e8;
+    /* ── Toast UI editor overrides ───────────────────────────────────────── */
+    .bb-editor-host { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .toastui-editor-defaultUI { flex: 1 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; height: 100% !important; }
+    .toastui-editor-main      { flex: 1 !important; overflow: hidden !important; }
+    .toastui-editor-ww-container, .toastui-editor-md-container { height: 100% !important; }
+    .toastui-editor-toolbar   { background: var(--surface-2,#1a1a2e) !important; border-bottom: 1px solid var(--border,#2a2a4a) !important; }
+    .toastui-editor-toolbar button { color: #9098b8 !important; }
+    .toastui-editor-toolbar button:hover { background: rgba(99,102,241,.15) !important; }
+    .toastui-editor-defaultUI-toolbar { padding: 4px 8px !important; }
+    /* Dark editor background */
+    .toastui-editor-ww-container .ProseMirror {
+      background: #0c0c1a !important; color: #c8d4e8 !important;
+      font-size: 15px !important; line-height: 1.8 !important; padding: 28px 40px !important;
     }
-    .bb-preview h1 { font-size: 2em; font-weight: 800; color: #e8ecf8; border-bottom: 1px solid var(--border,#2a2a4a); padding-bottom: .3em; margin-bottom: .6em; }
-    .bb-preview h2 { font-size: 1.5em; font-weight: 700; color: #dde3f5; border-bottom: 1px solid var(--border,#2a2a4a); padding-bottom: .2em; }
-    .bb-preview h3 { font-size: 1.2em; font-weight: 700; color: #d0d8f0; }
-    .bb-preview h4,h5,h6 { font-weight: 600; color: #b8c4e0; }
-    .bb-preview p { margin: .6em 0; }
-    .bb-preview a { color: #818cf8; text-decoration: none; }
-    .bb-preview a:hover { text-decoration: underline; }
-    .bb-preview code { background: rgba(255,255,255,.07); padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: .88em; color: #a5b4fc; }
-    .bb-preview pre { background: #0d0d1a; border: 1px solid var(--border,#2a2a4a); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 1em 0; }
-    .bb-preview pre code { background: none; padding: 0; color: inherit; font-size: 13px; }
-    .bb-preview blockquote { border-left: 3px solid #6366f1; margin: 1em 0; padding: .4em 1em; background: rgba(99,102,241,.07); color: #a0a8c0; border-radius: 0 6px 6px 0; }
-    .bb-preview table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-    .bb-preview th { background: rgba(99,102,241,.12); color: #a0aaff; font-weight: 600; }
-    .bb-preview th, .bb-preview td { border: 1px solid var(--border,#2a2a4a); padding: 8px 12px; text-align: left; font-size: 13px; }
-    .bb-preview tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-    .bb-preview ul, .bb-preview ol { padding-left: 1.5em; }
-    .bb-preview li { margin: .25em 0; }
-    .bb-preview hr { border: none; border-top: 1px solid var(--border,#2a2a4a); margin: 1.5em 0; }
-    .bb-preview img { max-width: 100%; border-radius: 6px; }
-    .bb-preview input[type=checkbox] { margin-right: 6px; }
-    /* frontmatter block */
-    .bb-frontmatter { background: rgba(99,102,241,.06); border: 1px solid rgba(99,102,241,.2); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-family: monospace; font-size: 12px; color: #8892aa; white-space: pre-wrap; }
+    .toastui-editor-md-container .toastui-editor { background: #0c0c1a !important; color: #c8d4e8 !important; }
+    .toastui-editor-md-container .CodeMirror { background: #0c0c1a !important; color: #c8d4e8 !important; height: 100% !important; }
+    .toastui-editor-contents h1 { font-size: 2em; font-weight: 800; color: #e8ecf8; border-bottom: 1px solid var(--border,#2a2a4a); padding-bottom: .3em; }
+    .toastui-editor-contents h2 { font-size: 1.5em; font-weight: 700; color: #dde3f5; border-bottom: 1px solid var(--border,#2a2a4a); }
+    .toastui-editor-contents h3 { font-size: 1.2em; font-weight: 700; color: #d0d8f0; }
+    .toastui-editor-contents a  { color: #818cf8; }
+    .toastui-editor-contents code { background: rgba(255,255,255,.07); color: #a5b4fc; padding: 2px 6px; border-radius: 4px; font-size: .87em; }
+    .toastui-editor-contents pre { background: #0d0d1a; border: 1px solid var(--border,#2a2a4a); border-radius: 8px; }
+    .toastui-editor-contents blockquote { border-left: 3px solid #6366f1; background: rgba(99,102,241,.07); color: #a0a8c0; }
+    .toastui-editor-contents table th { background: rgba(99,102,241,.12); color: #a0aaff; }
+    .toastui-editor-contents table th, .toastui-editor-contents table td { border-color: var(--border,#2a2a4a); }
+    /* Toolbar toggle buttons highlight */
+    .toastui-editor-defaultUI .tab-item.active { border-bottom: 2px solid #6366f1 !important; color: #a0aaff !important; }
+    /* Frontmatter shown as code block */
+    .bb-frontmatter-notice { font-size: 11px; color: #6a7490; padding: 4px 14px; background: rgba(99,102,241,.05);
+                             border-bottom: 1px solid var(--border,#2a2a4a); }
 
-    /* CodeMirror editor wrapper */
-    .bb-editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #0a0a16; }
-    .bb-cm-wrap { flex: 1; overflow: hidden; }
-    .bb-cm-wrap .cm-editor { height: 100%; font-size: 13px; }
-    .bb-cm-wrap .cm-scroller { overflow: auto; padding: 16px; box-sizing: border-box; }
-    .bb-cm-wrap .cm-content { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .bb-cm-wrap .cm-focused { outline: none; }
-
+    /* ── Empty / loading states ──────────────────────────────────────────── */
     .bb-empty { display: flex; align-items: center; justify-content: center; flex: 1; color: #555; font-size: 14px; flex-direction: column; gap: 8px; }
-    .bb-search-panel { position: absolute; top: 0; right: 0; width: 380px; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a); border-radius: 10px; padding: 14px; z-index: 200; box-shadow: 0 8px 32px rgba(0,0,0,.5); display: none; }
+
+    /* ── Global search overlay ───────────────────────────────────────────── */
+    .bb-search-panel { position: fixed; top: 60px; right: 20px; width: 420px; background: var(--surface-2,#1a1a2e);
+                       border: 1px solid var(--border,#2a2a4a); border-radius: 10px; padding: 14px;
+                       z-index: 300; box-shadow: 0 8px 32px rgba(0,0,0,.6); display: none; }
     .bb-search-panel.open { display: block; }
-    .bb-search-input { width: 100%; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 7px 12px; font-size: 13px; box-sizing: border-box; }
+    .bb-search-input { width: 100%; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
+                       border-radius: 6px; color: #ccc; padding: 8px 12px; font-size: 13px; box-sizing: border-box; }
     .bb-sr { padding: 8px 10px; border-bottom: 1px solid var(--border,#2a2a4a); cursor: pointer; }
     .bb-sr:hover { background: rgba(255,255,255,.04); }
     .bb-sr-path { font-size: 11px; color: #6366f1; }
     .bb-sr-snip { font-size: 12px; color: #999; margin-top: 2px; }
     .bb-sr-snip mark { background: rgba(99,102,241,.3); color: #a0aaff; border-radius: 2px; }
-    .bb-stats { font-size: 11px; color: #555; padding: 0 14px 8px; }
-    .bb-new-bar { display: none; padding: 8px 16px; background: var(--surface-3,#111122); border-bottom: 1px solid var(--border,#2a2a4a); align-items: center; gap: 8px; }
+
+    /* ── New-doc bar ─────────────────────────────────────────────────────── */
+    .bb-new-bar { display: none; padding: 7px 14px; background: var(--surface-3,#111122);
+                  border-bottom: 1px solid var(--border,#2a2a4a); align-items: center; gap: 8px; }
     .bb-new-bar.open { display: flex; }
-    .bb-new-input { flex: 1; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a); border-radius: 6px; color: #ccc; padding: 5px 10px; font-size: 13px; }
-    .bb-tab { padding: 4px 12px; border-radius: 6px 6px 0 0; font-size: 12px; cursor: pointer; border: 1px solid transparent; color: #888; }
-    .bb-tab.active { border-color: var(--border,#2a2a4a); border-bottom-color: transparent; background: var(--surface-2,#1a1a2e); color: #a0aaff; }
-    .bb-tab-bar { display: flex; gap: 4px; padding: 4px 16px 0; border-bottom: 1px solid var(--border,#2a2a4a); }
-    .bb-unsaved { font-size: 11px; color: #f59e0b; margin-left: 4px; }
-    /* light mode overrides */
-    body.light-mode .bb-preview { color: #374151; }
-    body.light-mode .bb-preview h1,body.light-mode .bb-preview h2,body.light-mode .bb-preview h3 { color: #111827; }
-    body.light-mode .bb-preview code { background: rgba(0,0,0,.06); color: #4338ca; }
-    body.light-mode .bb-preview pre { background: #f8fafc; border-color: #e2e8f0; }
-    body.light-mode .bb-preview blockquote { background: rgba(99,102,241,.05); color: #4b5563; }
-    body.light-mode .bb-preview a { color: #4338ca; }
-    body.light-mode .bb-editor-wrap { background: #f8fafc; }
+    .bb-new-input { flex: 1; background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a);
+                    border-radius: 6px; color: #ccc; padding: 5px 10px; font-size: 13px; }
+
+    /* ── Stats bar ───────────────────────────────────────────────────────── */
+    .bb-stats { font-size: 11px; color: #555; padding: 3px 14px 5px; border-bottom: 1px solid var(--border,#2a2a4a); flex-shrink: 0; }
+
+    /* ── Light mode ──────────────────────────────────────────────────────── */
+    body.light-mode .toastui-editor-ww-container .ProseMirror { background: #fff !important; color: #1f2937 !important; }
+    body.light-mode .toastui-editor-md-container .toastui-editor { background: #fff !important; color: #1f2937 !important; }
+    body.light-mode .toastui-editor-md-container .CodeMirror { background: #fff !important; color: #1f2937 !important; }
+    body.light-mode .toastui-editor-toolbar { background: #f8fafc !important; }
+    body.light-mode .toastui-editor-contents h1,
+    body.light-mode .toastui-editor-contents h2,
+    body.light-mode .toastui-editor-contents h3 { color: #111827 !important; }
+    body.light-mode .toastui-editor-contents code { background: rgba(0,0,0,.06) !important; color: #4338ca !important; }
+    body.light-mode .toastui-editor-contents pre  { background: #f8fafc !important; }
+    body.light-mode .bb-tree   { background: #f0f4ff; }
+    body.light-mode .bb-top-bar { background: #f0f4ff; }
+    body.light-mode .bb-dir  { color: #374151; }
+    body.light-mode .bb-file { color: #4b5563; }
+    body.light-mode .bb-file.active { color: #3730a3; }
   </style>
 </head>
 <body class="oc-body">
@@ -104,8 +124,7 @@
     <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AI BRAIN</span></a></div>
     <div class="header-controls" style="display:flex;align-items:center;gap:8px">
       <button class="bb-btn bb-btn-secondary" onclick="toggleSearch()" style="padding:4px 10px;font-size:12px">🔍 Search</button>
-      <button class="bb-btn bb-btn-secondary" onclick="toggleNew()" style="padding:4px 10px;font-size:12px">＋ New</button>
-      <a href="/brain/history" id="histBtn" class="bb-btn bb-btn-secondary" style="display:none;text-decoration:none;padding:4px 10px;font-size:12px">⏱ History</a>
+      <button class="bb-btn bb-btn-secondary" onclick="toggleNew()"    style="padding:4px 10px;font-size:12px">＋ New Doc</button>
       <% if (actor.type === 'user') { %>
         <span style="color:#666;font-size:11px"><%= actor.name %></span>
         <button class="bb-btn bb-btn-secondary" onclick="logout()" style="padding:4px 10px;font-size:12px">Sign out</button>
@@ -119,390 +138,408 @@
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
     <main class="oc-dashboard-area" style="padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important">
 
-        <!-- Global search panel -->
-        <div class="bb-search-panel" id="searchPanel">
-          <input class="bb-search-input" id="searchInput" placeholder="Search all documents…" oninput="doSearch(this.value)">
-          <div id="searchResults" style="margin-top:8px;max-height:320px;overflow-y:auto"></div>
+      <!-- Global search panel -->
+      <div class="bb-search-panel" id="searchPanel">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:600;color:#c0c8e0;flex:1">Search documents</span>
+          <button class="bb-btn bb-btn-secondary" onclick="toggleSearch()" style="padding:2px 8px;font-size:11px">✕</button>
         </div>
-
-        <!-- New document bar -->
-        <div class="bb-new-bar" id="newBar">
-          <span style="font-size:13px;color:#aaa">New doc path:</span>
-          <input class="bb-new-input" id="newPathInput" placeholder="e.g. 03 - Agents/notes/my-note.md">
-          <button class="bb-btn bb-btn-primary" onclick="createNewDoc()">Create</button>
-          <button class="bb-btn bb-btn-secondary" onclick="toggleNew()">Cancel</button>
-        </div>
-
-        <!-- Stats bar -->
-        <div class="bb-stats" id="statsBar">Loading…</div>
-
-        <!-- Main two-pane -->
-        <div class="bb-wrap">
-          <!-- Tree pane -->
-          <div class="bb-tree">
-            <div class="bb-tree-head">
-              <span style="font-size:13px;font-weight:700;color:#c0c8e0">📁 Documents</span>
-              <input class="bb-tree-search" id="treeFilter" placeholder="Filter…" oninput="filterTree(this.value)">
-            </div>
-            <div class="bb-tree-body" id="treeBody">Loading…</div>
-          </div>
-
-          <!-- Doc pane -->
-          <div class="bb-main">
-            <div class="bb-toolbar" id="docToolbar" style="display:none">
-              <span class="bb-path-display" id="docPathDisplay"></span>
-              <div class="bb-tab-bar" id="tabBar">
-                <span class="bb-tab active" id="tabPreview" onclick="setTab('preview')">Preview</span>
-                <span class="bb-tab" id="tabEdit" onclick="setTab('edit')">Edit</span>
-              </div>
-              <button class="bb-btn bb-btn-primary" id="saveBtn" onclick="saveDoc()" style="display:none">💾 Save</button>
-              <button class="bb-btn bb-btn-secondary" onclick="viewHistory()">⏱ History</button>
-              <button class="bb-btn bb-btn-secondary" onclick="deleteDoc()">🗑 Delete</button>
-            </div>
-            <div class="bb-doc" id="docArea">
-              <div class="bb-empty">Select a document from the tree, or use + New Doc</div>
-            </div>
-          </div>
-        </div>
-
+        <input class="bb-search-input" id="searchInput" placeholder="Type to search all docs…" oninput="doSearch(this.value)">
+        <div id="searchResults" style="margin-top:8px;max-height:340px;overflow-y:auto"></div>
       </div>
+
+      <!-- New doc bar -->
+      <div class="bb-new-bar" id="newBar">
+        <span style="font-size:13px;color:#aaa;white-space:nowrap">📄 New doc path:</span>
+        <input class="bb-new-input" id="newPathInput" placeholder="e.g. 03 - Agents/notes/my-note.md"
+               onkeydown="if(event.key==='Enter')createNewDoc()">
+        <button class="bb-btn bb-btn-primary"    onclick="createNewDoc()">Create</button>
+        <button class="bb-btn bb-btn-secondary"  onclick="toggleNew()">Cancel</button>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="bb-stats" id="statsBar">Loading…</div>
+
+      <!-- Two-pane -->
+      <div class="bb-wrap">
+        <!-- File tree -->
+        <div class="bb-tree">
+          <div class="bb-tree-head">
+            <span style="font-size:12.5px;font-weight:700;color:#b0b8d8">📁 Brain</span>
+            <input class="bb-tree-search" id="treeFilter" placeholder="Filter…" oninput="filterTree(this.value)">
+          </div>
+          <div class="bb-tree-body" id="treeBody">
+            <div style="padding:20px;text-align:center;color:#555;font-size:13px">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Doc pane -->
+        <div class="bb-main">
+          <!-- Doc toolbar -->
+          <div class="bb-top-bar" id="docToolbar" style="display:none">
+            <span class="bb-path-display" id="docPathDisplay"></span>
+            <span id="unsavedDot" style="display:none;color:#f59e0b;font-size:11px;font-weight:700">● unsaved</span>
+            <button class="bb-btn bb-btn-primary"   id="saveBtn"   onclick="saveDoc()" style="display:none">💾 Save</button>
+            <button class="bb-btn bb-btn-secondary" id="wysiBtn"   onclick="setMode('wysiwyg')" style="display:none">✏️ WYSIWYG</button>
+            <button class="bb-btn bb-btn-secondary" id="mdBtn"     onclick="setMode('markdown')" style="display:none">⌨️ Markdown</button>
+            <button class="bb-btn bb-btn-secondary"                onclick="viewHistory()">⏱ History</button>
+            <button class="bb-btn bb-btn-secondary"                onclick="deleteDoc()">🗑 Delete</button>
+          </div>
+          <div class="bb-doc" id="docArea">
+            <div class="bb-empty">
+              <span style="font-size:2em">🧠</span>
+              Select a document from the tree, or use <strong>＋ New Doc</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
+  <!-- Toast UI Editor JS -->
+  <script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+  <!-- highlight.js for code blocks -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-<!-- CodeMirror 6 via CDN bundle -->
-<script type="module">
-import { EditorView, basicSetup } from 'https://esm.sh/codemirror@6';
-import { markdown, markdownLanguage } from 'https://esm.sh/@codemirror/lang-markdown@6';
-import { languages } from 'https://esm.sh/@codemirror/language-data@6';
-import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark@6';
-import { EditorState } from 'https://esm.sh/@codemirror/state@6';
-import { keymap } from 'https://esm.sh/@codemirror/view@6';
-import { defaultKeymap, historyKeymap } from 'https://esm.sh/@codemirror/commands@6';
+  <script>
+    // ── State ─────────────────────────────────────────────────────────────
+    let currentPath    = null;
+    let currentContent = '';
+    let editorInst     = null;    // Toast UI Editor instance
+    let treeData       = null;
+    let isDirty        = false;
 
-window._cmEditorView = null;
-window._cmReady = false;
+    // ── Boot ──────────────────────────────────────────────────────────────
+    async function boot() {
+      loadStats();
+      const tree = await fetchJSON('/api/brain/tree');
+      treeData = tree;
+      renderTree(tree, document.getElementById('treeBody'));
+      const params = new URLSearchParams(location.search);
+      const initPath = params.get('path') || params.get('doc');
+      if (initPath) openDoc(initPath);
+    }
 
-window._initCM = function(container, initialContent) {
-  if (window._cmEditorView) {
-    window._cmEditorView.destroy();
-    window._cmEditorView = null;
-  }
-  const isDark = !document.body.classList.contains('light-mode');
-  const extensions = [
-    basicSetup,
-    markdown({ base: markdownLanguage, codeLanguages: languages }),
-    EditorView.lineWrapping,
-    EditorView.updateListener.of(update => {
-      if (update.docChanged) {
-        window.currentContent = window._cmEditorView.state.doc.toString();
-        const saveBtn = document.getElementById('saveBtn');
-        if (saveBtn) saveBtn.textContent = '💾 Save*';
+    async function loadStats() {
+      const s = await fetchJSON('/api/brain/stats');
+      if (s && s.documents != null) {
+        document.getElementById('statsBar').textContent =
+          `${(s.documents||0).toLocaleString()} documents · ${(s.versions||0).toLocaleString()} versions · ${((s.db_file_bytes||0)/1024/1024).toFixed(1)} MB`;
+      } else {
+        document.getElementById('statsBar').textContent = '';
       }
-    }),
-    keymap.of([
-      { key: 'Mod-s', run: () => { window.saveDoc(); return true; } },
-    ]),
-  ];
-  if (isDark) extensions.push(oneDark);
-  window._cmEditorView = new EditorView({
-    state: EditorState.create({ doc: initialContent, extensions }),
-    parent: container,
-  });
-  window._cmReady = true;
-};
-</script>
-
-<!-- highlight.js for code blocks in preview -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<!-- marked for markdown rendering -->
-<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
-<script>
-// Configure marked with highlight.js
-marked.setOptions({
-  highlight: (code, lang) => {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, { language: lang }).value;
     }
-    return hljs.highlightAuto(code).value;
-  },
-  breaks: true,
-  gfm: true,
-});
 
-// GFM task list support
-const renderer = new marked.Renderer();
-renderer.listitem = (text) => {
-  if (/^\[[ x]\]/.test(text)) {
-    const checked = text.startsWith('[x]');
-    const label = text.slice(4);
-    return `<li style="list-style:none;margin-left:-1em"><input type="checkbox" ${checked?'checked':''} disabled> ${label}</li>`;
-  }
-  return `<li>${text}</li>`;
-};
-marked.use({ renderer });
-
-let currentPath = null;
-let currentContent = '';
-let currentMode = 'preview';
-let treeData = null;
-
-// ── Boot ───────────────────────────────────────────────────────────────────
-async function boot() {
-  loadStats();
-  const tree = await fetchJSON('/api/brain/tree');
-  treeData = tree;
-  renderTree(tree, document.getElementById('treeBody'));
-  const params = new URLSearchParams(location.search);
-  if (params.get('path')) openDoc(params.get('path'));
-}
-
-async function loadStats() {
-  const s = await fetchJSON('/api/brain/stats');
-  document.getElementById('statsBar').textContent =
-    `${s.documents.toLocaleString()} documents · ${s.versions.toLocaleString()} versions · ${(s.db_file_bytes/1024/1024).toFixed(1)} MB`;
-}
-
-// ── Tree rendering ─────────────────────────────────────────────────────────
-function renderTree(node, container, depth = 0) {
-  container.innerHTML = '';
-  for (const child of (node.children || [])) {
-    if (child.type === 'dir') {
-      const dirEl = document.createElement('div');
-      dirEl.dataset.path = child.path;
-      dirEl.innerHTML = `<div class="bb-dir" onclick="toggleDir(this)" data-path="${esc(child.path)}"><span class="arrow">▶</span> 📁 ${esc(child.name)}</div><div class="bb-children"></div>`;
-      const childContainer = dirEl.querySelector('.bb-children');
-      renderTree(child, childContainer, depth + 1);
-      container.appendChild(dirEl);
-    } else {
-      const fileEl = document.createElement('div');
-      fileEl.className = 'bb-file';
-      fileEl.dataset.path = child.path;
-      fileEl.textContent = child.name.replace(/\.md$/, '');
-      fileEl.title = child.path;
-      fileEl.onclick = () => openDoc(child.path);
-      container.appendChild(fileEl);
+    // ── File tree ─────────────────────────────────────────────────────────
+    function renderTree(node, container) {
+      container.innerHTML = '';
+      for (const child of (node.children || [])) {
+        if (child.type === 'dir') {
+          const wrap = document.createElement('div');
+          const head = document.createElement('div');
+          head.className = 'bb-dir';
+          head.dataset.path = child.path;
+          head.innerHTML = `<span class="arrow">▶</span> 📁 ${esc(child.name)}`;
+          head.onclick = () => {
+            head.classList.toggle('open');
+            kids.classList.toggle('open');
+          };
+          const kids = document.createElement('div');
+          kids.className = 'bb-children';
+          renderTree(child, kids);
+          wrap.appendChild(head);
+          wrap.appendChild(kids);
+          container.appendChild(wrap);
+        } else {
+          const el = document.createElement('div');
+          el.className = 'bb-file';
+          el.dataset.path = child.path;
+          el.textContent = child.name.replace(/\.md$/, '');
+          el.title = child.path;
+          el.onclick = () => openDoc(child.path);
+          container.appendChild(el);
+        }
+      }
     }
-  }
-}
 
-function toggleDir(el) {
-  el.classList.toggle('open');
-  const children = el.nextElementSibling;
-  if (children) children.classList.toggle('open');
-}
-
-function filterTree(q) {
-  if (!q.trim()) {
-    document.getElementById('treeBody').innerHTML = '';
-    renderTree(treeData, document.getElementById('treeBody'));
-    return;
-  }
-  q = q.toLowerCase();
-  const all = getAllFiles(treeData);
-  const filtered = all.filter(f => f.path.toLowerCase().includes(q));
-  const container = document.getElementById('treeBody');
-  container.innerHTML = filtered.map(f =>
-    `<div class="bb-file" data-path="${esc(f.path)}" onclick="openDoc('${esc(f.path)}')" title="${esc(f.path)}">${esc(f.path)}</div>`
-  ).join('');
-}
-
-function getAllFiles(node, out = []) {
-  for (const c of (node.children || [])) {
-    if (c.type === 'file') out.push(c);
-    else getAllFiles(c, out);
-  }
-  return out;
-}
-
-// ── Document loading ───────────────────────────────────────────────────────
-async function openDoc(docPath) {
-  currentPath = docPath;
-  history.replaceState(null, '', '/brain?path=' + encodeURIComponent(docPath));
-
-  document.querySelectorAll('.bb-file.active').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll(`.bb-file[data-path="${CSS.escape(docPath)}"]`).forEach(el => {
-    el.classList.add('active');
-    let p = el.parentElement;
-    while (p && p !== document.getElementById('treeBody')) {
-      if (p.classList.contains('bb-children')) p.classList.add('open');
-      if (p.classList.contains('bb-dir')) p.classList.add('open');
-      p = p.parentElement;
+    function filterTree(q) {
+      const container = document.getElementById('treeBody');
+      if (!q.trim()) {
+        container.innerHTML = '';
+        renderTree(treeData, container);
+        if (currentPath) highlightTreeFile(currentPath);
+        return;
+      }
+      q = q.toLowerCase();
+      const all = getAllFiles(treeData);
+      const filtered = all.filter(f => f.path.toLowerCase().includes(q));
+      container.innerHTML = filtered.map(f =>
+        `<div class="bb-file${f.path===currentPath?' active':''}" data-path="${esc(f.path)}"
+              onclick="openDoc('${esc(f.path)}')" title="${esc(f.path)}">${esc(f.path)}</div>`
+      ).join('') || '<div style="padding:12px;color:#555;font-size:12px">No matches</div>';
     }
-  });
 
-  document.getElementById('docToolbar').style.display = 'flex';
-  document.getElementById('histBtn').style.display = '';
-  document.getElementById('histBtn').href = '/brain/history?path=' + encodeURIComponent(docPath);
-  document.getElementById('docPathDisplay').textContent = docPath;
-
-  const doc = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(docPath));
-  currentContent = doc.content || '';
-  setTab(currentMode === 'edit' ? 'edit' : 'preview');
-}
-
-function setTab(mode) {
-  currentMode = mode;
-  document.getElementById('tabPreview').classList.toggle('active', mode === 'preview');
-  document.getElementById('tabEdit').classList.toggle('active', mode === 'edit');
-  document.getElementById('saveBtn').style.display = mode === 'edit' ? '' : 'none';
-
-  const area = document.getElementById('docArea');
-
-  if (mode === 'preview') {
-    if (window._cmEditorView) { window._cmEditorView.destroy(); window._cmEditorView = null; }
-    area.innerHTML = `<div class="bb-preview" id="mdPreview"></div>`;
-    renderPreview(document.getElementById('mdPreview'), currentContent);
-  } else {
-    area.innerHTML = `<div class="bb-editor-wrap"><div class="bb-cm-wrap" id="cmHost"></div></div>`;
-    // Give DOM a tick then init CodeMirror
-    setTimeout(() => {
-      const host = document.getElementById('cmHost');
-      if (host && window._initCM) window._initCM(host, currentContent);
-    }, 0);
-  }
-}
-
-function renderPreview(el, md) {
-  // Strip/render YAML frontmatter separately
-  let content = md;
-  let fmHtml = '';
-  if (md.startsWith('---')) {
-    const end = md.indexOf('\n---', 3);
-    if (end !== -1) {
-      const fm = md.slice(4, end).trim();
-      fmHtml = `<div class="bb-frontmatter">${esc(fm)}</div>`;
-      content = md.slice(end + 4).trimStart();
+    function getAllFiles(node, out = []) {
+      for (const c of (node.children || [])) {
+        if (c.type === 'file') out.push(c);
+        else getAllFiles(c, out);
+      }
+      return out;
     }
-  }
-  el.innerHTML = fmHtml + marked.parse(content);
-  // Highlight any code blocks missed by marked
-  el.querySelectorAll('pre code:not([data-highlighted])').forEach(block => {
-    hljs.highlightElement(block);
-  });
-}
 
-// ── Save ───────────────────────────────────────────────────────────────────
-async function saveDoc() {
-  if (!currentPath) return;
-  // Get latest from CodeMirror if active
-  if (window._cmEditorView) currentContent = window._cmEditorView.state.doc.toString();
-  const saveBtn = document.getElementById('saveBtn');
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Saving…'; }
-  try {
-    const r = await fetch('/api/brain/doc?path=' + encodeURIComponent(currentPath), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: currentContent })
+    function highlightTreeFile(docPath) {
+      document.querySelectorAll('.bb-file').forEach(el => {
+        el.classList.toggle('active', el.dataset.path === docPath);
+        if (el.dataset.path === docPath) {
+          // expand ancestors
+          let p = el.parentElement;
+          while (p && p !== document.getElementById('treeBody')) {
+            if (p.classList.contains('bb-children')) { p.classList.add('open'); }
+            if (p.classList.contains('bb-dir'))      { p.classList.add('open'); }
+            p = p.parentElement;
+          }
+        }
+      });
+    }
+
+    // ── Open document ─────────────────────────────────────────────────────
+    async function openDoc(docPath) {
+      if (isDirty && currentPath) {
+        if (!confirm('You have unsaved changes. Discard and open new document?')) return;
+      }
+      currentPath = docPath;
+      isDirty = false;
+      history.replaceState(null, '', '/brain?path=' + encodeURIComponent(docPath));
+
+      document.getElementById('docToolbar').style.display = 'flex';
+      document.getElementById('docPathDisplay').textContent = docPath;
+      document.getElementById('unsavedDot').style.display = 'none';
+      document.getElementById('saveBtn').style.display = '';
+      document.getElementById('wysiBtn').style.display = '';
+      document.getElementById('mdBtn').style.display = '';
+
+      highlightTreeFile(docPath);
+
+      const area = document.getElementById('docArea');
+      area.innerHTML = '<div class="bb-empty"><span style="font-size:2em">⏳</span> Loading…</div>';
+
+      const doc = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(docPath));
+      currentContent = (doc && doc.content) ? doc.content : '';
+
+      area.innerHTML = '';
+      mountEditor(area, currentContent);
+    }
+
+    // ── Toast UI Editor ───────────────────────────────────────────────────
+    function mountEditor(container, mdContent) {
+      if (editorInst) {
+        try { editorInst.destroy(); } catch(e) {}
+        editorInst = null;
+      }
+
+      const host = document.createElement('div');
+      host.className = 'bb-editor-host';
+      container.appendChild(host);
+
+      const isDark = !document.body.classList.contains('light-mode');
+
+      editorInst = new toastui.Editor({
+        el: host,
+        initialValue: mdContent,
+        initialEditType: 'wysiwyg',   // start in WYSIWYG mode (Obsidian-like)
+        previewStyle: 'tab',           // tab between edit / preview
+        height: '100%',
+        usageStatistics: false,
+        theme: isDark ? 'dark' : '',
+        toolbarItems: [
+          ['heading', 'bold', 'italic', 'strike'],
+          ['hr'],
+          ['ul', 'ol', 'task', 'indent', 'outdent'],
+          ['table', 'link'],
+          ['code', 'codeblock'],
+          ['scrollSync'],
+        ],
+        events: {
+          change: () => {
+            isDirty = true;
+            document.getElementById('unsavedDot').style.display = '';
+            document.getElementById('saveBtn').textContent = '💾 Save*';
+          }
+        },
+        hooks: {},
+      });
+
+      // Ctrl+S / Cmd+S to save
+      host.addEventListener('keydown', e => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          saveDoc();
+        }
+      });
+    }
+
+    // ── Editor mode toggle ────────────────────────────────────────────────
+    function setMode(mode) {
+      if (editorInst) editorInst.changeMode(mode === 'wysiwyg' ? 'wysiwyg' : 'markdown');
+    }
+
+    // ── Save ──────────────────────────────────────────────────────────────
+    async function saveDoc() {
+      if (!currentPath || !editorInst) return;
+      const content = editorInst.getMarkdown();
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '⏳ Saving…';
+      try {
+        const r = await fetch('/api/brain/doc?path=' + encodeURIComponent(currentPath), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+        if (r.status === 401) { location.href = '/brain/login'; return; }
+        const data = await r.json();
+        if (data.ok) {
+          currentContent = content;
+          isDirty = false;
+          document.getElementById('unsavedDot').style.display = 'none';
+          saveBtn.textContent = '💾 Save';
+          showToast('Saved ✓');
+        } else {
+          showToast('❌ Save failed: ' + (data.error || 'unknown error'), 'error');
+          saveBtn.textContent = '💾 Save*';
+        }
+      } catch (e) {
+        showToast('❌ Save error: ' + e.message, 'error');
+        saveBtn.textContent = '💾 Save*';
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────
+    async function deleteDoc() {
+      if (!currentPath || !confirm(`Delete "${currentPath}"?\n\nThis cannot be undone.`)) return;
+      const r = await fetch('/api/brain/doc?path=' + encodeURIComponent(currentPath), { method: 'DELETE' });
+      if (r.ok) {
+        currentPath = null; isDirty = false;
+        destroyEditor();
+        document.getElementById('docArea').innerHTML = '<div class="bb-empty"><span>🗑</span> Document deleted</div>';
+        document.getElementById('docToolbar').style.display = 'none';
+        const tree = await fetchJSON('/api/brain/tree');
+        treeData = tree;
+        renderTree(tree, document.getElementById('treeBody'));
+        showToast('Deleted');
+      }
+    }
+
+    function destroyEditor() {
+      if (editorInst) { try { editorInst.destroy(); } catch(e) {} editorInst = null; }
+    }
+
+    // ── History ───────────────────────────────────────────────────────────
+    function viewHistory() {
+      if (currentPath) location.href = '/brain/history?path=' + encodeURIComponent(currentPath);
+    }
+
+    // ── New document ──────────────────────────────────────────────────────
+    function toggleNew() {
+      const bar = document.getElementById('newBar');
+      bar.classList.toggle('open');
+      if (bar.classList.contains('open')) document.getElementById('newPathInput').focus();
+    }
+
+    async function createNewDoc() {
+      const p = document.getElementById('newPathInput').value.trim();
+      if (!p) return;
+      const docPath = p.endsWith('.md') ? p : p + '.md';
+      const name = docPath.split('/').pop().replace(/\.md$/, '');
+      const r = await fetch('/api/brain/doc?path=' + encodeURIComponent(docPath), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `# ${name}\n\n` })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (data.ok) {
+        toggleNew();
+        document.getElementById('newPathInput').value = '';
+        const tree = await fetchJSON('/api/brain/tree');
+        treeData = tree;
+        renderTree(tree, document.getElementById('treeBody'));
+        openDoc(docPath);
+      } else {
+        showToast('❌ ' + (data.error || 'Create failed'), 'error');
+      }
+    }
+
+    // ── Global search ─────────────────────────────────────────────────────
+    let searchTimer;
+    function toggleSearch() {
+      const p = document.getElementById('searchPanel');
+      p.classList.toggle('open');
+      if (p.classList.contains('open')) { document.getElementById('searchInput').focus(); }
+    }
+
+    function doSearch(q) {
+      clearTimeout(searchTimer);
+      const res = document.getElementById('searchResults');
+      if (!q.trim()) { res.innerHTML = ''; return; }
+      searchTimer = setTimeout(async () => {
+        const r = await fetchJSON('/api/brain/search?q=' + encodeURIComponent(q) + '&limit=20');
+        const html = (r && r.results && r.results.length)
+          ? r.results.map(item =>
+              `<div class="bb-sr" onclick="openDoc('${esc(item.path)}');toggleSearch()">
+                <div class="bb-sr-path">${esc(item.path)}</div>
+                <div class="bb-sr-snip">${item.snippet || ''}</div>
+              </div>`
+            ).join('')
+          : '<div style="padding:10px;color:#555;font-size:13px">No results</div>';
+        res.innerHTML = html;
+      }, 220);
+    }
+
+    // ── Auth ──────────────────────────────────────────────────────────────
+    async function logout() {
+      await fetch('/auth/logout', { method: 'POST' });
+      location.href = '/brain/login';
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────
+    async function fetchJSON(url, opts) {
+      try {
+        const r = await fetch(url, opts);
+        if (r.status === 401) { location.href = '/brain/login'; return {}; }
+        return await r.json();
+      } catch { return {}; }
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function showToast(msg, type = 'ok') {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      const bg = type === 'error' ? '#dc2626' : '#6366f1';
+      t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${bg};color:#fff;
+        padding:9px 18px;border-radius:8px;font-size:13px;z-index:999;
+        box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .3s;`;
+      document.body.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+    }
+
+    // Close search panel on Escape
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.getElementById('searchPanel').classList.remove('open');
+        document.getElementById('newBar').classList.remove('open');
+      }
     });
-    if (r.status === 401) { location.href = '/brain/login'; return; }
-    const data = await r.json();
-    if (data.ok) {
-      showToast('Saved ✓');
-      if (saveBtn) saveBtn.textContent = '💾 Save';
-    } else {
-      showToast('Save failed: ' + (data.error || 'unknown error'));
-    }
-  } catch (e) {
-    showToast('Save error: ' + e.message);
-  } finally {
-    if (saveBtn) { saveBtn.disabled = false; }
-  }
-}
 
-async function deleteDoc() {
-  if (!currentPath || !confirm('Delete ' + currentPath + '?')) return;
-  await fetch('/api/brain/doc?path=' + encodeURIComponent(currentPath), { method: 'DELETE' });
-  currentPath = null;
-  document.getElementById('docArea').innerHTML = '<div class="bb-empty">Document deleted</div>';
-  document.getElementById('docToolbar').style.display = 'none';
-  boot();
-}
-
-function viewHistory() {
-  if (currentPath) location.href = '/brain/history?path=' + encodeURIComponent(currentPath);
-}
-
-// ── New document ───────────────────────────────────────────────────────────
-function toggleNew() {
-  const bar = document.getElementById('newBar');
-  bar.classList.toggle('open');
-  if (bar.classList.contains('open')) document.getElementById('newPathInput').focus();
-}
-
-async function createNewDoc() {
-  const p = document.getElementById('newPathInput').value.trim();
-  if (!p) return;
-  const name = p.split('/').pop().replace(/\.md$/, '');
-  const r = await fetchJSON('/api/brain/doc?path=' + encodeURIComponent(p), {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: `# ${name}\n\n` })
-  });
-  if (r && r.ok) {
-    toggleNew();
-    const tree = await fetchJSON('/api/brain/tree');
-    treeData = tree;
-    renderTree(tree, document.getElementById('treeBody'));
-    openDoc(p);
-    setTab('edit');
-  }
-}
-
-// ── Search ─────────────────────────────────────────────────────────────────
-let searchTimer;
-function toggleSearch() {
-  const p = document.getElementById('searchPanel');
-  p.classList.toggle('open');
-  if (p.classList.contains('open')) document.getElementById('searchInput').focus();
-}
-
-function doSearch(q) {
-  clearTimeout(searchTimer);
-  if (!q.trim()) { document.getElementById('searchResults').innerHTML = ''; return; }
-  searchTimer = setTimeout(async () => {
-    const r = await fetchJSON('/api/brain/search?q=' + encodeURIComponent(q) + '&limit=15');
-    const html = (r.results || []).map(item =>
-      `<div class="bb-sr" onclick="openDoc('${esc(item.path)}');toggleSearch()">
-        <div class="bb-sr-path">${esc(item.path)}</div>
-        <div class="bb-sr-snip">${item.snippet}</div>
-      </div>`
-    ).join('') || '<div style="padding:8px;color:#555;font-size:13px">No results</div>';
-    document.getElementById('searchResults').innerHTML = html;
-  }, 250);
-}
-
-// ── Auth ───────────────────────────────────────────────────────────────────
-async function logout() {
-  await fetch('/auth/logout', { method: 'POST' });
-  location.href = '/brain/login';
-}
-
-// ── Utilities ──────────────────────────────────────────────────────────────
-async function fetchJSON(url, opts) {
-  const r = await fetch(url, opts);
-  if (r.status === 401) { location.href = '/brain/login'; return {}; }
-  return r.json().catch(() => ({}));
-}
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#6366f1;color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.4);';
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2500);
-}
-
-// Expose saveDoc globally for Ctrl+S keybinding in CM
-window.saveDoc = saveDoc;
-window.currentContent = currentContent;
-
-boot();
-</script>
-<%- include('partials/theme-sidebar') %>
+    boot();
+  </script>
+  <%- include('partials/theme-sidebar') %>
 </body>
 </html>

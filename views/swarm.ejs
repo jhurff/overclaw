@@ -204,9 +204,28 @@
     .hc-dot-yellow { background: #eab308; }
     .hc-dot-red    { background: #ef4444; }
     .hc-dot-gray   { background: #374151; }
-    @media (max-width: 700px) {
-      .heatmap-grid { grid-template-columns: 44px repeat(7, 1fr); }
+    /* ── Brain connectivity globe ── */
+    .ac-brain-globe {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; border-radius: 50%;
+      font-size: 0.78rem; line-height: 1;
+      cursor: default; flex-shrink: 0;
+      position: relative;
     }
+    /* tooltip on hover */
+    .ac-brain-globe[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 4px); left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937; border: 1px solid #374151;
+      border-radius: 4px; padding: 2px 7px;
+      white-space: nowrap; font-size: 0.64rem;
+      color: #e2e8f0; pointer-events: none; z-index: 20;
+    }
+    .globe-green  { text-shadow: 0 0 5px #22c55e; }
+    .globe-yellow { text-shadow: 0 0 5px #eab308; }
+    .globe-red    { text-shadow: 0 0 4px #ef4444; filter: grayscale(0.3); }
+    .globe-gray   { opacity: 0.35; }
     /* ── Top-of-page alert banner ── */
     #alert-banner {
       display: none;
@@ -481,7 +500,7 @@
         err.style.display = 'none';
 
         /* stats */
-        const s  = data.taskBoardStats || {};
+        const s  = (data.taskBoard && data.taskBoard.stats) || {};
         const tb = data.taskBoard || {};
         document.getElementById('stat-inbox').textContent      = s.inbox      ?? '—';
         document.getElementById('stat-inprogress').textContent = s.inProgress ?? '—';
@@ -729,10 +748,13 @@
 
     /* ── Agent + health renderer ── */
     function renderAgents(data, hbHistory = {}) {
-      const grid  = document.getElementById('agent-grid');
-      const hbMap = data.lastHeartbeat || {};
-      const alts  = data.alerts || [];
-      const regs  = data.agents || [];
+      const grid     = document.getElementById('agent-grid');
+      const hbMap    = data.lastHeartbeat || {};
+      const alts     = data.alerts || [];
+      const regs     = data.agents || [];
+      // Brain activity map: agent (lowercase) → { last_ts, last_read_ts, last_write_ts, recent_error }
+      const brainAct = {};
+      (data.brainActivity || []).forEach(b => { brainAct[b.agent.toLowerCase()] = b; });
 
       // Derive heartbeat dir key(s) from vault registry row machine/type fields
       function deriveHeartbeatKeys(reg) {
@@ -798,9 +820,37 @@
         const role = (reg.primary_role || reg.role || '').replace(/\s—\s.*/, '').trim();
         const mach = reg.machine || ag.keys[0];
         const type = reg.type || 'AI Agent';
+
+        // — Brain connectivity globe —
+        const act    = brainAct[ag.name.toLowerCase()] || null;
+        const NOW    = Date.now();
+        const WINDOW = 15 * 60 * 1000; // 15 min
+        let globeCls = 'globe-gray', globeTip = 'No brain activity recorded';
+        if (act) {
+          const last   = act.last_ts || 0;
+          const recent = (NOW - last) < WINDOW;
+          const hasErr = !!act.recent_error;
+          if (hasErr) {
+            globeCls = 'globe-yellow';
+            const ago = timeAgo(new Date(last));
+            globeTip = `Brain errors in last 15 min · last activity ${ago} (${act.last_op || '?'})`;
+          } else if (recent) {
+            globeCls = 'globe-green';
+            const ago = timeAgo(new Date(last));
+            globeTip = `Brain connected · last ${act.last_op || 'activity'} ${ago}`;
+            if (act.last_path) globeTip += `: ${act.last_path.split('/').pop()}`;
+          } else {
+            globeCls = 'globe-red';
+            const ago = timeAgo(new Date(last));
+            globeTip = `No brain activity in 15+ min · last ${act.last_op || 'activity'} ${ago}`;
+          }
+        }
+        const globeIcon = `<span class="ac-brain-globe ${globeCls}" data-tip="${globeTip}" title="${globeTip}">🌐</span>`;
+
         return `<div class="agent-card">
           <div class="ac-header">
             <span class="ac-name" style="color:${ag.color}">${ag.name}</span>
+            ${globeIcon}
             <span class="hc-dot ${dotCls(date)}"></span>
           </div>
           <div class="ac-type">${type} · ${mach}</div>

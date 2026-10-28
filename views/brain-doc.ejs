@@ -1,0 +1,6 @@
+<%
+  // brain-doc.ejs — redirect shim so /brain/doc?path=... works
+  // Just bounces to brain-browse with the same path param
+  const target = '/brain' + (docPath ? '?path=' + encodeURIComponent(docPath) : '');
+  res.redirect(302, target);
+%>
