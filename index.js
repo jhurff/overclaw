@@ -1639,7 +1639,7 @@ app.get('/api/swarm/summary', async (req, res) => {
 
     const brainStats = brainStore ? brainStore.stats() : null;
 
-    res.json({ taskBoard, agents, heartbeats, heatmap, alerts, lastHeartbeat, brainStats });
+    res.json({ taskBoard, agents, heartbeats, heatmap, alerts, lastHeartbeat, brainStats, brainActivity: brainStore ? brainStore.getAgentActivitySummary() : [] });
   } catch (err) {
     console.error('[swarm/summary] error:', err.message);
     res.status(500).json({ error: err.message });
@@ -2290,9 +2290,19 @@ app.get('/api/brain/doc', brainAuth, (req, res) => {
   if (!requireBrain(req, res)) return;
   const docPath = req.query.path;
   if (!docPath) return res.status(400).json({ error: 'path required' });
-  const doc = brainStore.getDoc(docPath);
-  if (!doc) return res.status(404).json({ error: 'Not found' });
-  res.json(doc);
+  const agentName = req.brainActor?.name || 'unknown';
+  try {
+    const doc = brainStore.getDoc(docPath);
+    if (!doc) {
+      brainStore.logActivity(agentName, 'read', docPath, false);
+      return res.status(404).json({ error: 'Not found' });
+    }
+    brainStore.logActivity(agentName, 'read', docPath, true);
+    res.json(doc);
+  } catch (err) {
+    brainStore.logActivity(agentName, 'read', docPath, false);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // PUT /api/brain/doc?path=  body: { content, changeNote? }
@@ -2305,6 +2315,7 @@ app.put('/api/brain/doc', brainAuth, (req, res) => {
   const updatedBy = req.brainActor?.name || 'unknown';
   try {
     const result = brainStore.putDoc(docPath, content, { updatedBy, changeNote });
+    brainStore.logActivity(updatedBy, 'write', docPath);
     res.json({ ok: true, ...result, path: docPath });
   } catch (err) {
     console.error('[brain PUT] error:', err.message);
@@ -2406,8 +2417,10 @@ app.get('/api/brain/stats', brainAuth, (req, res) => {
 app.get('/brain', brainAuth, (req, res) => {
   res.render('brain-browse', { title: 'AI Brain', actor: req.brainActor });
 });
-app.get('/brain/doc', brainAuth, (req, res) => {
-  res.render('brain-doc', { title: 'AI Brain — Document', actor: req.brainActor, docPath: req.query.path || '' });
+app.get('/brain/doc', (req, res) => {
+  // Redirect /brain/doc?path=... → /brain?path=... (brain-browse is the unified editor)
+  const target = '/brain' + (req.query.path ? '?path=' + encodeURIComponent(req.query.path) : '');
+  res.redirect(302, target);
 });
 app.get('/brain/history', brainAuth, (req, res) => {
   res.render('brain-history', { title: 'AI Brain — History', actor: req.brainActor, docPath: req.query.path || '' });
