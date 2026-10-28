@@ -5,122 +5,277 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── Settings layout ─────────────────────────────────────────────────── */
+    .cfg-wrap   { max-width: 860px; margin: 0 auto; padding: 0 4px; }
+    .cfg-tabs   { display: flex; gap: 4px; border-bottom: 1px solid var(--border,#2a2a4a); margin-bottom: 20px; }
+    .cfg-tab    { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+                  border: none; background: none; color: #6b7280; border-bottom: 2px solid transparent;
+                  margin-bottom: -1px; transition: color .15s, border-color .15s; }
+    .cfg-tab.active { color: #9fa8f8; border-bottom-color: #6366f1; }
+    .cfg-pane   { display: none; }
+    .cfg-pane.active { display: block; }
+
+    /* ── Sections + fields ───────────────────────────────────────────────── */
+    .cfg-section { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: .08em; color: #4b5563; margin: 20px 0 10px; padding-bottom: 4px;
+                   border-bottom: 1px solid var(--border,#2a2a4a); }
+    .cfg-field  { margin-bottom: 16px; }
+    .cfg-label  { display: block; font-size: 12.5px; font-weight: 600; color: #9ca3af; margin-bottom: 5px; }
+    .cfg-hint   { font-size: 11px; color: #4b5563; margin-top: 3px; }
+    .cfg-input  { width: 100%; max-width: 440px; background: var(--surface-3,#111122);
+                  border: 1px solid var(--border,#2a2a4a); border-radius: 6px;
+                  color: #e2e8f0; padding: 7px 11px; font-size: 13px; box-sizing: border-box; }
+    .cfg-input:focus { outline: none; border-color: #6366f1; }
+    .cfg-input[readonly] { opacity: .5; cursor: not-allowed; }
+    .cfg-select { background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
+                  border-radius: 6px; color: #e2e8f0; padding: 7px 11px; font-size: 13px; }
+    .cfg-row    { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cfg-badge  { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+    .badge-localhost   { background: rgba(99,102,241,.15); color: #a5b4fc; }
+    .badge-localnet    { background: rgba(16,185,129,.12); color: #6ee7b7; }
+    .badge-private_wan { background: rgba(245,158,11,.12); color: #fcd34d; }
+    .badge-public_wan  { background: rgba(239,68,68,.12);  color: #fca5a5; }
+    .badge-unknown     { background: rgba(75,85,99,.15);   color: #9ca3af; }
+
+    /* ── IP card grid ────────────────────────────────────────────────────── */
+    .net-grid   { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .net-card   { background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a);
+                  border-radius: 10px; padding: 14px 16px; }
+    .net-card-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+                      letter-spacing: .07em; color: #4b5563; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .net-card-ip    { font-size: 15px; font-weight: 700; font-family: monospace; color: #e2e8f0;
+                      margin-bottom: 4px; min-height: 1.4em; }
+    .net-card-desc  { font-size: 11px; color: #4b5563; line-height: 1.4; }
+    .net-card-edit  { margin-top: 8px; display: flex; gap: 6px; align-items: center; }
+    .net-card-edit input { flex: 1; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
+                           border-radius: 5px; color: #e2e8f0; padding: 5px 8px; font-size: 12px; font-family: monospace; }
+    .net-edit-btn   { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
+    .net-detect-btn { background: #374151; color: #d1d5db; }
+    .net-save-btn   { background: #6366f1; color: #fff; }
+    .net-card-status { font-size: 10.5px; margin-top: 4px; min-height: 14px; }
+    .net-ok  { color: #34d399; }
+    .net-err { color: #f87171; }
+
+    /* ── Agent zone table ────────────────────────────────────────────────── */
+    .zone-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .zone-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 700;
+                     text-transform: uppercase; letter-spacing: .06em; color: #4b5563;
+                     border-bottom: 1px solid var(--border,#2a2a4a); }
+    .zone-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
+    .zone-table tr:last-child td { border-bottom: none; }
+    .zone-select { background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
+                   border-radius: 5px; color: #e2e8f0; padding: 4px 8px; font-size: 12px; }
+    .zone-mcp   { font-size: 11px; font-family: monospace; color: #818cf8; }
+    .zone-save-row { padding: 14px 0 2px; display: flex; align-items: center; gap: 10px; }
+
+    /* ── Save buttons ────────────────────────────────────────────────────── */
+    .cfg-save-btn { background: #6366f1; color: #fff; border: none; border-radius: 7px;
+                    padding: 8px 20px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .cfg-save-btn:hover { opacity: .85; }
+    .cfg-toast  { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+                  border-radius: 6px; font-size: 12px; font-weight: 600; opacity: 0;
+                  transition: opacity .3s; pointer-events: none; }
+    .cfg-toast.show { opacity: 1; }
+    .cfg-toast-ok   { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
+    .cfg-toast-err  { background: rgba(248,113,113,.12); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
+    .cfg-restart-warn { background: rgba(245,158,11,.1); color: #fcd34d; border: 1px solid rgba(245,158,11,.2);
+                        padding: 7px 14px; border-radius: 6px; font-size: 12px; display: none; margin-top: 10px; }
+    .cfg-restart-warn.show { display: flex; align-items: center; gap: 8px; }
+  </style>
 </head>
-<body>
+<body class="oc-body">
   <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
+    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">SETTINGS</span></a></div>
     <div class="header-controls">
       <button id="sidebar-toggle" class="control-button">☰</button>
       <button id="theme-toggle" class="control-button">☀️</button>
     </div>
   </header>
+
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/config' }) %>
     <main class="oc-dashboard-area">
-      <div class="oc-tab-bar">
-        <button class="oc-tab-btn active" data-tab="settings">⚙️ Settings</button>
-        <button class="oc-tab-btn" data-tab="viewer">🗂️ Agent Config Viewer</button>
-      </div>
+      <div class="cfg-wrap">
 
-      <!-- ═══ Tab 1: OverClaw Settings ═══ -->
-      <div class="oc-tab-pane" id="tab-settings">
-        <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.1rem">
-          Settings are saved to <code style="color:#818cf8">config/overclaw.json</code> (gitignored).
-          Fields marked ⚠️ require a service restart to take effect.
-        </p>
-        <form id="settings-form" class="oc-settings-form">
-          <div class="oc-settings-section">🧠 AI Brain</div>
-          <div class="oc-field">
-            <label for="brainPath">Git Archive Path — read-only frozen vault (legacy)</label>
-            <input type="text" id="brainPath" name="brainPath"
-              value="<%= ocConfig.brainPath %>"
-              placeholder="~/My-AI-Brain">
-            <div class="hint">The old Obsidian/Git vault. Frozen — no longer written to. Brain DB is the live store.</div>
+        <!-- Tabs -->
+        <div class="cfg-tabs">
+          <button class="cfg-tab active" data-tab="general">⚙️ General</button>
+          <button class="cfg-tab"        data-tab="network">🌐 Network</button>
+          <button class="cfg-tab"        data-tab="agent-zones">🤖 Agent Zones</button>
+          <button class="cfg-tab"        data-tab="agent-viewer">🗂 Agent Config</button>
+        </div>
+
+        <!-- ═══ General ═══ -->
+        <div class="cfg-pane active" id="tab-general">
+          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
+            Saved to <code style="color:#818cf8">config/overclaw.json</code>.
+            Fields marked ⚠️ require a service restart.
+          </p>
+
+          <div class="cfg-section">🧠 AI Brain</div>
+          <div class="cfg-field">
+            <label class="cfg-label">Brain Path <span style="color:#4b5563;font-weight:400">(read-only — legacy vault path)</span></label>
+            <input class="cfg-input" id="brainPath" value="<%= ocConfig.brainPath %>" readonly>
+            <div class="cfg-hint">Active store: <code style="color:#818cf8">data/brain.db</code> — <%= brainStats ? brainStats.documents.toLocaleString() + ' docs, ' + (brainStats.db_file_bytes/1024/1024).toFixed(1) + ' MB' : 'unavailable' %></div>
           </div>
-          <div class="oc-field">
-            <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:10px 14px;font-size:13px;color:#a0a8c0;line-height:1.6">
-              💾 <strong style="color:#e0e4f0">Brain DB:</strong> <code style="color:#818cf8">data/brain.db</code> — <%= typeof brainStats !== 'undefined' ? brainStats.documents.toLocaleString() + ' docs, ' + (brainStats.db_file_bytes/1024/1024).toFixed(1) + ' MB' : 'SQLite document store' %><br>
-              🔗 <strong style="color:#e0e4f0">Browse &amp; edit:</strong> <a href="/brain" style="color:#818cf8">/brain</a> &nbsp;&nbsp;
-              🔍 <strong style="color:#e0e4f0">API:</strong> <code style="color:#818cf8">/api/brain/*</code> (Bearer MCP_API_KEY)
-            </div>
+
+          <div class="cfg-section">🌐 Runtime ⚠️</div>
+          <div class="cfg-field">
+            <label class="cfg-label" for="port">Port</label>
+            <input class="cfg-input" id="port" type="number" min="1024" max="65535" style="max-width:140px" value="<%= ocConfig.port %>">
+            <div class="cfg-hint">Requires restart</div>
           </div>
-          <div class="oc-settings-section">🌐 Runtime</div>
-          <div class="oc-field">
-            <label for="port">Listen Port</label>
-            <input type="number" id="port" name="port"
-              value="<%= ocConfig.port %>"
-              min="1024" max="65535" style="max-width:140px">
-            <div class="hint warn">⚠️ Requires service restart</div>
+          <div class="cfg-field">
+            <label class="cfg-label" for="openclawGatewayUrl">OpenClaw Gateway URL</label>
+            <input class="cfg-input" id="openclawGatewayUrl" value="<%= ocConfig.openclawGatewayUrl %>" placeholder="ws://127.0.0.1:18789">
+            <div class="cfg-hint">Requires restart</div>
           </div>
-          <div class="oc-settings-section">⚡ Behavior</div>
-          <div class="oc-field">
-            <label for="scanFrequencySeconds">Background Scan Frequency</label>
-            <select id="scanFrequencySeconds" name="scanFrequencySeconds" style="max-width:220px">
-              <option value="60"   <%= ocConfig.scanFrequencySeconds == 60   ? 'selected' : '' %>>Every 1 minute</option>
-              <option value="300"  <%= ocConfig.scanFrequencySeconds == 300  ? 'selected' : '' %>>Every 5 minutes</option>
-              <option value="900"  <%= ocConfig.scanFrequencySeconds == 900  ? 'selected' : '' %>>Every 15 minutes</option>
-              <option value="1800" <%= ocConfig.scanFrequencySeconds == 1800 ? 'selected' : '' %>>Every 30 minutes</option>
+
+          <div class="cfg-section">⚡ Behavior</div>
+          <div class="cfg-field">
+            <label class="cfg-label" for="scanFrequencySeconds">Scan Frequency</label>
+            <select class="cfg-select" id="scanFrequencySeconds">
+              <option value="60"   <%- ocConfig.scanFrequencySeconds == 60   ? 'selected' : '' %>>1 minute</option>
+              <option value="300"  <%- ocConfig.scanFrequencySeconds == 300  ? 'selected' : '' %>>5 minutes</option>
+              <option value="900"  <%- ocConfig.scanFrequencySeconds == 900  ? 'selected' : '' %>>15 minutes</option>
+              <option value="1800" <%- ocConfig.scanFrequencySeconds == 1800 ? 'selected' : '' %>>30 minutes</option>
             </select>
-            <div class="hint">Planned feature — not yet wired to a background poller</div>
           </div>
-          <div class="oc-field">
-            <label for="openclawGatewayUrl">OpenClaw Gateway URL</label>
-            <input type="text" id="openclawGatewayUrl" name="openclawGatewayUrl"
-              value="<%= ocConfig.openclawGatewayUrl %>"
-              placeholder="ws://127.0.0.1:18789">
-            <div class="hint warn">⚠️ Requires service restart</div>
-          </div>
-                      </div>
-          </div>
-          <div style="margin-top:1.25rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
-            <button type="submit" class="oc-save-btn">Save Settings</button>
-            <span class="oc-toast" id="save-toast">✓ Saved</span>
-            <span class="oc-toast" id="restart-warn" style="color:#d97706">— restart required for one or more changes</span>
-          </div>
-        </form>
-      </div>
 
-      <!-- ═══ Tab 2: Agent Config Viewer ═══ -->
-      <div class="oc-tab-pane" id="tab-viewer" style="display:none">
-        <div class="oc-card full-width">
+          <div style="display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap">
+            <button class="cfg-save-btn" onclick="saveGeneral()">Save Settings</button>
+            <span class="cfg-toast cfg-toast-ok"  id="gen-toast">✓ Saved</span>
+            <span class="cfg-toast cfg-toast-err" id="gen-err"></span>
+          </div>
+          <div class="cfg-restart-warn" id="gen-restart-warn">⚠️ Some changes require a service restart to take effect.</div>
+        </div>
+
+        <!-- ═══ Network ═══ -->
+        <div class="cfg-pane" id="tab-network">
+          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
+            Define how agents reach this OverClaw server. Each zone maps to an IP address.
+            Agents are assigned a zone in the <strong>Agent Zones</strong> tab — their onboarding snippet uses the corresponding IP.
+          </p>
+
+          <div class="cfg-section">Zone IP Addresses</div>
+          <div class="net-grid">
+
+            <!-- Localhost -->
+            <div class="net-card">
+              <div class="net-card-label"><span class="cfg-badge badge-localhost">localhost</span></div>
+              <div class="net-card-ip" id="net-ip-localhost"><%= ocConfig.network.localhostIp || '127.0.0.1' %></div>
+              <div class="net-card-desc">Same host as OverClaw. Always 127.0.0.1.</div>
+              <div class="net-card-edit">
+                <input id="net-input-localhost" value="<%= ocConfig.network.localhostIp || '127.0.0.1' %>" readonly>
+              </div>
+            </div>
+
+            <!-- Localnet -->
+            <div class="net-card">
+              <div class="net-card-label"><span class="cfg-badge badge-localnet">localnet</span></div>
+              <div class="net-card-ip" id="net-ip-localnet"><%= ocConfig.network.localnetIp || '' %></div>
+              <div class="net-card-desc">LAN IP — agents on same local network (home/office).</div>
+              <div class="net-card-edit">
+                <input id="net-input-localnet" value="<%= ocConfig.network.localnetIp || '' %>" placeholder="192.168.x.x">
+                <button class="net-edit-btn net-save-btn" onclick="saveNetIp('localnet')">Save</button>
+              </div>
+              <div class="net-card-status" id="net-status-localnet"></div>
+            </div>
+
+            <!-- Private WAN -->
+            <div class="net-card">
+              <div class="net-card-label"><span class="cfg-badge badge-private_wan">private WAN</span></div>
+              <div class="net-card-ip" id="net-ip-private_wan"><%= ocConfig.network.privateWanIp || '' %></div>
+              <div class="net-card-desc">Tailscale / VPN IP — agents in cloud or remote machines on your tailnet.</div>
+              <div class="net-card-edit">
+                <input id="net-input-private_wan" value="<%= ocConfig.network.privateWanIp || '' %>" placeholder="100.x.x.x">
+                <button class="net-edit-btn net-save-btn" onclick="saveNetIp('private_wan')">Save</button>
+              </div>
+              <div class="net-card-status" id="net-status-private_wan"></div>
+            </div>
+
+            <!-- Public WAN -->
+            <div class="net-card">
+              <div class="net-card-label"><span class="cfg-badge badge-public_wan">public WAN</span></div>
+              <div class="net-card-ip" id="net-ip-public_wan"><%= ocConfig.network.publicWanIp || '' %></div>
+              <div class="net-card-desc">Public internet IP — agents outside your LAN and tailnet. Requires port-forward or reverse proxy.</div>
+              <div class="net-card-edit">
+                <input id="net-input-public_wan" value="<%= ocConfig.network.publicWanIp || '' %>" placeholder="x.x.x.x">
+                <button class="net-edit-btn net-save-btn" onclick="saveNetIp('public_wan')">Save</button>
+              </div>
+              <div class="net-card-status" id="net-status-public_wan"></div>
+            </div>
+
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button class="cfg-save-btn" style="background:#374151" onclick="autoDetect()">🔍 Auto-detect IPs</button>
+            <span id="detect-status" style="font-size:12px;color:#9ca3af"></span>
+          </div>
+
+          <div class="cfg-section" style="margin-top:24px">MCP Endpoint Preview</div>
+          <div id="mcp-preview" style="display:grid;gap:6px;font-size:12.5px;font-family:monospace"></div>
+          <div class="cfg-hint" style="margin-top:8px">These are the URLs agents in each zone will receive in their onboarding snippet.</div>
+        </div>
+
+        <!-- ═══ Agent Zones ═══ -->
+        <div class="cfg-pane" id="tab-agent-zones">
+          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
+            Assign each agent a network zone. This determines which OverClaw IP address they use to connect.
+            Changes are saved to the Brain DB agent registry document.
+          </p>
+          <div id="zone-loading" style="color:#555;padding:20px 0">Loading agents…</div>
+          <table class="zone-table" id="zone-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>Type</th>
+                <th>Machine</th>
+                <th>Zone</th>
+                <th>MCP Endpoint</th>
+              </tr>
+            </thead>
+            <tbody id="zone-tbody"></tbody>
+          </table>
+          <div class="zone-save-row">
+            <button class="cfg-save-btn" onclick="saveZones()">Save Agent Zones</button>
+            <span class="cfg-toast cfg-toast-ok"  id="zone-toast">✓ Saved</span>
+            <span class="cfg-toast cfg-toast-err" id="zone-err"></span>
+          </div>
+        </div>
+
+        <!-- ═══ Agent Config Viewer ═══ -->
+        <div class="cfg-pane" id="tab-agent-viewer">
           <div id="config-viewer-content">
             <div id="agent-select-container">
               <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">Select an Agent:</h3>
-              <select id="agent-selector" class="oc-select"></select>
+              <select id="agent-selector" class="cfg-select"></select>
             </div>
             <div id="file-list-container" style="display:none">
-              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">Files for <span id="selected-agent-name"></span>
-                <button id="back-to-agents" class="oc-button-secondary">← Back</button></h3>
+              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">
+                Files for <span id="selected-agent-name"></span>
+                <button id="back-to-agents" class="oc-button-secondary" style="margin-left:8px">← Back</button>
+              </h3>
               <ul id="config-file-list" class="oc-list-group"></ul>
             </div>
             <div id="file-content-container" style="display:none">
               <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">
                 <span id="viewing-file-name"></span> / <span id="viewing-agent-name"></span>
-                <button id="back-to-file-list" class="oc-button-secondary">← Back</button>
+                <button id="back-to-file-list" class="oc-button-secondary" style="margin-left:8px">← Back</button>
               </h3>
               <pre id="file-content" class="oc-code-block"></pre>
             </div>
-            <div id="file-history-container" style="display:none">
-              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">History: <span id="history-file-name"></span>
-                <button id="back-from-history" class="oc-button-secondary">← Back</button></h3>
-              <div id="history-list" class="oc-list-group"></div>
-            </div>
-            <div id="model-settings-container" style="display:none">
-              <h3 style="font-size:.9rem;color:#9ca3af;margin-bottom:.5rem">Model Settings: <span id="model-settings-agent-name"></span>
-                <button id="back-from-model-settings" class="oc-button-secondary">← Back</button></h3>
-              <div id="model-settings-content" class="oc-code-block"></div>
-            </div>
           </div>
         </div>
-      </div>
+
+      </div><!-- /cfg-wrap -->
     </main>
   </div>
 
   <script>
-    /* ── sidebar/theme ── */
+    // ── Sidebar / theme ──────────────────────────────────────────────────
     (function(){
       const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
       let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
@@ -129,179 +284,288 @@
       const th=document.getElementById('theme-toggle');
       let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
       document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+      th.addEventListener('click',()=>{
+        tm=tm==='light'?'dark':'light';
+        document.body.classList.toggle('light-mode',tm==='light');
+        document.body.classList.toggle('dark-mode',tm==='dark');
+        localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';
+      });
     })();
 
-    /* ── Tab switching ── */
-    document.querySelectorAll('.oc-tab-btn').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        document.querySelectorAll('.oc-tab-btn').forEach(b=>b.classList.remove('active'));
+    // ── Tab switching ────────────────────────────────────────────────────
+    document.querySelectorAll('.cfg-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cfg-tab').forEach(b  => b.classList.remove('active'));
+        document.querySelectorAll('.cfg-pane').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
-        document.querySelectorAll('.oc-tab-pane').forEach(p=>p.style.display='none');
-        document.getElementById('tab-'+btn.dataset.tab).style.display='block';
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'agent-zones') loadZones();
+        if (btn.dataset.tab === 'agent-viewer') loadAgentViewer();
+        if (btn.dataset.tab === 'network') renderMcpPreview();
       });
     });
 
-    /* ── Settings form ── */
-    document.getElementById('settings-form').addEventListener('submit', async e=>{
-      e.preventDefault();
-      const data={
-        brainPath: document.getElementById('brainPath').value.trim(),
-        port: parseInt(document.getElementById('port').value,10),
-        scanFrequencySeconds: parseInt(document.getElementById('scanFrequencySeconds').value,10),
-        openclawGatewayUrl: document.getElementById('openclawGatewayUrl').value.trim(),
+    // ── Network state ────────────────────────────────────────────────────
+    const PORT = <%- ocConfig.port || 8355 %>;
+    const NET = {
+      localhost:   document.getElementById('net-input-localhost')?.value  || '127.0.0.1',
+      localnet:    document.getElementById('net-input-localnet')?.value   || '',
+      private_wan: document.getElementById('net-input-private_wan')?.value || '',
+      public_wan:  document.getElementById('net-input-public_wan')?.value  || '',
+    };
+
+    function zoneBadge(z) {
+      const labels = { localhost:'localhost', localnet:'localnet', private_wan:'private WAN', public_wan:'public WAN' };
+      return `<span class="cfg-badge badge-${z||'unknown'}">${labels[z]||z||'—'}</span>`;
+    }
+
+    function mcpUrlForZone(zone) {
+      const ip = document.getElementById('net-input-' + zone)?.value || NET[zone] || '';
+      return ip ? `http://${ip}:${PORT}/mcp` : '(IP not set)';
+    }
+
+    function renderMcpPreview() {
+      const el = document.getElementById('mcp-preview');
+      const zones = ['localhost','localnet','private_wan','public_wan'];
+      el.innerHTML = zones.map(z => {
+        const ip  = document.getElementById('net-input-' + z)?.value || '';
+        const url = ip ? `http://${ip}:${PORT}/mcp` : '<em style="color:#374151">IP not set</em>';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surface-2,#1a1a2e);border-radius:6px;border:1px solid var(--border,#2a2a4a)">
+          ${zoneBadge(z)}
+          <span style="color:#818cf8">${url}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // ── General settings save ────────────────────────────────────────────
+    async function saveGeneral() {
+      const data = {
+        port:                 parseInt(document.getElementById('port').value, 10),
+        scanFrequencySeconds: parseInt(document.getElementById('scanFrequencySeconds').value, 10),
+        openclawGatewayUrl:   document.getElementById('openclawGatewayUrl').value.trim(),
       };
-      try{
-        const r=await fetch('/api/overclaw-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-        const res=await r.json();
-        if(res.ok){
-          const toast=document.getElementById('save-toast');
-          const warn=document.getElementById('restart-warn');
-          toast.classList.add('show');
-          if(res.requiresRestart)warn.classList.add('show');
-          setTimeout(()=>{toast.classList.remove('show');warn.classList.remove('show');},5000);
-        }else{
-          alert('Error: '+(res.error||'Unknown error'));
+      try {
+        const r   = await fetch('/api/overclaw-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        const res = await r.json();
+        if (res.ok) {
+          toast('gen-toast', 'gen-err', true);
+          if (res.requiresRestart) document.getElementById('gen-restart-warn').classList.add('show');
+        } else { toast('gen-toast', 'gen-err', false, res.error || 'Save failed'); }
+      } catch(e) { toast('gen-toast', 'gen-err', false, e.message); }
+    }
+
+    // ── Network: save single zone IP ─────────────────────────────────────
+    async function saveNetIp(zone) {
+      const ip = document.getElementById('net-input-' + zone).value.trim();
+      const statusEl = document.getElementById('net-status-' + zone);
+      statusEl.textContent = '⏳ Saving…';
+      statusEl.className = 'net-card-status';
+      try {
+        const patch = { network: {} };
+        const keyMap = { localnet: 'localnetIp', private_wan: 'privateWanIp', public_wan: 'publicWanIp' };
+        patch.network[keyMap[zone]] = ip;
+        const r   = await fetch('/api/overclaw-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) });
+        const res = await r.json();
+        if (res.ok) {
+          document.getElementById('net-ip-' + zone).textContent = ip || '(not set)';
+          NET[zone] = ip;
+          statusEl.textContent = '✓ Saved';
+          statusEl.className = 'net-card-status net-ok';
+          renderMcpPreview();
+          // Also refresh zone MCP url cells
+          document.querySelectorAll(`[data-zone-mcp="${zone}"]`).forEach(el => {
+            el.textContent = ip ? `http://${ip}:${PORT}/mcp` : '(IP not set)';
+          });
+        } else {
+          statusEl.textContent = '❌ ' + (res.error || 'failed');
+          statusEl.className = 'net-card-status net-err';
         }
-      }catch(e2){
-        alert('Failed to save: '+e2.message);
+      } catch(e) {
+        statusEl.textContent = '❌ ' + e.message;
+        statusEl.className = 'net-card-status net-err';
       }
-    });
-
-    /* ── Agent Config Viewer ── */
-    const agentSelector=document.getElementById('agent-selector');
-    const agentSelectContainer=document.getElementById('agent-select-container');
-    const fileListContainer=document.getElementById('file-list-container');
-    const configFileList=document.getElementById('config-file-list');
-    const selectedAgentNameSpan=document.getElementById('selected-agent-name');
-    const backToAgentsButton=document.getElementById('back-to-agents');
-    const fileContentContainer=document.getElementById('file-content-container');
-    const fileContentPre=document.getElementById('file-content');
-    const viewingFileNameSpan=document.getElementById('viewing-file-name');
-    const viewingAgentNameSpan=document.getElementById('viewing-agent-name');
-    const backToFileListButton=document.getElementById('back-to-file-list');
-    const fileHistoryContainer=document.getElementById('file-history-container');
-    const historyFileNameSpan=document.getElementById('history-file-name');
-    const historyListDiv=document.getElementById('history-list');
-    const backFromHistoryButton=document.getElementById('back-from-history');
-    const modelSettingsContainer=document.getElementById('model-settings-container');
-    const modelSettingsAgentNameSpan=document.getElementById('model-settings-agent-name');
-    const modelSettingsContentDiv=document.getElementById('model-settings-content');
-    const backFromModelSettingsButton=document.getElementById('back-from-model-settings');
-
-    let currentAgents=[],selectedAgentId=null,currentFiles=[];
-
-    function showContainer(id){
-      ['agent-select-container','file-list-container','file-content-container','file-history-container','model-settings-container']
-        .forEach(c=>document.getElementById(c).style.display='none');
-      document.getElementById(id).style.display='block';
+      setTimeout(() => { statusEl.textContent = ''; }, 4000);
     }
 
-    async function fetchAndPopulateAgents(){
-      try{
-        const agents=await fetch('/api/agents').then(r=>r.json());
-        currentAgents=agents;
-        agentSelector.innerHTML='<option value="">-- Select Agent --</option>';
-        agents.forEach(a=>{
-          const o=document.createElement('option');
-          o.value=a.id; o.textContent=a.name;
-          agentSelector.appendChild(o);
-        });
-        showContainer('agent-select-container');
-      }catch(e){
-        agentSelectContainer.innerHTML=`<p style="color:#f87171">Failed to load agents: ${e.message}</p>`;
-      }
-    }
-
-    async function fetchAndPopulateFiles(agentId){
-      try{
-        const files=await fetch(`/api/agent-config-files/${agentId}`).then(r=>r.json());
-        currentFiles=files;
-        if(files.error){configFileList.innerHTML=`<li style="color:#f87171">Error: ${files.error}</li>`;return;}
-        configFileList.innerHTML='';
-        if(!files.length){configFileList.innerHTML='<li>No discoverable config files.</li>';return;}
-        files.forEach(file=>{
-          const li=document.createElement('li');
-          li.className='oc-list-item';
-          const span=document.createElement('span');
-          span.className='oc-link'; span.dataset.filePath=file.path;
-          span.textContent=file.name+(file.type==='memory'?' (Memory)':file.type==='setting'?' (Settings)':file.type==='project'?' (Project)':' (Config)');
-          span.style.marginRight='10px';
-          li.appendChild(span);
-          if(file.isVersionControlled){
-            const hb=document.createElement('button');
-            hb.className='oc-button-inline'; hb.textContent='History'; hb.dataset.filePath=file.path;
-            hb.addEventListener('click',e=>{e.stopPropagation();fetchAndDisplayFileHistory(selectedAgentId,file.path);});
-            li.appendChild(hb);
+    // ── Network: auto-detect ─────────────────────────────────────────────
+    async function autoDetect() {
+      const statusEl = document.getElementById('detect-status');
+      statusEl.textContent = '⏳ Detecting…';
+      try {
+        const r   = await fetch('/api/network/detect');
+        const ips = await r.json();
+        if (ips.error) { statusEl.textContent = '❌ ' + ips.error; return; }
+        // Populate inputs
+        const MAP = { localnetIp: 'localnet', privateWanIp: 'private_wan', publicWanIp: 'public_wan' };
+        for (const [key, zone] of Object.entries(MAP)) {
+          if (ips[key]) {
+            document.getElementById('net-input-' + zone).value = ips[key];
+            document.getElementById('net-ip-' + zone).textContent = ips[key];
+            NET[zone] = ips[key];
           }
-          configFileList.appendChild(li);
+        }
+        statusEl.textContent = '✓ Detected — review and click Save on each card';
+        renderMcpPreview();
+      } catch(e) { statusEl.textContent = '❌ ' + e.message; }
+    }
+
+    // ── Agent Zones ──────────────────────────────────────────────────────
+    let agentZones = {};   // nickname.lower → zone string
+
+    async function loadZones() {
+      const loadEl = document.getElementById('zone-loading');
+      const tbl    = document.getElementById('zone-table');
+      loadEl.style.display = 'block';
+      tbl.style.display    = 'none';
+      try {
+        const agents = await fetch('/api/vault/agents').then(r => r.json());
+        const cfg    = await fetch('/api/overclaw-config').then(r => r.json());
+        const zones  = (cfg.agentZones || {});
+        const netCfg = cfg.network || {};
+        const PORT   = cfg.port || 8355;
+
+        const tbody = document.getElementById('zone-tbody');
+        tbody.innerHTML = agents.map(a => {
+          const name  = a.nickname || a.agent || '—';
+          const key   = name.toLowerCase();
+          const zone  = zones[key] || agentZones[key] || 'localnet';
+          agentZones[key] = zone;
+
+          const ipMap = {
+            localhost:   netCfg.localhostIp  || '127.0.0.1',
+            localnet:    netCfg.localnetIp   || '',
+            private_wan: netCfg.privateWanIp || '',
+            public_wan:  netCfg.publicWanIp  || '',
+          };
+
+          const mcpHost = ipMap[zone] || '';
+          const mcpUrl  = mcpHost ? `http://${mcpHost}:${PORT}/mcp` : '(IP not set)';
+
+          return `<tr>
+            <td><strong style="color:#e2e8f0">${name}</strong></td>
+            <td style="font-size:11px;color:#6b7280">${a.type || '—'}</td>
+            <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(a.machine||'—').replace(/\s*\(.*?\)\s*/g,'').trim()}</td>
+            <td>
+              <select class="zone-select" data-agent="${name}" onchange="onZoneChange(this)">
+                <option value="localhost"   ${zone==='localhost'   ?'selected':''}>localhost</option>
+                <option value="localnet"    ${zone==='localnet'    ?'selected':''}>localnet</option>
+                <option value="private_wan" ${zone==='private_wan' ?'selected':''}>private WAN</option>
+                <option value="public_wan"  ${zone==='public_wan'  ?'selected':''}>public WAN</option>
+              </select>
+            </td>
+            <td><span class="zone-mcp" data-zone-mcp-agent="${key}">${mcpUrl}</span></td>
+          </tr>`;
+        }).join('');
+
+        loadEl.style.display = 'none';
+        tbl.style.display    = 'table';
+      } catch(e) {
+        loadEl.textContent = '❌ Failed to load: ' + e.message;
+      }
+    }
+
+    function onZoneChange(sel) {
+      const name  = sel.dataset.agent;
+      const key   = name.toLowerCase();
+      const zone  = sel.value;
+      agentZones[key] = zone;
+
+      // Update MCP url cell live
+      const netInputs = {
+        localhost:   document.getElementById('net-input-localhost')?.value  || '127.0.0.1',
+        localnet:    document.getElementById('net-input-localnet')?.value   || '',
+        private_wan: document.getElementById('net-input-private_wan')?.value || '',
+        public_wan:  document.getElementById('net-input-public_wan')?.value  || '',
+      };
+      const ip  = netInputs[zone] || '';
+      const url = ip ? `http://${ip}:${PORT}/mcp` : '(IP not set)';
+      const cell = document.querySelector(`[data-zone-mcp-agent="${key}"]`);
+      if (cell) cell.textContent = url;
+    }
+
+    async function saveZones() {
+      try {
+        const r   = await fetch('/api/overclaw-config', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ agentZones }),
         });
-        selectedAgentNameSpan.textContent=currentAgents.find(a=>a.id===agentId)?.name||agentId;
-        showContainer('file-list-container');
-      }catch(e){
-        configFileList.innerHTML=`<li style="color:#f87171">Failed: ${e.message}</li>`;
-      }
+        const res = await r.json();
+        toast('zone-toast', 'zone-err', res.ok, res.ok ? null : (res.error || 'Save failed'));
+      } catch(e) { toast('zone-toast', 'zone-err', false, e.message); }
     }
 
-    async function fetchAndDisplayFileContent(agentId,filePath){
-      if(filePath==='__model_settings__'){fetchAndDisplayModelSettings(agentId);return;}
-      try{
-        const data=await fetch(`/api/file-content?agentId=${agentId}&filePath=${filePath}`).then(r=>r.json());
-        if(data.error){fileContentPre.textContent=`Error: ${data.error}`;fileContentPre.style.color='#f87171';return;}
-        fileContentPre.textContent=data.content;
-        fileContentPre.style.color='';
-        viewingFileNameSpan.textContent=filePath;
-        viewingAgentNameSpan.textContent=currentAgents.find(a=>a.id===agentId)?.name||agentId;
-        showContainer('file-content-container');
-      }catch(e){
-        fileContentPre.textContent=`Failed: ${e.message}`;
-        fileContentPre.style.color='#f87171';
-      }
-    }
-
-    async function fetchAndDisplayFileHistory(agentId,filePath){
-      try{
-        const history=await fetch(`/api/file-history?agentId=${agentId}&filePath=${filePath}`).then(r=>r.json());
-        if(history.error){historyListDiv.innerHTML=`<div style="color:#f87171">Error: ${history.error}</div>`;return;}
-        historyFileNameSpan.textContent=filePath;
-        historyListDiv.innerHTML='';
-        if(!history.length){historyListDiv.innerHTML='<div class="oc-list-item">No Git history.</div>';showContainer('file-history-container');return;}
-        history.forEach(c=>{
-          const d=document.createElement('div');
-          d.className='oc-list-item oc-commit-item';
-          d.innerHTML=`<strong>${c.subject}</strong><br><small>Hash: <code>${c.hash}</code> | ${c.author} | ${c.date}</small>`;
-          historyListDiv.appendChild(d);
+    // ── Agent Config Viewer (legacy) ─────────────────────────────────────
+    let viewerLoaded = false;
+    async function loadAgentViewer() {
+      if (viewerLoaded) return;
+      viewerLoaded = true;
+      try {
+        const agents = await fetch('/api/agents').then(r => r.json());
+        const sel = document.getElementById('agent-selector');
+        sel.innerHTML = '<option value="">-- Select Agent --</option>';
+        agents.forEach(a => {
+          const o = document.createElement('option');
+          o.value = a.id; o.textContent = a.name;
+          sel.appendChild(o);
         });
-        showContainer('file-history-container');
-      }catch(e){
-        historyListDiv.innerHTML=`<div style="color:#f87171">Failed: ${e.message}</div>`;
+        sel.addEventListener('change', e => {
+          if (e.target.value) fetchFiles(e.target.value, agents);
+        });
+      } catch(e) {
+        document.getElementById('agent-select-container').innerHTML =
+          `<p style="color:#f87171">Failed: ${e.message}</p>`;
       }
     }
 
-    async function fetchAndDisplayModelSettings(agentId){
-      try{
-        const s=await fetch(`/api/agent-model-settings/${agentId}`).then(r=>r.json());
-        if(s.error){modelSettingsContentDiv.innerHTML=`<div style="color:#f87171">Error: ${s.error}</div>`;return;}
-        modelSettingsContentDiv.innerHTML=`<h4>Global: <code>${s.globalDefaultModel}</code></h4>
-          <h4>Agent (${s.agentId}): <code>${s.agentSpecificModel}</code></h4>
-          ${s.modelOrder?.length?'<h4>Failover:</h4><ul>'+s.modelOrder.map((m,i)=>`<li>${i+1}. <code>${m}</code></li>`).join('')+'</ul>':''}`;
-        modelSettingsAgentNameSpan.textContent=currentAgents.find(a=>a.id===agentId)?.name||agentId;
-        showContainer('model-settings-container');
-      }catch(e){
-        modelSettingsContentDiv.innerHTML=`<div style="color:#f87171">Failed: ${e.message}</div>`;
-      }
+    async function fetchFiles(agentId, agents) {
+      const files = await fetch(`/api/agent-config-files/${agentId}`).then(r => r.json()).catch(() => []);
+      const list  = document.getElementById('config-file-list');
+      list.innerHTML = '';
+      (Array.isArray(files) ? files : []).forEach(f => {
+        const li = document.createElement('li'); li.className = 'oc-list-item';
+        const sp = document.createElement('span'); sp.className = 'oc-link';
+        sp.textContent = f.name; sp.style.cursor = 'pointer';
+        sp.onclick = () => fetchFileContent(agentId, f.path);
+        li.appendChild(sp);
+        list.appendChild(li);
+      });
+      document.getElementById('selected-agent-name').textContent = agents.find(a => a.id === agentId)?.name || agentId;
+      document.getElementById('agent-select-container').style.display = 'none';
+      document.getElementById('file-list-container').style.display = 'block';
+      document.getElementById('back-to-agents').onclick = () => {
+        document.getElementById('file-list-container').style.display = 'none';
+        document.getElementById('agent-select-container').style.display = 'block';
+      };
     }
 
-    agentSelector.addEventListener('change',e=>{selectedAgentId=e.target.value;if(selectedAgentId)fetchAndPopulateFiles(selectedAgentId);});
-    configFileList.addEventListener('click',e=>{
-      const span=e.target.closest('span.oc-link');
-      if(span&&span.dataset.filePath&&selectedAgentId)fetchAndDisplayFileContent(selectedAgentId,span.dataset.filePath);
-    });
-    backToAgentsButton.addEventListener('click',fetchAndPopulateAgents);
-    backToFileListButton.addEventListener('click',()=>showContainer('file-list-container'));
-    backFromHistoryButton.addEventListener('click',()=>showContainer('file-list-container'));
-    backFromModelSettingsButton.addEventListener('click',()=>showContainer('file-list-container'));
-    document.addEventListener('DOMContentLoaded',fetchAndPopulateAgents);
+    async function fetchFileContent(agentId, filePath) {
+      const data = await fetch(`/api/file-content?agentId=${agentId}&filePath=${encodeURIComponent(filePath)}`).then(r => r.json()).catch(e => ({ error: e.message }));
+      document.getElementById('file-content').textContent = data.content || data.error || '(empty)';
+      document.getElementById('viewing-file-name').textContent = filePath;
+      document.getElementById('file-list-container').style.display = 'none';
+      document.getElementById('file-content-container').style.display = 'block';
+      document.getElementById('back-to-file-list').onclick = () => {
+        document.getElementById('file-content-container').style.display = 'none';
+        document.getElementById('file-list-container').style.display = 'block';
+      };
+    }
+
+    // ── Toast helper ─────────────────────────────────────────────────────
+    function toast(okId, errId, ok, errMsg) {
+      const okEl  = document.getElementById(okId);
+      const errEl = document.getElementById(errId);
+      okEl.classList.remove('show'); errEl.classList.remove('show');
+      if (ok) {
+        okEl.classList.add('show');
+        setTimeout(() => okEl.classList.remove('show'), 3000);
+      } else {
+        errEl.textContent = '❌ ' + (errMsg || 'Error');
+        errEl.classList.add('show');
+        setTimeout(() => errEl.classList.remove('show'), 5000);
+      }
+    }
   </script>
+  <%- include('partials/theme-sidebar') %>
 </body>
 </html>
