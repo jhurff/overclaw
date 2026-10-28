@@ -644,7 +644,101 @@ app.get('/docs', (req, res) => {
 
 // Activity & Audit Log screen route
 app.get('/activity', (req, res) => {
-  res.render('activity', { title: 'OverClaw Activity & Audit Log', currentPath: '/activity' });
+  res.render('activity', { title: 'OverClaw Activity Feed', currentPath: '/activity' });
+});
+
+// GET /api/feed?limit=200&agent=&type=
+// Unified activity feed: brain ops + doc writes + heartbeats + MCP connects
+app.get('/api/feed', async (req, res) => {
+  const limit     = Math.min(parseInt(req.query.limit  || '200', 10), 1000);
+  const agentFilter = (req.query.agent || '').toLowerCase().trim();
+  const typeFilter  = (req.query.type  || '').toLowerCase().trim();
+
+  const events = [];
+
+  // ── 1. Brain activity (reads / writes / searches / lists) ──────────────
+  if (brainStore) {
+    try {
+      const rows = brainStore.db.prepare(
+        `SELECT agent, op, path, ok, ts FROM brain_activity ORDER BY ts DESC LIMIT 2000`
+      ).all();
+      for (const r of rows) {
+        const opMap = { read:'brain_read', write:'brain_write', search:'brain_search', list:'brain_list' };
+        events.push({
+          type:    opMap[r.op] || ('brain_' + r.op),
+          agent:   r.agent,
+          summary: r.op === 'write'  ? `Wrote ${r.path || '?'}`
+                 : r.op === 'read'   ? `Read ${r.path || '?'}`
+                 : r.op === 'search' ? `Searched ${r.path || 'all docs'}`
+                 : r.op === 'list'   ? `Listed ${r.path || '/'}`
+                 : r.op,
+          detail:  r.path || null,
+          ok:      r.ok !== 0,
+          ts:      r.ts,
+        });
+      }
+    } catch(e) { console.error('[feed] brain_activity:', e.message); }
+
+    // ── 2. Document versions (brain writes with attribution) ───────────────
+    try {
+      const rows = brainStore.db.prepare(
+        `SELECT path, version, saved_at, saved_by, change_note FROM document_versions ORDER BY saved_at DESC LIMIT 2000`
+      ).all();
+      for (const r of rows) {
+        events.push({
+          type:    'doc_version',
+          agent:   (r.saved_by || 'unknown').toLowerCase(),
+          summary: `${r.version === 1 ? 'Created' : 'Edited'} ${r.path}`,
+          detail:  r.change_note || (r.version === 1 ? 'Initial version' : `v${r.version}`),
+          ok:      true,
+          ts:      r.saved_at,
+        });
+      }
+    } catch(e) { console.error('[feed] document_versions:', e.message); }
+  }
+
+  // ── 3. Heartbeats ─────────────────────────────────────────────────────
+  try {
+    const hbs = await vaultReader.getHeartbeats({ limit: 500 }).catch(() => []);
+    for (const hb of hbs) {
+      const agentKey = (hb.agent || hb.machine || 'unknown').toLowerCase()
+        .replace(/[^a-z]/g, '').replace(/h2fclanker\d*/g, 'spike');
+      events.push({
+        type:    'heartbeat',
+        agent:   agentKey || 'unknown',
+        summary: `Heartbeat from ${hb.machine || hb.agent || '?'}`,
+        detail:  hb.notes || null,
+        ok:      true,
+        ts:      hb.date ? new Date(hb.date).getTime() : null,
+      });
+    }
+  } catch(e) { console.error('[feed] heartbeats:', e.message); }
+
+  // ── 4. MCP connections (brain_activity where op logged by MCP session) ─
+  // (covered by brain_activity above — MCP tool calls show up as brain_* events)
+
+  // Filter, sort, dedupe, limit
+  let filtered = events.filter(e => e.ts);
+  if (agentFilter) filtered = filtered.filter(e => (e.agent||'').includes(agentFilter));
+  if (typeFilter)  filtered = filtered.filter(e => (e.type||'').includes(typeFilter));
+
+  // Sort newest first
+  filtered.sort((a, b) => b.ts - a.ts);
+
+  // Remove near-duplicate brain_activity + doc_version pairs (same agent, path, within 2s)
+  const seen = new Set();
+  const deduped = [];
+  for (const e of filtered) {
+    if (e.type === 'brain_write' && e.detail) {
+      const key = e.agent + '|' + e.detail + '|' + Math.floor(e.ts / 2000);
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    deduped.push(e);
+    if (deduped.length >= limit) break;
+  }
+
+  res.json({ total: deduped.length, events: deduped });
 });
 
 // ---------------------------------------------------------------------------

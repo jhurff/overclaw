@@ -5,210 +5,342 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── Feed layout ──────────────────────────────────────────────────── */
+    .feed-wrap   { display:flex; flex-direction:column; gap:0; }
+
+    /* ── Toolbar ──────────────────────────────────────────────────────── */
+    .feed-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+                    padding-bottom:14px; border-bottom:1px solid var(--border,#2a2a4a);
+                    margin-bottom:14px; }
+    .feed-count  { margin-left:auto; font-size:11px; color:#4b5563; white-space:nowrap; }
+    .feed-refresh { background:#6366f1; color:#fff; border:none; border-radius:6px;
+                    padding:5px 13px; font-size:12px; font-weight:600; cursor:pointer; }
+    .feed-refresh:hover { opacity:.85; }
+    .feed-filter { background:var(--surface-3,#111122); border:1px solid var(--border,#2a2a4a);
+                   border-radius:6px; color:#ccc; padding:5px 9px; font-size:12px; }
+    .feed-search { background:var(--surface-3,#111122); border:1px solid var(--border,#2a2a4a);
+                   border-radius:6px; color:#ccc; padding:5px 11px; font-size:12px; width:190px; }
+
+    /* ── Live indicator ───────────────────────────────────────────────── */
+    .feed-live   { display:flex; align-items:center; gap:5px; font-size:11px; color:#34d399; }
+    .feed-pulse  { width:7px; height:7px; border-radius:50%; background:#34d399;
+                   animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+    .feed-live.stale { color:#6b7280; }
+    .feed-live.stale .feed-pulse { background:#6b7280; animation:none; }
+
+    /* ── Event rows ───────────────────────────────────────────────────── */
+    .feed-table  { width:100%; border-collapse:collapse; font-size:13px; }
+    .feed-table th { text-align:left; padding:7px 10px; font-size:10.5px; font-weight:700;
+                     text-transform:uppercase; letter-spacing:.06em; color:#4b5563;
+                     border-bottom:1px solid var(--border,#2a2a4a); white-space:nowrap; }
+    .feed-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.03);
+                     vertical-align:middle; }
+    .feed-table tr:hover td { background:rgba(255,255,255,.02); }
+    .feed-table tr.new-row td { animation:flashIn .6s ease-out; }
+    @keyframes flashIn { from{background:rgba(99,102,241,.18)} to{background:transparent} }
+
+    /* ── Type pills ───────────────────────────────────────────────────── */
+    .ev-pill { display:inline-block; padding:2px 8px; border-radius:8px; font-size:10.5px;
+               font-weight:700; white-space:nowrap; }
+    .ev-brain_write  { background:rgba(99,102,241,.2);  color:#a5b4fc; }
+    .ev-brain_read   { background:rgba(99,102,241,.08); color:#818cf8; }
+    .ev-brain_search { background:rgba(16,185,129,.1);  color:#6ee7b7; }
+    .ev-brain_list   { background:rgba(75,85,99,.15);   color:#9ca3af; }
+    .ev-doc_version  { background:rgba(245,158,11,.15); color:#fcd34d; }
+    .ev-heartbeat    { background:rgba(52,211,153,.1);  color:#34d399; }
+    .ev-alert        { background:rgba(239,68,68,.15);  color:#fca5a5; }
+    .ev-mcp_connect  { background:rgba(59,130,246,.15); color:#93c5fd; }
+    .ev-default      { background:rgba(75,85,99,.12);   color:#9ca3af; }
+
+    /* ── Agent chip ───────────────────────────────────────────────────── */
+    .ag-chip { display:inline-flex; align-items:center; gap:4px; font-size:11.5px;
+               font-weight:600; white-space:nowrap; }
+
+    /* ── Path/detail ──────────────────────────────────────────────────── */
+    .ev-detail { font-size:11px; color:#6b7280; font-family:monospace;
+                 max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ev-summary { color:#d1d5db; max-width:360px; overflow:hidden;
+                  text-overflow:ellipsis; white-space:nowrap; }
+    .ev-err { color:#f87171; }
+
+    /* ── Time ─────────────────────────────────────────────────────────── */
+    .ev-time { font-size:11px; color:#4b5563; white-space:nowrap; }
+
+    /* ── Empty / loading ──────────────────────────────────────────────── */
+    .feed-empty { text-align:center; padding:40px; color:#4b5563; font-size:14px; }
+
+    /* ── Light mode ───────────────────────────────────────────────────── */
+    body.light-mode .ev-summary { color:#1f2937; }
+    body.light-mode .feed-table tr:hover td { background:rgba(0,0,0,.02); }
+  </style>
 </head>
-<body>
+<body class="oc-body">
   <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
+    <div class="logo">
+      <a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer">
+        <h1 class="main-title">OVERCLAW</h1>
+        <span class="tagline">ACTIVITY FEED</span>
+      </a>
+    </div>
     <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
+      <button id="sidebar-toggle" class="control-button">&#9776;</button>
+      <button id="theme-toggle"   class="control-button">&#9728;&#65039;</button>
     </div>
   </header>
+
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/activity' }) %>
     <main class="oc-dashboard-area">
       <div class="oc-data-wrap">
-        <div class="oc-table-toolbar">
-          <input type="search" id="q" class="oc-search-input" placeholder="Search activity…">
-          <select id="f-type" class="oc-filter-select">
-            <option value="">All types</option>
-            <option value="heartbeat">💓 Heartbeat</option>
-            <option value="alert">🚨 Alert</option>
-            <option value="learning">📖 Learning</option>
+
+        <!-- Toolbar -->
+        <div class="feed-toolbar">
+
+          <!-- Type filter -->
+          <select class="feed-filter" id="typeFilter" onchange="applyFilters()">
+            <option value="">All event types</option>
+            <option value="brain_write">&#9999;&#65039; Brain writes</option>
+            <option value="brain_read">&#128214; Brain reads</option>
+            <option value="brain_search">&#128269; Brain searches</option>
+            <option value="doc_version">&#128196; Doc versions</option>
+            <option value="heartbeat">&#128147; Heartbeats</option>
           </select>
-          <select id="f-agent" class="oc-filter-select">
+
+          <!-- Agent filter -->
+          <select class="feed-filter" id="agentFilter" onchange="applyFilters()">
             <option value="">All agents</option>
-            <option value="Spike">🦞 Spike</option>
-            <option value="Steve">📈 Steve</option>
-            <option value="Lex">💻 Lex</option>
-            <option value="Bill">🐟 Bill</option>
           </select>
-          <span class="oc-count-badge" id="row-count">–</span>
+
+          <!-- Text search -->
+          <input class="feed-search" id="textSearch" placeholder="&#128269; Filter by text&hellip;" oninput="applyFilters()">
+
+          <!-- Live indicator -->
+          <div class="feed-live" id="liveIndicator">
+            <div class="feed-pulse"></div>
+            <span id="liveLabel">Live</span>
+          </div>
+
+          <span class="feed-count" id="feedCount">&ndash;</span>
+          <button class="feed-refresh" onclick="loadFeed(true)">&#8635; Refresh</button>
         </div>
+
+        <!-- Table -->
         <div class="oc-table-scroll">
-          <table class="oc-data-table" id="activity-tbl">
-            <thead><tr>
-              <th data-sort="typeLabel" style="width:100px">Type</th>
-              <th data-sort="title">Event</th>
-              <th data-sort="source" style="width:180px">Agent / Machine</th>
-              <th data-sort="dateSort" style="width:160px">Date</th>
-              <th class="no-sort" style="width:140px">Status</th>
-            </tr></thead>
-            <tbody id="activity-tbody">
-              <tr><td colspan="5" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
+          <table class="feed-table" id="feedTable">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Agent</th>
+                <th>Event</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody id="feedBody">
+              <tr><td colspan="5" class="feed-empty">Loading&hellip;</td></tr>
             </tbody>
           </table>
         </div>
+
       </div>
     </main>
   </div>
 
   <script>
-    /* ── sidebar/theme ── */
+    /* ── Sidebar / theme ─────────────────────────────────────────────── */
     (function(){
-      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+      const sb=document.getElementById('oc-sidebar'), btn=document.getElementById('sidebar-toggle');
       let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
       if(col)sb.classList.add('collapsed');
       btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
       const th=document.getElementById('theme-toggle');
       let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'\uD83C\uDF19':'\u2600\uFE0F';
+      th.addEventListener('click',()=>{
+        tm=tm==='light'?'dark':'light';
+        document.body.classList.toggle('light-mode',tm==='light');
+        document.body.classList.toggle('dark-mode',tm==='dark');
+        localStorage.setItem('overclaw-theme',tm);
+        th.textContent=tm==='dark'?'\uD83C\uDF19':'\u2600\uFE0F';
+      });
     })();
 
-    const AGENT_MACHINES = {
-      Spike: ['OpenClaw'],
-      Steve: ['BrightMove-MBP'],
-      Lex:   ['BrightMove-MBP/Cursor'],
-      Bill:  ['H2FClanker1'],
+    /* ── Agent meta ──────────────────────────────────────────────────── */
+    const AGENT_META = {
+      spike:  { emoji:'\uD83E\uDD9E', color:'#f97316', label:'Spike'  },
+      steve:  { emoji:'\uD83D\uDCC8', color:'#3b82f6', label:'Steve'  },
+      lex:    { emoji:'\uD83D\uDCBB', color:'#a855f7', label:'Lex'    },
+      bill:   { emoji:'\uD83D\uDC1F', color:'#10b981', label:'Bill'   },
+      luther: { emoji:'\uD83E\uDD16', color:'#eab308', label:'Luther' },
+      jhurff: { emoji:'\uD83D\uDC64', color:'#6366f1', label:'Jimmy'  },
+      jimmy:  { emoji:'\uD83D\uDC64', color:'#6366f1', label:'Jimmy'  },
+      agent:  { emoji:'\uD83E\uDD16', color:'#6b7280', label:'Agent'  },
     };
 
-    function machineToAgent(machine, subAgent) {
-      const key = subAgent ? `${machine}/${subAgent}` : machine;
-      for (const [agent, machines] of Object.entries(AGENT_MACHINES)) {
-        if (machines.some(m => key.toLowerCase() === m.toLowerCase())) return agent;
+    const TYPE_LABELS = {
+      brain_write:  '\u270F\uFE0F Write',
+      brain_read:   '\uD83D\uDCD6 Read',
+      brain_search: '\uD83D\uDD0D Search',
+      brain_list:   '\uD83D\uDCC2 List',
+      doc_version:  '\uD83D\uDCC4 Doc ver',
+      heartbeat:    '\uD83D\uDC93 Heartbeat',
+      mcp_connect:  '\uD83D\uDD0C MCP',
+      alert:        '\uD83D\uDEA8 Alert',
+    };
+
+    /* ── State ───────────────────────────────────────────────────────── */
+    let allEvents   = [];
+    let lastTs      = 0;
+    let autoRefresh = null;
+    let knownAgents = new Set();
+
+    /* ── Load ────────────────────────────────────────────────────────── */
+    async function loadFeed(highlight = false) {
+      try {
+        const r = await fetch('/api/feed?limit=500');
+        if (!r.ok) throw new Error(r.status);
+        const data = await r.json();
+
+        const newIds = new Set((data.events||[]).map(e => e.ts + e.agent + e.type));
+        const prevIds = new Set(allEvents.map(e => e.ts + e.agent + e.type));
+        const hasNew  = [...newIds].some(id => !prevIds.has(id));
+
+        allEvents = data.events || [];
+
+        // Build agent filter list
+        allEvents.forEach(e => { if (e.agent) knownAgents.add(e.agent); });
+        populateAgentFilter();
+
+        applyFilters(highlight && hasNew);
+        setLive(true);
+        lastTs = Date.now();
+      } catch(e) {
+        document.getElementById('feedBody').innerHTML =
+          `<tr><td colspan="5" class="feed-empty" style="color:#f87171">\u26A0\uFE0F Failed to load: ${e.message}</td></tr>`;
+        setLive(false);
       }
-      return '';
     }
 
-    let allRows=[], sortKey='dateSort', sortDir=-1;
-
-    function fmtDate(str) {
-      if (!str) return '—';
-      try { return new Date(str).toLocaleString(); } catch { return str; }
+    function populateAgentFilter() {
+      const sel = document.getElementById('agentFilter');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">All agents</option>';
+      [...knownAgents].sort().forEach(a => {
+        const m   = AGENT_META[a] || {};
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = (m.emoji ? m.emoji + ' ' : '') + (m.label || a);
+        if (a === cur) opt.selected = true;
+        sel.appendChild(opt);
+      });
     }
 
-    const TYPE_ICON  = { heartbeat:'💓', alert:'🚨', learning:'📖' };
-    const TYPE_LABEL = { heartbeat:'Heartbeat', alert:'Alert', learning:'Learning' };
+    /* ── Filter + render ─────────────────────────────────────────────── */
+    function applyFilters(flashNew = false) {
+      const typeQ  = document.getElementById('typeFilter').value;
+      const agentQ = document.getElementById('agentFilter').value;
+      const textQ  = document.getElementById('textSearch').value.toLowerCase().trim();
 
-    function applyAndRender() {
-      const q      = document.getElementById('q').value.toLowerCase().trim();
-      const typeF  = document.getElementById('f-type').value;
-      const agentF = document.getElementById('f-agent').value;
-
-      let vis = allRows.filter(r => {
-        if (typeF  && r.type  !== typeF)  return false;
-        if (agentF && r.agent !== agentF) return false;
-        if (q) {
-          const h = [r.title, r.source, r.typeLabel, r.tags||''].join(' ').toLowerCase();
-          if (!h.includes(q)) return false;
-        }
+      let vis = allEvents.filter(e => {
+        if (typeQ  && !e.type.includes(typeQ))                     return false;
+        if (agentQ && e.agent !== agentQ)                          return false;
+        if (textQ  && !( (e.summary||'').toLowerCase().includes(textQ) ||
+                         (e.detail ||'').toLowerCase().includes(textQ) ||
+                         (e.agent  ||'').toLowerCase().includes(textQ) )) return false;
         return true;
       });
 
-      if (sortKey) {
-        vis = [...vis].sort((a,b) => {
-          const va=String(a[sortKey]||''), vb=String(b[sortKey]||'');
-          return sortDir * va.localeCompare(vb);
-        });
+      document.getElementById('feedCount').textContent = vis.length + ' event' + (vis.length !== 1 ? 's' : '');
+
+      const tbody = document.getElementById('feedBody');
+      if (!vis.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="feed-empty">No events match the current filters</td></tr>`;
+        return;
       }
 
-      const tbody = document.getElementById('activity-tbody');
-      tbody.innerHTML = vis.length ? vis.map(r => {
-        const icon  = TYPE_ICON[r.type]  || '•';
-        const label = TYPE_LABEL[r.type] || r.type;
+      // Render rows
+      const prevTopTs = allEvents.length ? (allEvents[0]?.ts || 0) : 0;
+      tbody.innerHTML = vis.map((e, i) => {
+        const m       = AGENT_META[e.agent] || { emoji:'\uD83E\uDD16', color:'#6b7280', label: e.agent };
+        const typeKey = e.type.replace(/^brain_/, 'brain_');
+        const pillCls = 'ev-pill ev-' + (typeKey in TYPE_LABELS ? typeKey : 'default');
+        const label   = TYPE_LABELS[e.type] || e.type.replace(/_/g,' ');
+        const isNew   = flashNew && i < 10 && e.ts > prevTopTs;
+        const errCls  = e.ok === false ? ' ev-err' : '';
 
-        let statusHtml = '';
-        if (r.isAlert)   statusHtml += '<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.68rem;font-weight:700;background:#7f1d1d;color:#fca5a5;margin-right:3px">⚠️ alert</span>';
-        if (r.isHandled) statusHtml += '<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.68rem;font-weight:600;background:#14532d;color:#86efac">✓ handled</span>';
-        if (r.tags) {
-          r.tags.split(',').forEach(t => {
-            const tag = t.trim();
-            if (tag) statusHtml += `<span style="display:inline-block;padding:1px 7px;border-radius:9999px;font-size:.68rem;font-weight:600;background:#1a3a2a;color:#6ee7b7;margin-right:2px">${tag}</span>`;
-          });
-        }
-
-        return `
-          <tr style="${r.isAlert ? 'background:rgba(59,26,8,.4)' : ''}">
-            <td style="white-space:nowrap;font-size:.8rem">${icon} <span style="color:#6b7280">${label}</span></td>
-            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem;color:#e2e8f0">${r.title}</td>
-            <td style="font-size:.78rem;color:#9ca3af;white-space:nowrap">${r.source}</td>
-            <td style="font-size:.72rem;color:#6b7280;white-space:nowrap">${fmtDate(r.date)}</td>
-            <td>${statusHtml || '<span style="color:#374151;font-size:.7rem">—</span>'}</td>
-          </tr>`;
-      }).join('')
-        : `<tr class="oc-empty-row"><td colspan="5">No activity matches.</td></tr>`;
-
-      document.getElementById('row-count').textContent = vis.length+' / '+allRows.length;
-      document.querySelectorAll('#activity-tbl th[data-sort]').forEach(th => {
-        th.classList.remove('sort-asc','sort-desc');
-        if (th.dataset.sort===sortKey) th.classList.add(sortDir>0?'sort-asc':'sort-desc');
-      });
+        return `<tr${isNew ? ' class="new-row"' : ''}>
+          <td class="ev-time">${fmtTime(e.ts)}</td>
+          <td><span class="${pillCls}">${label}</span></td>
+          <td>
+            <span class="ag-chip" style="color:${m.color}">
+              ${m.emoji} ${m.label || e.agent}
+            </span>
+          </td>
+          <td><span class="ev-summary${errCls}" title="${esc(e.summary||'')}">${esc(e.summary||'—')}</span></td>
+          <td>
+            ${e.detail
+              ? `<span class="ev-detail" title="${esc(e.detail)}">${esc(shortPath(e.detail))}</span>`
+              : '<span style="color:#374151">—</span>'}
+          </td>
+        </tr>`;
+      }).join('');
     }
 
-    document.getElementById('q').addEventListener('input', applyAndRender);
-    document.getElementById('f-type').addEventListener('change', applyAndRender);
-    document.getElementById('f-agent').addEventListener('change', applyAndRender);
-    document.addEventListener('click', e => {
-      const th = e.target.closest('#activity-tbl th[data-sort]');
-      if (!th) return;
-      const k = th.dataset.sort;
-      if (sortKey===k) sortDir*=-1; else { sortKey=k; sortDir=1; }
-      applyAndRender();
-    });
+    /* ── Helpers ─────────────────────────────────────────────────────── */
+    function fmtTime(ts) {
+      if (!ts) return '—';
+      const d   = new Date(ts);
+      const now = Date.now();
+      const ms  = now - ts;
+      const m   = ms / 60000;
+      const h   = ms / 3600000;
+      if (m  < 1)  return 'just now';
+      if (m  < 60) return Math.round(m)  + 'm ago';
+      if (h  < 24) return Math.round(h)  + 'h ago';
+      // For older: show date+time
+      return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' +
+             d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+    }
 
-    /* Pre-select agent from URL ?agent=Name */
-    (function(){
-      const a = new URLSearchParams(window.location.search).get('agent');
-      if (a) { document.getElementById('f-agent').value = a; }
-    })();
+    function shortPath(p) {
+      if (!p || p.length <= 50) return p;
+      const parts = p.split('/');
+      return parts.length > 2 ? '\u2026/' + parts.slice(-2).join('/') : p.slice(-50);
+    }
 
-    async function load() {
-      try {
-        const [hbData, learnData] = await Promise.all([
-          fetch('/api/vault/activity?limit=200').then(r=>r.json()).catch(()=>[]),
-          fetch('/api/learnings').then(r=>r.json()).catch(()=>[]),
-        ]);
+    function esc(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                          .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
-        const hbRows = (Array.isArray(hbData) ? hbData : []).map(hb => ({
-          type:        hb.isAlert ? 'alert' : 'heartbeat',
-          typeLabel:   hb.isAlert ? 'Alert' : 'Heartbeat',
-          title:       hb.type || hb.filename || 'heartbeat',
-          source:      hb.subAgent ? `${hb.machine}/${hb.subAgent}` : (hb.machine||'—'),
-          agent:       machineToAgent(hb.machine, hb.subAgent),
-          date:        hb.date,
-          dateSort:    hb.date||'',
-          isAlert:     !!hb.isAlert,
-          isHandled:   !!hb.isHandled,
-          tags:        '',
-        }));
-
-        const learnRows = (Array.isArray(learnData) ? learnData : []).map(l => ({
-          type:        'learning',
-          typeLabel:   'Learning',
-          title:       l.title||'(untitled)',
-          source:      l.agent||'—',
-          agent:       l.agent||'',
-          date:        l.created_at,
-          dateSort:    l.created_at||'',
-          isAlert:     false,
-          isHandled:   false,
-          tags:        (l.tags||[]).join(', '),
-        }));
-
-        allRows = [...hbRows, ...learnRows];
-        applyAndRender();
-      } catch(e) {
-        document.getElementById('activity-tbody').innerHTML =
-          `<tr><td colspan="5" style="color:#f87171;padding:1rem">⚠️ Failed: ${e.message}</td></tr>`;
+    function setLive(ok) {
+      const el  = document.getElementById('liveIndicator');
+      const lbl = document.getElementById('liveLabel');
+      if (ok) {
+        el.classList.remove('stale');
+        lbl.textContent = 'Live';
+      } else {
+        el.classList.add('stale');
+        lbl.textContent = 'Offline';
       }
     }
 
-    load();
-    setInterval(load, 60000);
+    /* ── Auto-refresh every 30s ──────────────────────────────────────── */
+    function startAutoRefresh() {
+      if (autoRefresh) clearInterval(autoRefresh);
+      autoRefresh = setInterval(() => {
+        // Quietly refresh and flash new rows
+        loadFeed(true);
+        // Mark stale if no refresh in 90s
+        if (Date.now() - lastTs > 90000) setLive(false);
+      }, 30000);
+    }
+
+    loadFeed(false);
+    startAutoRefresh();
   </script>
 </body>
 </html>
