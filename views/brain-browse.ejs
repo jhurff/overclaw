@@ -59,24 +59,29 @@
     .toastui-editor-toolbar button     { color:#9098b8 !important; }
     .toastui-editor-toolbar button:hover{ background:rgba(99,102,241,.15) !important; }
     .toastui-editor-ww-container .ProseMirror {
-      background:#0c0c1a !important; color:#c8d4e8 !important;
+      background:#0c0c1a !important; color:#e8ecf4 !important;
       font-size:15px !important; line-height:1.8 !important; padding:28px 40px !important;
     }
-    .toastui-editor-md-container .CodeMirror { background:#0c0c1a !important; color:#c8d4e8 !important; height:100% !important; }
-    .toastui-editor-contents h1 { font-size:2em; font-weight:800; color:#e8ecf8;
+    .toastui-editor-md-container .CodeMirror { background:#0c0c1a !important; color:#e8ecf4 !important; height:100% !important; }
+    .toastui-editor-contents h1 { font-size:2em; font-weight:800; color:#ffffff;
       border-bottom:1px solid var(--border,#2a2a4a); padding-bottom:.3em; }
-    .toastui-editor-contents h2 { font-size:1.5em; font-weight:700; color:#dde3f5;
+    .toastui-editor-contents h2 { font-size:1.5em; font-weight:700; color:#f0f4ff;
       border-bottom:1px solid var(--border,#2a2a4a); }
-    .toastui-editor-contents h3 { font-size:1.2em; font-weight:700; color:#d0d8f0; }
+    .toastui-editor-contents h3 { font-size:1.2em; font-weight:700; color:#e8eeff; }
+    .toastui-editor-contents h4,
+    .toastui-editor-contents h5,
+    .toastui-editor-contents h6 { font-weight:600; color:#dde4ff; }
+    .toastui-editor-contents p,
+    .toastui-editor-contents li { color:#e8ecf4; }
     .toastui-editor-contents a  { color:#818cf8; }
-    .toastui-editor-contents code { background:rgba(255,255,255,.07); color:#a5b4fc;
+    .toastui-editor-contents code { background:rgba(255,255,255,.1); color:#c4b5fd;
       padding:2px 6px; border-radius:4px; font-size:.87em; }
     .toastui-editor-contents pre  { background:#0d0d1a; border:1px solid var(--border,#2a2a4a); border-radius:8px; }
     .toastui-editor-contents blockquote { border-left:3px solid #6366f1;
-      background:rgba(99,102,241,.07); color:#a0a8c0; }
+      background:rgba(99,102,241,.07); color:#c0c8e0; }
     .toastui-editor-contents table th { background:rgba(99,102,241,.12); color:#a0aaff; }
     .toastui-editor-contents table th,
-    .toastui-editor-contents table td  { border-color:var(--border,#2a2a4a); }
+    .toastui-editor-contents table td  { border-color:var(--border,#2a2a4a); color:#e8ecf4; }
 
     /* ── New-doc bar ──────────────────────────────────────────────────── */
     .bb-new-bar { display:none; padding:7px 12px; background:var(--surface-3,#111122);
@@ -108,9 +113,20 @@
                 transition:opacity .3s; color:#fff; pointer-events:none; }
 
     /* ── Light mode ───────────────────────────────────────────────────── */
-    body.light-mode .toastui-editor-ww-container .ProseMirror { background:#fff !important; color:#1f2937 !important; }
-    body.light-mode .toastui-editor-md-container .CodeMirror  { background:#fff !important; color:#1f2937 !important; }
+    body.light-mode .toastui-editor-ww-container .ProseMirror { background:#fff !important; color:#111827 !important; }
+    body.light-mode .toastui-editor-md-container .CodeMirror  { background:#fff !important; color:#111827 !important; }
     body.light-mode .toastui-editor-toolbar { background:#f8fafc !important; }
+    body.light-mode .toastui-editor-contents h1,
+    body.light-mode .toastui-editor-contents h2,
+    body.light-mode .toastui-editor-contents h3,
+    body.light-mode .toastui-editor-contents h4,
+    body.light-mode .toastui-editor-contents h5,
+    body.light-mode .toastui-editor-contents h6 { color:#111827 !important; }
+    body.light-mode .toastui-editor-contents p,
+    body.light-mode .toastui-editor-contents li  { color:#1f2937 !important; }
+    body.light-mode .toastui-editor-contents code { background:rgba(0,0,0,.06) !important; color:#4338ca !important; }
+    body.light-mode .toastui-editor-contents table td { color:#1f2937 !important; }
+    body.light-mode .toastui-editor-contents blockquote { color:#374151 !important; }
     body.light-mode .bb-tree  { background:#f0f4ff; }
     body.light-mode .bb-toolbar { background:#f0f4ff; }
   </style>
