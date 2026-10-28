@@ -5,33 +5,109 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
   <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── Zone badges ─────────────────────────────────────────────────────── */
+    .zbadge { display:inline-block; padding:2px 8px; border-radius:8px; font-size:10px;
+              font-weight:700; letter-spacing:.03em; vertical-align:middle; white-space:nowrap; }
+    .zbadge-localhost   { background:rgba(99,102,241,.15);  color:#a5b4fc; border:1px solid rgba(99,102,241,.25); }
+    .zbadge-localnet    { background:rgba(16,185,129,.12);  color:#6ee7b7; border:1px solid rgba(16,185,129,.2); }
+    .zbadge-private_wan { background:rgba(245,158,11,.12);  color:#fcd34d; border:1px solid rgba(245,158,11,.2); }
+    .zbadge-public_wan  { background:rgba(239,68,68,.12);   color:#fca5a5; border:1px solid rgba(239,68,68,.2); }
+    .zbadge-unknown     { background:rgba(75,85,99,.15);    color:#9ca3af; border:1px solid rgba(75,85,99,.2); }
+
+    /* ── Zone toggle pill group ───────────────────────────────────────────── */
+    .zone-pills { display:inline-flex; border-radius:7px; overflow:hidden;
+                  border:1px solid rgba(255,255,255,.08); flex-shrink:0; }
+    .zone-pill  { padding:3px 9px; font-size:10.5px; font-weight:700; cursor:pointer;
+                  border:none; background:transparent; color:#4b5563;
+                  border-right:1px solid rgba(255,255,255,.06); transition:all .12s; white-space:nowrap; }
+    .zone-pill:last-child { border-right:none; }
+    .zone-pill:hover      { background:rgba(255,255,255,.06); color:#9ca3af; }
+    .zone-pill.active-localhost   { background:rgba(99,102,241,.25); color:#a5b4fc; }
+    .zone-pill.active-localnet    { background:rgba(16,185,129,.2);  color:#6ee7b7; }
+    .zone-pill.active-private_wan { background:rgba(245,158,11,.2);  color:#fcd34d; }
+    .zone-pill.active-public_wan  { background:rgba(239,68,68,.2);   color:#fca5a5; }
+
+    /* ── MCP url cell ────────────────────────────────────────────────────── */
+    .mcp-url-cell { font-size:10.5px; font-family:monospace; color:#818cf8;
+                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                    max-width:220px; display:block; }
+    .mcp-url-unset { color:#374151; font-style:italic; font-family:inherit; }
+
+    /* ── Onboard modal ───────────────────────────────────────────────────── */
+    .ob-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.72);
+                   z-index:500; align-items:center; justify-content:center; }
+    .ob-modal-bg.open { display:flex; }
+    .ob-modal { background:#12122a; border:1px solid #2a2a4a; border-radius:12px;
+                width:min(740px,94vw); max-height:88vh; display:flex; flex-direction:column;
+                overflow:hidden; box-shadow:0 16px 48px rgba(0,0,0,.6); }
+    .ob-head { padding:13px 18px; border-bottom:1px solid #2a2a4a;
+               display:flex; align-items:center; gap:10px; }
+    .ob-title { font-weight:700; color:#e2e8f0; font-size:1rem; flex:1; }
+    .ob-close { background:#1f1f3a; border:1px solid #374151; border-radius:6px;
+                color:#aaa; padding:4px 10px; cursor:pointer; font-size:12px; }
+    .ob-meta  { padding:10px 18px; border-bottom:1px solid #1e1e38;
+                display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .ob-meta-text { font-size:12px; color:#9098b8; flex:1; }
+    .ob-zone-label { font-size:11px; color:#9098b8; }
+    .ob-copy-btn  { background:#6366f1; border:none; border-radius:6px; color:#fff;
+                    padding:5px 14px; cursor:pointer; font-size:12px; font-weight:600; margin-left:auto; }
+    .ob-body  { flex:1; overflow-y:auto; padding:16px 18px; }
+    .ob-loading { text-align:center; padding:24px; color:#555; }
+    .ob-snippet { display:none; white-space:pre-wrap; word-break:break-word;
+                  background:#0c0c1a; border:1px solid #2a2a4a; border-radius:8px;
+                  padding:16px; font-family:'DM Mono','Fira Code',monospace;
+                  font-size:12.5px; color:#c8d4e8; line-height:1.7; margin:0; }
+    .ob-foot { padding:10px 18px; border-top:1px solid #2a2a4a;
+               display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .ob-foot a { font-size:11px; color:#818cf8; text-decoration:none; }
+    .ob-foot-sep { color:#374151; font-size:11px; }
+
+    /* ── Unsaved-changes banner ───────────────────────────────────────────── */
+    .zone-changed-bar { display:none; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.2);
+                        border-radius:8px; padding:9px 16px; margin-bottom:14px;
+                        font-size:12.5px; color:#fcd34d; align-items:center; gap:10px; flex-wrap:wrap; }
+    .zone-changed-bar.show { display:flex; }
+    .zone-save-btn { background:#6366f1; border:none; border-radius:6px; color:#fff;
+                     padding:5px 14px; font-size:12px; font-weight:700; cursor:pointer; }
+    .zone-toast { display:inline-flex; align-items:center; padding:3px 10px; border-radius:5px;
+                  font-size:11.5px; font-weight:600; opacity:0; transition:opacity .3s; pointer-events:none; }
+    .zone-toast.show { opacity:1; }
+    .zone-toast-ok  { background:rgba(52,211,153,.12); color:#34d399; border:1px solid rgba(52,211,153,.2); }
+    .zone-toast-err { background:rgba(248,113,113,.12); color:#f87171; border:1px solid rgba(248,113,113,.2); }
+  </style>
 </head>
 <body>
-<style>
-  .zone-badge { display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:700;vertical-align:middle;margin-left:4px; }
-  .zbadge-localhost   { background:rgba(99,102,241,.15);color:#a5b4fc; }
-  .zbadge-localnet    { background:rgba(16,185,129,.12);color:#6ee7b7; }
-  .zbadge-private_wan { background:rgba(245,158,11,.12);color:#fcd34d; }
-  .zbadge-public_wan  { background:rgba(239,68,68,.12); color:#fca5a5; }
-  .zbadge-unknown     { background:rgba(75,85,99,.15);  color:#9ca3af; }
-</style>
-
   <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
+    <div class="logo">
+      <a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer">
+        <h1 class="main-title">OVERCLAW</h1>
+        <span class="tagline">AGENT DASHBOARD</span>
+      </a>
+    </div>
     <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
+      <button id="sidebar-toggle" class="control-button">&#9776;</button>
+      <button id="theme-toggle" class="control-button">&#9728;&#65039;</button>
     </div>
   </header>
+
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/agents' }) %>
     <main class="oc-dashboard-area">
       <div class="oc-data-wrap">
+
+        <!-- Unsaved zones banner -->
+        <div class="zone-changed-bar" id="zoneChangedBar">
+          <span>&#9888;&#65039; Unsaved zone changes</span>
+          <button class="zone-save-btn" onclick="saveZones()">Save All Zones</button>
+          <span class="zone-toast zone-toast-ok"  id="zone-toast">&#10003; Saved</span>
+          <span class="zone-toast zone-toast-err" id="zone-err"></span>
+        </div>
+
+        <!-- Toolbar -->
         <div class="oc-table-toolbar">
-          <input type="search" id="q" class="oc-search-input" placeholder="Search agents…">
+          <input type="search" id="q" class="oc-search-input" placeholder="Search agents&hellip;">
           <select id="f-type" class="oc-filter-select">
             <option value="">All types</option>
             <option value="OpenClaw">OpenClaw</option>
@@ -45,240 +121,400 @@
             <option value="Inactive">Inactive</option>
             <option value="Unknown">Unknown</option>
           </select>
-          <span class="oc-count-badge" id="row-count">–</span>
+          <span class="oc-count-badge" id="row-count">&ndash;</span>
         </div>
+
+        <!-- Table -->
         <div class="oc-table-scroll">
-        <table class="oc-data-table" id="agents-tbl">
-          <thead><tr>
-            <th data-sort="name">Agent</th>
-            <th data-sort="type">Type</th>
-            <th data-sort="machine">Machine</th>
-            <th data-sort="role">Role</th>
-            <th data-sort="hbDate">Heartbeat</th>
-            <th data-sort="statusLabel">Status</th>
-            <th data-sort="since">Since</th>
-            <th class="no-sort">Actions</th>
-          </tr></thead>
-          <tbody id="agents-tbody">
-            <tr><td colspan="8" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
-          </tbody>
-        </table>
+          <table class="oc-data-table" id="agents-tbl">
+            <thead>
+              <tr>
+                <th data-sort="name">Agent</th>
+                <th data-sort="type">Type</th>
+                <th data-sort="machine">Machine</th>
+                <th data-sort="role">Role</th>
+                <th data-sort="hbDate">Heartbeat</th>
+                <th data-sort="statusLabel">Status</th>
+                <th class="no-sort">Zone / MCP</th>
+                <th class="no-sort">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="agents-tbody">
+              <tr><td colspan="8" style="text-align:center;color:#4b5563;padding:1.5rem">Loading&hellip;</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </main>
   </div>
+
+  <!-- ── Onboarding Modal ─────────────────────────────────────────────────── -->
+  <div class="ob-modal-bg" id="obModal">
+    <div class="ob-modal">
+      <div class="ob-head">
+        <span style="font-size:1.3rem">&#128640;</span>
+        <span class="ob-title" id="obTitle">Onboarding Snippet</span>
+        <button class="ob-close" onclick="closeOb()">&#10005; Close</button>
+      </div>
+      <div class="ob-meta">
+        <span class="ob-meta-text">Copy and paste into the agent&apos;s context at session start.</span>
+        <span class="ob-zone-label" id="obZoneLabel"></span>
+        <button class="ob-copy-btn" onclick="copySnippet()">&#128203; Copy All</button>
+      </div>
+      <div class="ob-body">
+        <div class="ob-loading" id="obLoading">Loading&hellip;</div>
+        <pre class="ob-snippet" id="obSnippet"></pre>
+      </div>
+      <div class="ob-foot">
+        <a href="http://192.168.68.42:8355/brain?path=README.md" target="_blank">&#128218; Brain README</a>
+        <span class="ob-foot-sep">&middot;</span>
+        <a href="/swarm">&#127760; Swarm</a>
+        <span class="ob-foot-sep">&middot;</span>
+        <a href="/config#agent-zones">&#9881;&#65039; Zone Settings</a>
+      </div>
+    </div>
+  </div>
+
   <script>
-    /* ── sidebar/theme ── */
+    /* ── Sidebar / theme ─────────────────────────────────────────────────── */
     (function(){
-      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-      if(col)sb.classList.add('collapsed');
-      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-      const th=document.getElementById('theme-toggle');
-      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+      const sb  = document.getElementById('oc-sidebar');
+      const btn = document.getElementById('sidebar-toggle');
+      let col = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
+      if (col) sb.classList.add('collapsed');
+      btn.addEventListener('click', () => {
+        col = !col;
+        sb.classList.toggle('collapsed', col);
+        localStorage.setItem('overclaw-sidebar-collapsed', col);
+      });
+      const th = document.getElementById('theme-toggle');
+      let tm = localStorage.getItem('overclaw-theme') ||
+               (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
+      document.body.classList.add(tm + '-mode');
+      th.textContent = tm === 'dark' ? '\uD83C\uDF19' : '\u2600\uFE0F';
+      th.addEventListener('click', () => {
+        tm = tm === 'light' ? 'dark' : 'light';
+        document.body.classList.toggle('light-mode', tm === 'light');
+        document.body.classList.toggle('dark-mode',  tm === 'dark');
+        localStorage.setItem('overclaw-theme', tm);
+        th.textContent = tm === 'dark' ? '\uD83C\uDF19' : '\u2600\uFE0F';
+      });
     })();
 
+    /* ── Constants ───────────────────────────────────────────────────────── */
     const AGENT_META = {
-      Spike: {emoji:'🦞',color:'#f97316'},
-      Steve: {emoji:'📈',color:'#3b82f6'},
-      Lex:   {emoji:'💻',color:'#a855f7'},
-      Bill:  {emoji:'🐟',color:'#10b981'},
-      Luther:{emoji:'🤖',color:'#eab308'},
+      Spike:  { emoji: '\uD83E\uDD9E', color: '#f97316' },
+      Steve:  { emoji: '\uD83D\uDCC8', color: '#3b82f6' },
+      Lex:    { emoji: '\uD83D\uDCBB', color: '#a855f7' },
+      Bill:   { emoji: '\uD83D\uDC1F', color: '#10b981' },
+      Luther: { emoji: '\uD83E\uDD16', color: '#eab308' },
     };
-    const HB_KEY = {Spike:'OpenClaw',Steve:'BrightMove-MBP',Lex:'BrightMove-MBP/Cursor',Bill:'H2FClanker1',Luther:'Grok-Bot'};
+    const HB_KEY = {
+      Spike:  'H2FClanker2/OpenClaw',
+      Steve:  'BrightMove-MBP',
+      Lex:    'BrightMove-MBP/Cursor',
+      Bill:   'H2FClanker1',
+      Luther: 'Grok-Bot'
+    };
+    const ZONE_OPTS = [
+      { value: 'localhost',   label: 'local' },
+      { value: 'localnet',    label: 'LAN'   },
+      { value: 'private_wan', label: 'VPN'   },
+      { value: 'public_wan',  label: 'WAN'   },
+    ];
 
-    function timeAgo(d){
-      if(!d)return null;
-      const ms=Date.now()-new Date(d).getTime(),h=ms/3600000;
-      if(h<1)return Math.round(ms/60000)+'m ago';
-      if(h<24)return Math.round(h)+'h ago';
-      if(h<48)return 'yesterday';
-      if(h<168)return Math.round(h/24)+'d ago';
-      return Math.round(h/168)+'w ago';
+    /* ── State ───────────────────────────────────────────────────────────── */
+    let rows        = [];
+    let sortKey     = 'name', sortDir = 1;
+    let filterType  = '', filterStatus = '', searchQ = '';
+    let agentZones  = {};   // lowercase name -> zone string
+    let netConfig   = {};   // network IPs from config
+    let ocPort      = 8355;
+    let pendingZoneChanges = false;
+
+    /* ── Helpers ─────────────────────────────────────────────────────────── */
+    function timeAgo(d) {
+      if (!d) return null;
+      const ms = Date.now() - new Date(d).getTime(), h = ms / 3600000;
+      if (h < 1)   return Math.round(ms / 60000) + 'm ago';
+      if (h < 24)  return Math.round(h) + 'h ago';
+      if (h < 48)  return 'yesterday';
+      if (h < 168) return Math.round(h / 24) + 'd ago';
+      return Math.round(h / 168) + 'w ago';
     }
-    function hbDot(d){
-      if(!d)return 'gray';
-      const h=(Date.now()-new Date(d).getTime())/3600000;
-      return h<24?'green':h<72?'yellow':'red';
+    function hbDot(d) {
+      if (!d) return 'gray';
+      const h = (Date.now() - new Date(d).getTime()) / 3600000;
+      return h < 24 ? 'green' : h < 72 ? 'yellow' : 'red';
     }
-    function badgeCls(s){
-      if(!s)return 'badge-unknown';
-      const l=s.toLowerCase();
-      if(l.includes('active'))return 'badge-active';
-      if(l.includes('inactive')||l.includes('offline'))return 'badge-inactive';
+    function badgeCls(s) {
+      if (!s) return 'badge-unknown';
+      const l = s.toLowerCase();
+      if (l.includes('active'))   return 'badge-active';
+      if (l.includes('inactive') || l.includes('offline')) return 'badge-inactive';
       return 'badge-unknown';
     }
+    function mcpUrlForZone(zone) {
+      const ipMap = {
+        localhost:   netConfig.localhostIp  || '127.0.0.1',
+        localnet:    netConfig.localnetIp   || '',
+        private_wan: netConfig.privateWanIp || '',
+        public_wan:  netConfig.publicWanIp  || '',
+      };
+      const ip = ipMap[zone] || '';
+      return ip ? `http://${ip}:${ocPort}/mcp` : null;
+    }
+    function zoneBadgeHtml(zone) {
+      const labels = { localhost:'localhost', localnet:'localnet', private_wan:'private WAN', public_wan:'public WAN' };
+      return `<span class="zbadge zbadge-${zone || 'unknown'}">${labels[zone] || zone || '?'}</span>`;
+    }
+    function pillsHtml(agentName, currentZone) {
+      return `<div class="zone-pills" data-agent="${agentName}">` +
+        ZONE_OPTS.map(o =>
+          `<button class="zone-pill${currentZone === o.value ? ' active-' + o.value : ''}"
+                   data-zone="${o.value}"
+                   onclick="setZone('${agentName}','${o.value}',this)">${o.label}</button>`
+        ).join('') +
+        `</div>`;
+    }
 
-    let rows=[], sortKey='name', sortDir=1, filterType='', filterStatus='', searchQ='';
-
-    function applyAndRender(){
-      let vis=rows.filter(r=>{
-        if(searchQ){
-          const h=[r.name,r.type,r.machine,r.role,r.statusLabel,r.since].join(' ').toLowerCase();
-          if(!h.includes(searchQ))return false;
+    /* ── Render table ────────────────────────────────────────────────────── */
+    function applyAndRender() {
+      let vis = rows.filter(r => {
+        if (searchQ) {
+          const h = [r.name, r.type, r.machine, r.role, r.statusLabel, r.since].join(' ').toLowerCase();
+          if (!h.includes(searchQ)) return false;
         }
-        if(filterType && r.type!==filterType)return false;
-        if(filterStatus && r.statusLabel!==filterStatus)return false;
+        if (filterType   && r.type        !== filterType)   return false;
+        if (filterStatus && r.statusLabel !== filterStatus) return false;
         return true;
       });
-      if(sortKey){
-        vis=[...vis].sort((a,b)=>{
-          const va=String(a[sortKey]||'').toLowerCase(),vb=String(b[sortKey]||'').toLowerCase();
-          return sortDir*va.localeCompare(vb);
+      if (sortKey) {
+        vis = [...vis].sort((a, b) => {
+          const va = String(a[sortKey] || '').toLowerCase();
+          const vb = String(b[sortKey] || '').toLowerCase();
+          return sortDir * va.localeCompare(vb);
         });
       }
-      const tbody=document.getElementById('agents-tbody');
-      tbody.innerHTML=vis.length ? vis.map(r=>`
-        <tr>
-          <td><div class="oc-row-name">
-            <span style="font-size:1.1rem;color:${r.color}">${r.emoji}</span>
-            <span style="font-weight:700;color:${r.color}">${r.name}</span>
-            ${r.zone ? `<span class="zone-badge zbadge-${r.zone}">${r.zone.replace('_',' ')}</span>` : ''}
-          </div></td>
-          <td class="${r.type?'':'dim'}">${r.type||'—'}</td>
-          <td style="font-size:.75rem;color:#9ca3af">${r.machine||'—'}</td>
-          <td style="max-width:180px;font-size:.75rem;color:#9ca3af">${r.role||'—'}</td>
+
+      const tbody = document.getElementById('agents-tbody');
+      tbody.innerHTML = vis.length ? vis.map(r => {
+        const zone    = agentZones[r.name.toLowerCase()] || r.zone || 'localnet';
+        const mcpUrl  = mcpUrlForZone(zone);
+        const mcpHtml = mcpUrl
+          ? `<span class="mcp-url-cell" title="${mcpUrl}">${mcpUrl}</span>`
+          : `<span class="mcp-url-cell mcp-url-unset">IP not configured</span>`;
+
+        return `<tr>
+          <td>
+            <div class="oc-row-name">
+              <span style="font-size:1.1rem;color:${r.color}">${r.emoji}</span>
+              <span style="font-weight:700;color:${r.color}">${r.name}</span>
+            </div>
+          </td>
+          <td class="${r.type ? '' : 'dim'}">${r.type || '&mdash;'}</td>
+          <td style="font-size:.75rem;color:#9ca3af">${r.machine || '&mdash;'}</td>
+          <td style="max-width:180px;font-size:.75rem;color:#9ca3af">${r.role || '&mdash;'}</td>
           <td style="white-space:nowrap;font-size:.78rem">
-            <span class="oc-hb-dot ${r.hbDot}"></span>${r.hbAgo||'<span style="color:#374151;font-style:italic">never</span>'}
+            <span class="oc-hb-dot ${r.hbDot}"></span>
+            ${r.hbAgo || '<span style="color:#374151;font-style:italic">never</span>'}
           </td>
           <td><span class="oc-badge ${r.statusCls}">${r.statusLabel}</span></td>
-          <td class="dim" style="font-size:.73rem">${r.since||'—'}</td>
-          <td><div class="oc-action-btns">
-            <a href="/activity?agent=${encodeURIComponent(r.name)}" class="oc-action-btn">📡 Activity</a>
-            <a href="/vault/doc?path=${encodeURIComponent('03 - Agents/Agent Registry.md')}" class="oc-action-btn">📋 Registry</a>
-            <button class="oc-action-btn" onclick="showOnboarding(this.dataset.agent)" data-agent="${r.name}">🚀 Onboard</button>
-          </div></td>
-        </tr>`).join('')
-        : '<tr class="oc-empty-row"><td colspan="8">No agents match the current filters.</td></tr>';
-      document.getElementById('row-count').textContent=vis.length+' / '+rows.length;
-      document.querySelectorAll('#agents-tbl th[data-sort]').forEach(th=>{
-        th.classList.remove('sort-asc','sort-desc');
-        if(th.dataset.sort===sortKey)th.classList.add(sortDir>0?'sort-asc':'sort-desc');
+          <td>
+            ${pillsHtml(r.name, zone)}
+            <div style="margin-top:5px">${mcpHtml}</div>
+          </td>
+          <td>
+            <div class="oc-action-btns">
+              <a href="/activity?agent=${encodeURIComponent(r.name)}" class="oc-action-btn">&#128225; Activity</a>
+              <button class="oc-action-btn"
+                      onclick="showOnboarding(this.dataset.agent)"
+                      data-agent="${r.name}">&#128640; Onboard</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('') :
+        '<tr class="oc-empty-row"><td colspan="8">No agents match the current filters.</td></tr>';
+
+      document.getElementById('row-count').textContent = vis.length + ' / ' + rows.length;
+      document.querySelectorAll('#agents-tbl th[data-sort]').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.sort === sortKey)
+          th.classList.add(sortDir > 0 ? 'sort-asc' : 'sort-desc');
       });
     }
 
-    document.addEventListener('click',e=>{
-      const th=e.target.closest('#agents-tbl th[data-sort]');
-      if(!th)return;
-      const k=th.dataset.sort;
-      if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=1;}
+    /* ── Zone toggle ─────────────────────────────────────────────────────── */
+    function setZone(agentName, zone, clickedBtn) {
+      const key = agentName.toLowerCase();
+      agentZones[key] = zone;
+
+      // Update pills in this agent's row
+      const pillsEl = clickedBtn.closest('.zone-pills');
+      pillsEl.querySelectorAll('.zone-pill').forEach(p => {
+        p.className = 'zone-pill' + (p.dataset.zone === zone ? ' active-' + zone : '');
+      });
+
+      // Update MCP url cell
+      const td  = pillsEl.closest('td');
+      const mcu = td.querySelector('.mcp-url-cell');
+      const url = mcpUrlForZone(zone);
+      if (mcu) {
+        mcu.textContent = url || 'IP not configured';
+        mcu.title       = url || '';
+        mcu.classList.toggle('mcp-url-unset', !url);
+      }
+
+      // Show unsaved banner
+      pendingZoneChanges = true;
+      document.getElementById('zoneChangedBar').classList.add('show');
+    }
+
+    /* ── Save zones ──────────────────────────────────────────────────────── */
+    async function saveZones() {
+      try {
+        const r   = await fetch('/api/overclaw-config', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ agentZones }),
+        });
+        const res = await r.json();
+        if (res.ok) {
+          pendingZoneChanges = false;
+          document.getElementById('zoneChangedBar').classList.remove('show');
+          showZoneToast(true);
+        } else {
+          showZoneToast(false, res.error || 'Save failed');
+        }
+      } catch(e) {
+        showZoneToast(false, e.message);
+      }
+    }
+
+    function showZoneToast(ok, msg) {
+      const okEl  = document.getElementById('zone-toast');
+      const errEl = document.getElementById('zone-err');
+      okEl.classList.remove('show'); errEl.classList.remove('show');
+      if (ok) {
+        okEl.classList.add('show');
+        setTimeout(() => okEl.classList.remove('show'), 2500);
+      } else {
+        errEl.textContent = '\u274C ' + (msg || 'Error');
+        errEl.classList.add('show');
+        setTimeout(() => errEl.classList.remove('show'), 4000);
+      }
+    }
+
+    /* ── Sorting / filtering ─────────────────────────────────────────────── */
+    document.addEventListener('click', e => {
+      const th = e.target.closest('#agents-tbl th[data-sort]');
+      if (!th) return;
+      const k = th.dataset.sort;
+      if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = 1; }
       applyAndRender();
     });
-    document.getElementById('q').addEventListener('input',e=>{searchQ=e.target.value.toLowerCase().trim();applyAndRender();});
-    document.getElementById('f-type').addEventListener('change',e=>{filterType=e.target.value;applyAndRender();});
-    document.getElementById('f-status').addEventListener('change',e=>{filterStatus=e.target.value;applyAndRender();});
+    document.getElementById('q').addEventListener('input', e => {
+      searchQ = e.target.value.toLowerCase().trim(); applyAndRender();
+    });
+    document.getElementById('f-type').addEventListener('change', e => {
+      filterType = e.target.value; applyAndRender();
+    });
+    document.getElementById('f-status').addEventListener('change', e => {
+      filterStatus = e.target.value; applyAndRender();
+    });
 
-    async function load(){
-      try{
-        const [agents,summary,cfg]=await Promise.all([
-          fetch('/api/vault/agents').then(r=>r.json()),
-          fetch('/api/swarm/summary').then(r=>r.json()),
-          fetch('/api/overclaw-config').then(r=>r.json()),
+    /* ── Load ────────────────────────────────────────────────────────────── */
+    async function load() {
+      try {
+        const [agents, summary, cfg] = await Promise.all([
+          fetch('/api/vault/agents').then(r => r.json()),
+          fetch('/api/swarm/summary').then(r => r.json()),
+          fetch('/api/overclaw-config').then(r => r.json()),
         ]);
-        const agentZones = cfg.agentZones || {};
-        const hbMap=summary.lastHeartbeat||{};
-        rows=agents.map(a=>{
-          const name=a.nickname||a.agent||'Agent';
-          const meta=AGENT_META[name]||{emoji:'🤖',color:'#6b7280'};
-          const hb=hbMap[HB_KEY[name]];
-          const hbDate=hb?hb.date||null:null;
-          const statusRaw=a.status||'';
-          const statusLabel=statusRaw.replace(/^[^\w]*/,'').trim()||'Unknown';
-          return{
-            name,emoji:meta.emoji,color:meta.color,
-            type:a.type||'',
-            machine:a.machine||'',
-            role:(a.primary_role||a.role||'').split(' — ')[0]||'',
-            statusLabel,statusCls:badgeCls(statusRaw),
-            hbDate:hbDate||'',hbAgo:timeAgo(hbDate)||null,hbDot:hbDot(hbDate),
-            since:a.registered||'',
-            zone: agentZones[name.toLowerCase()] || '',
+
+        agentZones = cfg.agentZones || {};
+        netConfig  = cfg.network    || {};
+        ocPort     = cfg.port       || 8355;
+
+        const hbMap = summary.lastHeartbeat || {};
+
+        rows = agents.map(a => {
+          const name  = a.nickname || a.agent || 'Agent';
+          const meta  = AGENT_META[name] || { emoji: '\uD83E\uDD16', color: '#6b7280' };
+          const hb    = hbMap[HB_KEY[name]];
+          const hbDate = hb ? hb.date || null : null;
+          const statusRaw   = a.status || '';
+          const statusLabel = statusRaw.replace(/^[^\w]*/, '').trim() || 'Unknown';
+          return {
+            name, emoji: meta.emoji, color: meta.color,
+            type:        a.type || '',
+            machine:     a.machine || '',
+            role:        (a.primary_role || a.role || '').split(' \u2014 ')[0] || '',
+            statusLabel, statusCls: badgeCls(statusRaw),
+            hbDate: hbDate || '', hbAgo: timeAgo(hbDate) || null, hbDot: hbDot(hbDate),
+            since: a.registered || '',
+            zone:  agentZones[name.toLowerCase()] || '',
           };
         });
         applyAndRender();
-      }catch(e){
-        document.getElementById('agents-tbody').innerHTML=
-          `<tr><td colspan="8" style="color:#f87171;padding:1rem">⚠️ Failed to load: ${e.message}</td></tr>`;
+      } catch(e) {
+        document.getElementById('agents-tbody').innerHTML =
+          `<tr><td colspan="8" style="color:#f87171;padding:1rem">\u26A0\uFE0F Failed to load: ${e.message}</td></tr>`;
       }
     }
     load();
+
+    /* ── Onboarding modal ────────────────────────────────────────────────── */
+    async function showOnboarding(agentName) {
+      const modal = document.getElementById('obModal');
+      modal.classList.add('open');
+      document.getElementById('obTitle').textContent = '\uD83D\uDE80 Onboarding \u2014 ' + agentName;
+      document.getElementById('obLoading').style.display = 'block';
+      document.getElementById('obSnippet').style.display = 'none';
+
+      const zone = agentZones[agentName.toLowerCase()] || 'localnet';
+      const ZONE_LABELS = {
+        localhost:   'localhost (same host)',
+        localnet:    'localnet (LAN)',
+        private_wan: 'private WAN (Tailscale)',
+        public_wan:  'public WAN (internet)',
+      };
+      document.getElementById('obZoneLabel').innerHTML =
+        `Zone: <strong>${ZONE_LABELS[zone] || zone}</strong>`;
+
+      try {
+        const r = await fetch('/api/agents/onboarding-snippet?agent=' + encodeURIComponent(agentName.toLowerCase()));
+        const d = await r.json();
+        document.getElementById('obSnippet').textContent = d.snippet || '(no snippet)';
+        document.getElementById('obLoading').style.display = 'none';
+        document.getElementById('obSnippet').style.display = 'block';
+      } catch(e) {
+        document.getElementById('obLoading').textContent = '\u274C Failed: ' + e.message;
+      }
+    }
+
+    function closeOb() {
+      document.getElementById('obModal').classList.remove('open');
+    }
+    function copySnippet() {
+      const text = document.getElementById('obSnippet').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.ob-copy-btn');
+        const orig = btn.textContent;
+        btn.textContent = '\u2705 Copied!';
+        setTimeout(() => btn.textContent = orig, 1800);
+      }).catch(() => {
+        const el = document.getElementById('obSnippet');
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+      });
+    }
+    document.getElementById('obModal').addEventListener('click', function(e) {
+      if (e.target === this) closeOb();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOb(); });
   </script>
-
-<!-- ── Onboarding Modal ──────────────────────────────────────────────────── -->
-<div id="onboardModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;">
-  <div style="background:#12122a;border:1px solid #2a2a4a;border-radius:12px;width:min(720px,94vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.6)">
-    <div style="padding:14px 18px;border-bottom:1px solid #2a2a4a;display:flex;align-items:center;gap:10px">
-      <span style="font-size:1.25rem">🚀</span>
-      <span id="onboardTitle" style="font-weight:700;color:#e2e8f0;font-size:1rem;flex:1">Onboarding Snippet</span>
-      <button onclick="closeOnboard()" style="background:#1f1f3a;border:1px solid #374151;border-radius:6px;color:#aaa;padding:4px 10px;cursor:pointer;font-size:12px">✕ Close</button>
-    </div>
-    <div style="padding:12px 18px;border-bottom:1px solid #1e1e38;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="font-size:12px;color:#9098b8">Copy this snippet and paste it into the agent's context at session start, or use the MCP connection details below.</span>
-      <button onclick="copySnippet()" style="margin-left:auto;background:#6366f1;border:none;border-radius:6px;color:#fff;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600">📋 Copy All</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;padding:16px 18px">
-      <div id="onboardLoading" style="text-align:center;padding:24px;color:#555">Loading…</div>
-      <pre id="onboardSnippet" style="display:none;white-space:pre-wrap;word-break:break-word;background:#0c0c1a;border:1px solid #2a2a4a;border-radius:8px;padding:16px;font-family:'DM Mono','Fira Code',monospace;font-size:12.5px;color:#c8d4e8;line-height:1.7;margin:0"></pre>
-    </div>
-    <div style="padding:10px 18px;border-top:1px solid #2a2a4a;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <a id="onboardBrainLink" href="#" target="_blank" style="font-size:11px;color:#818cf8">📚 Open Brain README</a>
-      <span style="color:#374151;font-size:11px">·</span>
-      <a href="/swarm" style="font-size:11px;color:#818cf8">🌐 Swarm Overview</a>
-      <span style="color:#374151;font-size:11px">·</span>
-      <a href="/brain?path=03%20-%20Agents%2FAgent%20Registry.md" style="font-size:11px;color:#818cf8">📋 Agent Registry</a>
-    </div>
-  </div>
-</div>
-
-<script>
-async function showOnboarding(agentName) {
-  const modal = document.getElementById('onboardModal');
-  modal.style.display = 'flex';
-  document.getElementById('onboardTitle').textContent = '🚀 Onboarding — ' + agentName;
-  document.getElementById('onboardLoading').style.display = 'block';
-  document.getElementById('onboardSnippet').style.display = 'none';
-  document.getElementById('onboardBrainLink').href = 'http://192.168.68.42:8355/brain?path=README.md';
-
-  try {
-    const r = await fetch('/api/agents/onboarding-snippet?agent=' + encodeURIComponent(agentName.toLowerCase()));
-    const d = await r.json();
-    document.getElementById('onboardSnippet').textContent = d.snippet || '(no snippet)';
-    document.getElementById('onboardLoading').style.display = 'none';
-    document.getElementById('onboardSnippet').style.display = 'block';
-  } catch(e) {
-    document.getElementById('onboardLoading').textContent = '❌ Failed to load: ' + e.message;
-  }
-}
-
-function closeOnboard() {
-  document.getElementById('onboardModal').style.display = 'none';
-}
-
-function copySnippet() {
-  const text = document.getElementById('onboardSnippet').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector('#onboardModal button[onclick="copySnippet()"]');
-    const orig = btn.textContent;
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => btn.textContent = orig, 1800);
-  }).catch(() => {
-    const el = document.getElementById('onboardSnippet');
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-  });
-}
-
-// Close on backdrop click
-document.getElementById('onboardModal').addEventListener('click', function(e) {
-  if (e.target === this) closeOnboard();
-});
-// Close on Escape
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOnboard(); });
-</script>
-
 </body>
 </html>
