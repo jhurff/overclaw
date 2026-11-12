@@ -24,14 +24,22 @@ jobs:
           export XDG_RUNTIME_DIR="/run/user/$(id -u)"
           export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
-          # OVERCLAW_DIR is set on the runner (actions-runner/.env / systemd).
-          # Do not map vars.OVERCLAW_DIR here: an unset public-repo variable
-          # would overwrite the runner environment with an empty string.
+          # Job steps do not always inherit the runner process environment.
+          # Read OVERCLAW_DIR from the runner .env (or a config file) if unset.
+          # Do not map vars.OVERCLAW_DIR in the step env: an unset public-repo
+          # variable would overwrite a real runner value with an empty string.
           DIR="${OVERCLAW_DIR:-}"
+          if [ -z "${DIR}" ] && [ -f "${HOME}/.config/overclaw/dir" ]; then
+            DIR="$(tr -d '\r\n' < "${HOME}/.config/overclaw/dir")"
+          fi
+          if [ -z "${DIR}" ] && [ -f "${HOME}/actions-runner/.env" ]; then
+            DIR="$(grep -E '^OVERCLAW_DIR=' "${HOME}/actions-runner/.env" | tail -n 1 | cut -d= -f2-)"
+          fi
           if [ -z "${DIR}" ]; then
-            echo "OVERCLAW_DIR is not set on the runner. Set it in actions-runner/.env."
+            echo "OVERCLAW_DIR is not set. Set it in ~/actions-runner/.env or ~/.config/overclaw/dir."
             exit 1
           fi
+
           cd "${DIR}"
 
           if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
