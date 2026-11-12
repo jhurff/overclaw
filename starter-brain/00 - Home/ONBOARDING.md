@@ -87,7 +87,7 @@ The agent needs to be able to read and write to this vault.
 **Option A — Local access (same machine)**
 Clone the vault repo to the machine where the agent runs:
 ```bash
-git clone <your-vault-repo-url> ~/My-AI-Brain
+git clone <your-vault-repo-url> ~/my-vault
 ```
 
 **Option B — Remote access (different machine)**

@@ -17,7 +17,7 @@ anything that doesn't fit.
 ## Folder structure
 
 ```
-My-AI-Brain/
+my-vault/
 ├── 03 - Agents/
 │   ├── Agent Registry.md          # Who your agents are
 │   └── Coordination/

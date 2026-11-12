@@ -4,7 +4,7 @@
 /**
  * import-vault.js
  *
- * One-time migration: import all .md files from ~/My-AI-Brain into brain.db
+ * One-time migration: import all .md files from ~/my-vault into brain.db
  *
  * Usage:
  *   node scripts/import-vault.js [--vault /path/to/vault] [--db /path/to/brain.db] [--dry-run]
@@ -28,7 +28,7 @@ const args = process.argv.slice(2);
 const argIdx = (flag) => args.indexOf(flag);
 const argVal = (flag) => { const i = argIdx(flag); return i !== -1 ? args[i + 1] : null; };
 
-const vaultPath = argVal('--vault') || process.env.VAULT_PATH || path.join(process.env.HOME, 'My-AI-Brain');
+const vaultPath = argVal('--vault') || process.env.VAULT_PATH || path.join(process.env.HOME, 'my-vault');
 const dbPath    = argVal('--db')    || path.join(__dirname, '..', 'data', 'brain.db');
 const dryRun    = args.includes('--dry-run');
 const force     = args.includes('--force');  // reimport even if db already has docs

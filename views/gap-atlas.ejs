@@ -165,7 +165,7 @@
         </div>
         <div>
           <label class="ga-label">Agent</label>
-          <input class="ga-input" id="lf-agent" value="Spike" placeholder="Spike">
+          <input class="ga-input" id="lf-agent" value="" placeholder="agent">
         </div>
         <div class="ga-full">
           <label class="ga-label">Title *</label>
@@ -330,7 +330,7 @@
     document.getElementById('lf-submit').addEventListener('click', async () => {
       const region = document.getElementById('lf-region').value;
       const title  = document.getElementById('lf-title').value.trim();
-      const agent  = document.getElementById('lf-agent').value.trim() || 'Spike';
+      const agent  = document.getElementById('lf-agent').value.trim() || 'agent';
       const taskId = document.getElementById('lf-task').value.trim();
       const note   = document.getElementById('lf-note').value.trim();
       const msg    = document.getElementById('lf-msg');

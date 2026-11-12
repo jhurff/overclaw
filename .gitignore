@@ -15,3 +15,10 @@ build/
 *~
 .vscode/
 .idea/
+*.pem
+*.key
+*.token
+.ocb-token
+*.sqlite
+*.db
+runlogs-*.json
