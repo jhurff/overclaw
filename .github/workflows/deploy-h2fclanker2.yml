@@ -19,15 +19,14 @@ jobs:
     runs-on: [self-hosted, h2fclanker2]
     steps:
       - name: Deploy live clone
-        env:
-          OVERCLAW_DIR: ${{ vars.OVERCLAW_DIR }}
         run: |
           set -euo pipefail
           export XDG_RUNTIME_DIR="/run/user/$(id -u)"
           export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
-          # Prefer the runner-side OVERCLAW_DIR (set in actions-runner/.env).
-          # vars.OVERCLAW_DIR is optional and not required for public repos.
+          # OVERCLAW_DIR is set on the runner (actions-runner/.env / systemd).
+          # Do not map vars.OVERCLAW_DIR here: an unset public-repo variable
+          # would overwrite the runner environment with an empty string.
           DIR="${OVERCLAW_DIR:-}"
           if [ -z "${DIR}" ]; then
             echo "OVERCLAW_DIR is not set on the runner. Set it in actions-runner/.env."
