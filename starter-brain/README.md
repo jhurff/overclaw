@@ -17,7 +17,7 @@ anything that doesn't fit.
 ## Folder structure
 
 ```
-example-vault/
+my-vault/
 ├── 03 - Agents/
 │   ├── Agent Registry.md          # Who your agents are
 │   └── Coordination/

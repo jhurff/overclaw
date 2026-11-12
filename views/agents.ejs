@@ -166,7 +166,7 @@
         <pre class="ob-snippet" id="obSnippet"></pre>
       </div>
       <div class="ob-foot">
-        <a href="http://192.0.2.42:8355/brain?path=README.md" target="_blank">&#128218; Brain README</a>
+        <a href="/brain?path=README.md" target="_blank">&#128218; Brain README</a>
         <span class="ob-foot-sep">&middot;</span>
         <a href="/swarm">&#127760; Swarm</a>
         <span class="ob-foot-sep">&middot;</span>
@@ -202,20 +202,8 @@
     })();
 
     /* ── Constants ───────────────────────────────────────────────────────── */
-    const AGENT_META = {
-      Spike:  { emoji: '\uD83E\uDD9E', color: '#f97316' },
-      Steve:  { emoji: '\uD83D\uDCC8', color: '#3b82f6' },
-      Lex:    { emoji: '\uD83D\uDCBB', color: '#a855f7' },
-      Bill:   { emoji: '\uD83D\uDC1F', color: '#10b981' },
-      Luther: { emoji: '\uD83E\uDD16', color: '#eab308' },
-    };
-    const HB_KEY = {
-      Spike:  'H2FClanker2/OpenClaw',
-      Steve:  'Example-Laptop',
-      Lex:    'Example-Laptop/Cursor',
-      Bill:   'H2FClanker1',
-      Luther: 'Grok-Bot'
-    };
+    let AGENT_META = {};
+    let HB_KEY = {};
     const ZONE_OPTS = [
       { value: 'localhost',   label: 'local' },
       { value: 'localnet',    label: 'LAN'   },
@@ -426,12 +414,15 @@
     /* ── Load ────────────────────────────────────────────────────────────── */
     async function load() {
       try {
-        const [agents, summary, cfg] = await Promise.all([
+        const [agents, summary, cfg, inst] = await Promise.all([
           fetch('/api/vault/agents').then(r => r.json()),
           fetch('/api/swarm/summary').then(r => r.json()),
           fetch('/api/overclaw-config').then(r => r.json()),
+          fetch('/api/instance').then(r => r.json()).catch(() => ({})),
         ]);
 
+        AGENT_META = inst.agentMeta || AGENT_META;
+        HB_KEY     = inst.agentHbKeys || HB_KEY;
         agentZones = cfg.agentZones || {};
         netConfig  = cfg.network    || {};
         ocPort     = cfg.port       || 8355;

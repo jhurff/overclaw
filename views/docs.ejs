@@ -38,7 +38,7 @@
 
           <div class="sw-section">📚 OverClaw Documentation</div>
           <p style="font-size:.8rem;color:#6b7280;margin-bottom:1rem;">
-            OverClaw is the swarm oversight dashboard — it reads the vault (example-vault) as its source of truth, not any single OpenClaw instance. The nav is organized around the swarm, not the runtime.
+            OverClaw is the swarm oversight dashboard — it reads the shared Brain / vault as its source of truth, not any single OpenClaw instance. The nav is organized around the swarm, not the runtime.
           </p>
 
           <div class="doc-grid">
@@ -46,18 +46,18 @@
             <div class="doc-card">
               <h3>🌐 Swarm</h3>
               <ul>
-                <li><strong>Swarm Overview</strong> — Health of all 4 agents at a glance: task stats, heartbeat dots, 7-day activity heatmap, alerts.</li>
+                <li><strong>Swarm Overview</strong> — Health of all agents at a glance: task stats, heartbeat dots, 7-day activity heatmap, alerts.</li>
                 <li><strong>Task Board</strong> — Vault task board (Inbox → In Progress → Blocked → Done). Click a stat card on the overview to jump to that column.</li>
                 <li><strong>Activity Feed</strong> — Live heartbeats and learnings per agent. Filter by agent pill or link from the swarm health cards.</li>
-                <li><strong>Vault Graph</strong> — Interactive knowledge graph of the example-vault Obsidian vault.</li>
+                <li><strong>Vault Graph</strong> — Interactive knowledge graph of the Brain / vault.</li>
               </ul>
             </div>
 
             <div class="doc-card">
               <h3>🤖 Roster</h3>
               <ul>
-                <li><strong>Agents</strong> — High-level personas for each swarm agent (Spike, Steve, Lex, Bill): role, runtime type, machine, status. Source: vault Agent Registry.</li>
-                <li><strong>Tools & Models</strong> — Per-agent capability cards: model family, tools available, and skill areas. Spike's model is pulled live from OpenClaw config.</li>
+                <li><strong>Agents</strong> — High-level personas for each swarm agent: role, runtime type, machine, status. Source: vault Agent Registry.</li>
+                <li><strong>Tools & Models</strong> — Per-agent capability cards: model family, tools available, and skill areas. The primary OpenClaw agent's model can be pulled live from the gateway config.</li>
                 <li><strong>Nodes</strong> — Physical machines in the swarm. Shows OS, IP, assigned agents, and last heartbeat timestamp per machine.</li>
               </ul>
             </div>
@@ -66,8 +66,8 @@
               <h3>🔁 Operations</h3>
               <ul>
                 <li><strong>Dashboard</strong> — OverClaw home. Gateway status, version info, and quick links.</li>
-                <li><strong>Scheduled Tasks</strong> — All loops, cron jobs, and recurring work across the swarm. Spike's OpenClaw cron jobs are pulled live; other agents' known schedules are listed statically. Filter by agent.</li>
-                <li><strong>Sessions</strong> — Active OpenClaw sessions on this instance (Spike's runtime). Shows session list, model, and recent activity.</li>
+                <li><strong>Scheduled Tasks</strong> — All loops, cron jobs, and recurring work across the swarm. OpenClaw cron jobs are pulled live; other agents' known schedules can be listed from instance config. Filter by agent.</li>
+                <li><strong>Sessions</strong> — Active OpenClaw sessions on this instance. Shows session list, model, and recent activity.</li>
               </ul>
             </div>
 
@@ -93,7 +93,7 @@
 
           <div class="sw-section">🧠 Vault Authority</div>
           <p style="font-size:.78rem;color:#6b7280;line-height:1.5;">
-            OverClaw reads <strong style="color:#9ca3af;">example-vault</strong> (the Obsidian vault at <code style="font-size:.72rem;color:#6366f1;">~/example-vault</code>) as its source of truth for agents, tasks, heartbeats, learnings, and activity. The vault is synced via git — Spike pulls on every heartbeat, Steve auto-pushes hourly. OverClaw itself does not write to the vault; agents write it, OverClaw reads it.
+            OverClaw reads the Brain / vault as its source of truth for agents, tasks, heartbeats, learnings, and activity. Configure the vault path in <code style="font-size:.72rem;color:#6366f1;">config/overclaw.json</code> or <code style="font-size:.72rem;color:#6366f1;">VAULT_PATH</code>.
           </p>
         </main>
     </div>

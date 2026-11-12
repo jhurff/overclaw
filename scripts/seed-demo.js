@@ -106,7 +106,7 @@ const DEMO_DOCS = [
     path: 'README.md',
     content: `# OverClaw Demo — AI Agent Swarm Dashboard
 
-Welcome to the **OverClaw** live demo at [overclaw.trythesite.org](https://overclaw.trythesite.org).
+Welcome to the **OverClaw** live demo at [demo.example.com](https://demo.example.com).
 
 This demo resets every 24 hours with fresh sample data.
 
@@ -117,7 +117,7 @@ This demo resets every 24 hours with fresh sample data.
 OverClaw is an AI agent swarm oversight dashboard. It gives you:
 
 - 🌐 **Swarm Overview** — real-time agent health, heartbeats, task pipeline
-- 🧠 **AI Brain** — shared document database for all agents (3,000+ docs)
+- 🧠 **AI Brain** — shared document database for all agents
 - 📋 **Task Board** — Kanban-style coordination across agents
 - 📡 **Activity Feed** — unified event stream (reads, writes, heartbeats)
 - 🤖 **Agent Management** — zone-aware onboarding, MCP snippets
@@ -132,15 +132,15 @@ OverClaw is an AI agent swarm oversight dashboard. It gives you:
 
 > ⚠️ This is a read/write demo — changes you make will be wiped at midnight UTC.
 
-## Live Swarm Agents
+## Example Swarm Agents
 
 | Agent | Role | Zone |
 |-------|------|------|
-| **Spike** 🦞 | Chief of Staff, sys ops | localhost |
-| **Steve** 📈 | SEO & marketing intel | localnet |
-| **Lex** 💻 | Web dev & engineering | localnet |
-| **Bill** 🐟 | ExampleOrg ops | localnet |
-| **Luther** 🤖 | Research & analysis | private WAN |
+| **North** 🦞 | Coordination, sys ops | localhost |
+| **West** 📈 | Monitoring and reports | localnet |
+| **East** 💻 | Engineering | localnet |
+| **South** 🐟 | Operations | localnet |
+| **Orbit** 🤖 | Research and analysis | private WAN |
 
 ---
 
@@ -154,11 +154,11 @@ OverClaw is an AI agent swarm oversight dashboard. It gives you:
 
 | Nickname | Agent | Type | Machine | Account / Identity | Primary Role | Status | Registered |
 |----------|-------|------|---------|--------------------|--------------|--------|------------|
-| **Spike** | Spike — H2FClanker2 | OpenClaw | H2FClanker2 (192.0.2.42, Ubuntu 26.04) | jhurff | **Chief of Staff**, Personal Assistant, Content publishing, system ops, cross-agent coordination | 🟢 Active | 2026-06-18 |
-| **Steve** | Claude Cowork — ExampleCompany MBP | Claude Cowork | MacBook Pro (192.0.2.21, macOS) | operator@example.com | Intelligence & Monitoring — SEO/AEO tracking, daily traffic reports, marketing intelligence | 🟢 Active | 2026-06-08 |
-| **Lex** | Cursor — ExampleCompany MBP | Cursor | MacBook Pro (192.0.2.21, macOS) | team@example.com | Engineering — web dev, data analysis, scripting | 🟢 Active | 2026-06-18 |
-| **Bill** | OpenAI ChatGPT — H2FClanker1 | ChatGPT | H2FClanker1 (192.0.2.43, Windows) | user@example.com | ExampleOrg Operations — daily brief, Gmail triage, coordination | 🟢 Active | 2026-06-10 |
-| **Luther** | Grok Bot — Luther | Grok Bot | Cloud (Tailscale) | user@example.com | Research, analysis, fractional CTO pipeline | 🟢 Active | 2026-09-01 |
+| **North** | North — Server-1 | OpenClaw | Server-1 (192.0.2.10, Linux) | north@example.com | **Coordinator**, system ops, cross-agent coordination | 🟢 Active | 2026-01-15 |
+| **West** | Claude Cowork — Laptop-1 | Claude Cowork | Laptop-1 (192.0.2.21, macOS) | west@example.com | Monitoring — reports and health checks | 🟢 Active | 2026-01-15 |
+| **East** | Cursor — Laptop-1 | Cursor | Laptop-1 (192.0.2.21, macOS) | east@example.com | Engineering — web dev and scripting | 🟢 Active | 2026-01-15 |
+| **South** | OpenAI ChatGPT — Server-2 | ChatGPT | Server-2 (10.0.0.11, Linux) | south@example.com | Operations — daily brief and coordination | 🟢 Active | 2026-01-16 |
+| **Orbit** | Cloud agent — Orbit | Grok Bot | Cloud | orbit@example.com | Research and analysis | 🟢 Active | 2026-02-01 |
 `,
     agent: 'seed',
   },
@@ -175,30 +175,30 @@ last_updated: ${new Date().toISOString().slice(0, 10)}
 
 | Task ID | Title | Assigned To | Priority | Deadline |
 |---------|-------|-------------|----------|----------|
-| TASK-042 | Audit FTM website SEO gaps | Steve | high | 2026-11-01 |
-| TASK-043 | Update ExampleJobBoard job listings | Bill | medium | 2026-11-03 |
+| TASK-042 | Audit docs site SEO gaps | West | high | 2026-11-01 |
+| TASK-043 | Update example job listings | South | medium | 2026-11-03 |
 
 ## 🔄 In Progress
 
 | Task ID | Title | Assigned To | Started | Notes |
 |---------|-------|-------------|---------|-------|
-| TASK-038 | Build OverClaw demo environment | Spike | 2026-10-28 | Demo site at overclaw.trythesite.org |
-| TASK-039 | DMARC policy tighten ExampleMarine | Spike | 2026-10-25 | Raise pct to 100, then p=reject |
-| TASK-040 | FTM homepage hero copy refresh | Lex | 2026-10-26 | Waiting on Jimmy's photo assets |
+| TASK-038 | Build OverClaw demo environment | North | 2026-10-28 | Demo site at demo.example.com |
+| TASK-039 | Tighten example.com DMARC policy | North | 2026-10-25 | Raise pct to 100, then p=reject |
+| TASK-040 | Homepage hero copy refresh | East | 2026-10-26 | Waiting on operator photo assets |
 
 ## ✅ Done (Recent)
 
 | Task ID | Title | Assigned To | Completed |
 |---------|-------|-------------|-----------|
-| TASK-035 | Brain WYSIWYG editor (Toast UI) | Spike | 2026-10-28 |
-| TASK-036 | Network zone config + agent onboarding | Spike | 2026-10-28 |
-| TASK-037 | Unified activity feed | Spike | 2026-10-28 |
+| TASK-035 | Brain WYSIWYG editor (Toast UI) | North | 2026-10-28 |
+| TASK-036 | Network zone config + agent onboarding | North | 2026-10-28 |
+| TASK-037 | Unified activity feed | North | 2026-10-28 |
 
 ## 🔴 Blocked
 
 | Task ID | Title | Assigned To | Blocker |
 |---------|-------|-------------|---------|
-| TASK-034 | Google Postmaster Tools verify ExampleMarine | Spike | Domain already claimed by unknown Google account |
+| TASK-034 | Verify example.com in Postmaster Tools | North | Domain already claimed by another account |
 `,
     agent: 'seed',
   },
@@ -228,7 +228,7 @@ brain_history({ path, limit })       → { history: [{version, saved_at, saved_b
 
 ## Stats
 
-- **Documents:** ~3,000
+- **Documents:** sample set in this demo
 - **Format:** Markdown
 - **History:** Full version history per document
 - **Auth:** Session cookie (browser) or Bearer token (agents)
@@ -245,8 +245,8 @@ The GAP ATLAS tracks known failure regions across the agent swarm.
 
 | Region | Weight | Description |
 |--------|--------|-------------|
-| \`cross-machine-constraint\` | 0.85 | operator@example.com Outlook/M365 only accessible from Example-Laptop |
-| \`credential-missing\` | 0.80 | External API / OAuth / missing Bitwarden item |
+| \`cross-machine-constraint\` | 0.85 | west@example.com mailbox only accessible from Laptop-1 |
+| \`credential-missing\` | 0.80 | External API / OAuth / missing password-manager item |
 | \`config-drift\` | 0.70 | Model errors, allowlist failures, silent job drift |
 | \`platform-unavailable\` | 0.65 | OAuth expired, connector missing, API down |
 | \`permissions-gap\` | 0.60 | sudo required, system-level ops, elevated mode off |
@@ -270,7 +270,7 @@ for (const doc of DEMO_DOCS) {
 console.log(`Seeded ${DEMO_DOCS.length} synthetic docs`);
 
 // ── Seed synthetic brain_activity events ─────────────────────────────────────
-const AGENTS  = ['spike', 'steve', 'lex', 'bill', 'luther'];
+const AGENTS  = ['north', 'west', 'east', 'south', 'orbit'];
 const OPS     = ['read', 'read', 'read', 'write', 'search', 'list'];
 const PATHS   = [
   '03 - Agents/Coordination/Task Board.md',
@@ -299,11 +299,11 @@ console.log('Seeded 200 synthetic brain_activity events');
 
 // ── Seed synthetic heartbeat docs ─────────────────────────────────────────────
 const HB_AGENTS = [
-  { name: 'Spike',  dir: 'H2FClanker2/OpenClaw',   machine: 'H2FClanker2' },
-  { name: 'Steve',  dir: 'Example-Laptop',          machine: 'Example-Laptop' },
-  { name: 'Lex',    dir: 'Example-Laptop/Cursor',   machine: 'Example-Laptop' },
-  { name: 'Bill',   dir: 'H2FClanker1',              machine: 'H2FClanker1' },
-  { name: 'Luther', dir: 'Grok-Bot',                 machine: 'Grok-Bot' },
+  { name: 'North', dir: 'Server-1/OpenClaw',  machine: 'Server-1' },
+  { name: 'West',  dir: 'Laptop-1',           machine: 'Laptop-1' },
+  { name: 'East',  dir: 'Laptop-1/Cursor',    machine: 'Laptop-1' },
+  { name: 'South', dir: 'Server-2',           machine: 'Server-2' },
+  { name: 'Orbit', dir: 'Cloud-Bot',          machine: 'Cloud-Bot' },
 ];
 
 for (const ag of HB_AGENTS) {

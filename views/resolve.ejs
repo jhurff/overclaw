@@ -264,7 +264,7 @@
                   class="rv-textarea"
                   id="rv-close-note"
                   style="min-height:80px"
-                  placeholder="e.g. Jimmy unarchived #agent-monitoring — webhook is active again."
+                  placeholder="e.g. Operator confirmed the webhook is active again."
                 ></textarea>
                 <div class="rv-hint">
                   The alert file will be renamed <code>HANDLED-*</code>, the note appended to its
@@ -304,12 +304,12 @@
                 <textarea
                   class="rv-textarea"
                   id="rv-instructions"
-                  placeholder="e.g. Regenerate the Incoming Webhook for #agent-monitoring in the ExampleCompany Slack workspace, update Bitwarden item slack-webhook-brightmove-agent-monitoring with the new URL, then re-run the brightmove-research job to confirm delivery."
+                  placeholder="e.g. Rotate the incoming webhook, update the password manager item, then re-run the job to confirm delivery."
                 ></textarea>
                 <div class="rv-hint">
                   This will be appended to the alert file as a permanent resolution record
                   and sent to the agent via their Notification folder.
-                  Spike (on this machine) will also be woken immediately.
+                  The primary agent on this machine will also be woken immediately if it supports wake.
                 </div>
               </div>
 
@@ -573,7 +573,7 @@
         showSuccess(
           `Instructions dispatched to <strong>${esc(agentLabel)}</strong>. ` +
           (result.woke
-            ? `Spike was <strong>woken immediately</strong> via gateway wake event.`
+            ? `The primary agent was <strong>woken immediately</strong> via gateway wake event.`
             : `The agent will pick this up on their <strong>next heartbeat</strong>.`),
           result
         );
@@ -604,6 +604,14 @@
 
     /* ── Boot ── */
     loadContext();
-  </script>
+  
+    fetch('/api/instance').then(r=>r.json()).then(inst=>{
+      const ph=inst.resolvePlaceholders||{};
+      const close=document.getElementById('rv-close-note');
+      const instr=document.getElementById('rv-instructions');
+      if (close && ph.closeNote) close.placeholder=ph.closeNote;
+      if (instr && ph.instructions) instr.placeholder=ph.instructions;
+    }).catch(()=>{});
+</script>
 </body>
 </html>

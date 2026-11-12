@@ -166,9 +166,9 @@
                     <div class="form-group">
                         <label for="project-agent">Agent</label>
                         <select id="project-agent">
-                            <option value="spike">spike</option>
-                            <option value="agent-s">agent-s</option>
-                            <option value="agent-b">agent-b</option>
+                            <option value="north">north</option>
+                            <option value="west">west</option>
+                            <option value="east">east</option>
                             <option value="main">main</option>
                         </select>
                     </div>
@@ -255,6 +255,14 @@
                 }
             }
         });
-    </script>
+    
+    fetch('/api/instance').then(r=>r.json()).then(inst=>{
+      const sel=document.getElementById('project-agent');
+      if (!sel || !Array.isArray(inst.kanbanOwners) || !inst.kanbanOwners.length) return;
+      const cur=sel.value;
+      sel.innerHTML=inst.kanbanOwners.map(v=>`<option value="${v}">${v}</option>`).join('');
+      if ([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+    }).catch(()=>{});
+</script>
 </body>
 </html>

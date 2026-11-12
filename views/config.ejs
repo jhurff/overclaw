@@ -500,8 +500,10 @@
         const zones = cfg.agentZones || {};
         const net   = cfg.network    || {};
         const port  = cfg.port       || 8355;
-        const EMOJI = { Spike:'🦞', Steve:'📈', Lex:'💻', Bill:'🐟', Luther:'🤖' };
-        const COLOR = { Spike:'#f97316', Steve:'#3b82f6', Lex:'#a855f7', Bill:'#10b981', Luther:'#eab308' };
+        const EMOJI = {};
+        const COLOR = {};
+        const instMeta = (window.__OC_INSTANCE__ && window.__OC_INSTANCE__.agentMeta) || {};
+        for (const [n,m] of Object.entries(instMeta)) { if (m&&m.emoji) EMOJI[n]=m.emoji; if (m&&m.color) COLOR[n]=m.color; }
         const ZONE_IP = {
           localhost:   net.localhostIp  || '127.0.0.1',
           localnet:    net.localnetIp   || '',
@@ -570,7 +572,9 @@
         setTimeout(() => errEl.classList.remove('show'), 5000);
       }
     }
-  </script>
+  
+    fetch('/api/instance').then(r=>r.json()).then(inst=>{ window.__OC_INSTANCE__=inst||{}; }).catch(()=>{});
+</script>
   <%- include('partials/theme-sidebar') %>
 </body>
 </html>

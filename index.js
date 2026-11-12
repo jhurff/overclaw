@@ -8,6 +8,7 @@ const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
 const VaultReader = require('./lib/VaultReader'); // Vault integration
 const McpServer  = require('./lib/McpServer');   // MCP protocol server
 const BrainStore = require('./lib/BrainStore');  // Document DB
+const instanceConfig = require('./lib/instanceConfig');
 
 const app = express();
 
@@ -46,7 +47,7 @@ try {
 // ---------------------------------------------------------------------------
 const VAULT_PATH = process.env.VAULT_PATH
   || (ocConfig.brainPath && ocConfig.brainPath.replace(/^~/, process.env.HOME))
-  || path.join(process.env.HOME, 'example-vault');
+  || path.join(process.env.HOME, 'my-vault');
 let vaultReader;
 try {
   vaultReader = new VaultReader(VAULT_PATH);
@@ -504,7 +505,8 @@ app.get('/api/agents/onboarding-snippet', async (req, res) => {
   // Pull live agent registry and config
   let agentData = {};
   const cfg = await readConfig();
-  const net = Object.assign({ localhostIp: '127.0.0.1', localnetIp: '192.0.2.42', privateWanIp: '10.0.0.1', publicWanIp: '' }, cfg.network || {});
+  const inst = instanceConfig.readInstanceConfig();
+  const net = Object.assign({ localhostIp: '127.0.0.1', localnetIp: '192.0.2.10', privateWanIp: '10.0.0.1', publicWanIp: '' }, inst.network || {}, cfg.network || {});
 
   try {
     const agents = await vaultReader.getAgentRegistry();
@@ -535,7 +537,7 @@ app.get('/api/agents/onboarding-snippet', async (req, res) => {
   };
   const mcpHostMap = {
     localhost:   net.localhostIp  || '127.0.0.1',
-    localnet:    net.localnetIp   || '192.0.2.42',
+    localnet:    net.localnetIp   || '192.0.2.10',
     private_wan: net.privateWanIp || '10.0.0.1',
     public_wan:  net.publicWanIp  || '<PUBLIC_WAN_IP>',
   };
@@ -549,7 +551,7 @@ app.get('/api/agents/onboarding-snippet', async (req, res) => {
   const snippet = [
     `# OverClaw Onboarding — ${name}`,
     ``,
-    `You are **${name}**, an AI agent in the example swarm.`,
+    `You are **${name}**, an AI agent in ${inst.swarmName || 'your agent swarm'}`,
     `- **Role:** ${role}`,
     `- **Machine:** ${machine}`,
     `- **Type:** ${type}`,
@@ -679,6 +681,16 @@ app.get('/api/overclaw-config', async (req, res) => {
   res.json(cfg);
 });
 
+// Public-to-the-dashboard instance config (gitignored file). No secrets belong in this file.
+app.get('/api/instance', (req, res) => {
+  res.json(instanceConfig.readInstanceConfig());
+});
+
+app.get('/api/instance-nodes', (req, res) => {
+  const inst = instanceConfig.readInstanceConfig();
+  res.json({ nodes: inst.nodes || [] });
+});
+
 // POST /api/overclaw-config  — patch config (deep-merge)
 app.post('/api/overclaw-config', async (req, res) => {
   try {
@@ -706,7 +718,7 @@ app.get('/api/network/detect', async (req, res) => {
 app.get('/config', async (req, res) => {
   const cfg = await readConfig();
   const ocCfg = {
-    brainPath:            cfg.brainPath            || '~/example-vault',
+    brainPath:            cfg.brainPath            || '~/my-vault',
     port:                 cfg.port                 || 8355,
     scanFrequencySeconds: cfg.scanFrequencySeconds || 300,
     openclawGatewayUrl:   cfg.openclawGatewayUrl   || 'ws://127.0.0.1:18789',
@@ -819,8 +831,12 @@ app.get('/api/feed', async (req, res) => {
   try {
     const hbs = await vaultReader.getHeartbeats({ limit: 500 }).catch(() => []);
     for (const hb of hbs) {
-      const agentKey = (hb.agent || hb.machine || 'unknown').toLowerCase()
-        .replace(/[^a-z]/g, '').replace(/h2fclanker\d*/g, 'spike');
+      let agentKey = (hb.agent || hb.machine || 'unknown').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const aliases = instanceConfig.readInstanceConfig().heartbeatAgentAliases || {};
+      for (const [from, to] of Object.entries(aliases)) {
+        const needle = String(from).toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (needle && agentKey.includes(needle)) { agentKey = String(to).toLowerCase(); break; }
+      }
       events.push({
         type:    'heartbeat',
         agent:   agentKey || 'unknown',
@@ -886,30 +902,9 @@ app.get('/vault/browse', (req, res) => res.redirect('/brain'));
 // Needs-Attention Resolver
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Map heartbeat machine directory → agent routing info. */
-const RESOLVE_AGENT_MAP = {
-  'OpenClaw':              { key: 'spike', label: 'Spike — OpenClaw / H2FClanker2',         canWake: true  },
-  'H2FClanker2':           { key: 'spike', label: 'Spike — OpenClaw / H2FClanker2',         canWake: true  },
-  'Example-Laptop':        { key: 'steve', label: 'Steve — Claude Cowork / ExampleCompany MBP', canWake: false },
-  'Example-Laptop/Cursor': { key: 'lex',   label: 'Lex — Cursor / ExampleCompany MBP',          canWake: false },
-  'H2FClanker1':           { key: 'bill',  label: 'Bill — ChatGPT / H2FClanker1',            canWake: false },
-  'Grok-Bot/Luther':       { key: 'luther', label: 'Luther — Grok Bot cloud',                   canWake: false },
-  'Grok-Bot/Peter':        { key: 'peter',  label: 'Peter — Grok Bot cloud',                    canWake: false },
-  'Grok-Bot/Buster':       { key: 'buster', label: 'Buster — Grok Bot cloud',                   canWake: false },
-  // Legacy flat key (fallback for old heartbeat files not yet moved)
-  'Grok-Bot':              { key: 'luther', label: 'Luther — Grok Bot cloud (legacy)',           canWake: false },
-};
-
-/** All agents as an ordered list for the picker. */
-const RESOLVE_AGENTS_LIST = [
-  { key: 'spike', label: 'Spike — OpenClaw / H2FClanker2',         canWake: true  },
-  { key: 'steve', label: 'Steve — Claude Cowork / ExampleCompany MBP', canWake: false },
-  { key: 'bill',  label: 'Bill — ChatGPT / H2FClanker1',            canWake: false },
-  { key: 'lex',   label: 'Lex — Cursor / ExampleCompany MBP',          canWake: false },
-  { key: 'luther', label: 'Luther — Grok Bot cloud',              canWake: false },
-  { key: 'peter',  label: 'Peter — Grok Bot cloud',               canWake: false },
-  { key: 'buster', label: 'Buster — Grok Bot cloud',              canWake: false },
-];
+/** Agent routing maps live in gitignored config/instance.json. */
+function getResolveAgentMap() { return instanceConfig.getAgentMap(); }
+function getResolveAgentsList() { return instanceConfig.getAgentsList(); }
 
 /**
  * Parse plain YAML-style frontmatter from raw markdown content.
@@ -931,22 +926,7 @@ function parseFrontmatterText(content) {
 
 /** Infer which agent should receive the resolution dispatch. */
 function inferResolutionAgent(relPath, fm) {
-  if (relPath) {
-    const parts = relPath.split(/[/\\]/);
-    // Try machine/subAgent combo first (e.g. Example-Laptop/Cursor)
-    if (parts.length >= 2) {
-      const combo = parts[0] + '/' + parts[1];
-      if (RESOLVE_AGENT_MAP[combo]) return RESOLVE_AGENT_MAP[combo];
-    }
-    if (RESOLVE_AGENT_MAP[parts[0]]) return RESOLVE_AGENT_MAP[parts[0]];
-  }
-  // Fallback: frontmatter for_agent / agent field
-  const fa = ((fm && (fm.for_agent || fm.agent)) || '').toLowerCase();
-  if (/spike|openclaw/.test(fa)) return RESOLVE_AGENT_MAP['OpenClaw'];
-  if (/steve/.test(fa))          return RESOLVE_AGENT_MAP['Example-Laptop'];
-  if (/lex|cursor/.test(fa))     return RESOLVE_AGENT_MAP['Example-Laptop/Cursor'];
-  if (/bill/.test(fa))           return RESOLVE_AGENT_MAP['H2FClanker1'];
-  return RESOLVE_AGENT_MAP['OpenClaw'];
+  return instanceConfig.inferResolutionAgent(relPath, fm);
 }
 
 /** Build the full context object the resolver form needs. */
@@ -980,7 +960,7 @@ async function buildResolveContext(alertRelPath) {
     resolutionStatus:  fm.resolution_status  || null,
     body,
     agent,
-    allAgents: RESOLVE_AGENTS_LIST,
+    allAgents: getResolveAgentsList(),
   };
 }
 
@@ -1038,7 +1018,7 @@ app.post('/api/resolve', async (req, res) => {
     const nowISO = now.toISOString();
     const nowET  = now.toLocaleString('en-US', { timeZone: 'America/New_York',
                                                   dateStyle: 'medium', timeStyle: 'short' });
-    const effectiveAgentKey   = agentKey   || 'spike';
+    const effectiveAgentKey   = agentKey   || instanceConfig.readInstanceConfig().primaryAgentKey || 'agent';
     const effectiveAgentLabel = agentLabel || effectiveAgentKey;
 
     // 2. Update frontmatter — add/overwrite resolution fields
@@ -1063,7 +1043,7 @@ app.post('/api/resolve', async (req, res) => {
       '',
       `### Dispatched — ${nowET}`,
       `**Routed to:** ${effectiveAgentLabel}  `,
-      `**Instructions from Jimmy:**`,
+      `**Instructions from ${instanceConfig.operatorName()}:**`,
       '',
       quotedInstructions,
       '',
@@ -1093,19 +1073,19 @@ app.post('/api/resolve', async (req, res) => {
       `alertId: ${alertId}`,
       `alertPath: ${filePath}`,
       `dispatchedAt: ${nowISO}`,
-      `dispatchedBy: Jimmy`,
+      `dispatchedBy: ${instanceConfig.operatorName()}`,
       `agentKey: ${effectiveAgentKey}`,
       '---', '',
       `# Alert Resolution Request`, '',
-      `Jimmy has reviewed the following alert and provided resolution instructions.`, '',
+      `${instanceConfig.operatorName()} has reviewed the following alert and provided resolution instructions.`, '',
       `**Alert ID:** \`${alertId}\`  `,
       `**Alert file:** \`${filePath}\`  `,
       `**Dispatched:** ${nowET}`, '',
-      '## Jimmy\'s Instructions', '',
+      `## ${instanceConfig.operatorName()}'s Instructions`, '',
       instructions, '',
       '## Steps to Complete', '',
       `1. Read the full alert at \`${filePath}\``,
-      '2. Execute Jimmy\'s instructions above',
+      `2. Execute ${instanceConfig.operatorName()}'s instructions above`,
       '3. When fully resolved, rename the alert file: `NEEDS-ATTENTION-*` → `HANDLED-*`',
       '4. Write a brief resolution note in the file before renaming (optional but encouraged)',
       '',
@@ -1121,12 +1101,13 @@ app.post('/api/resolve', async (req, res) => {
       `resolve: dispatch ${alertId.slice(0, 80)} → ${effectiveAgentKey}`
     );
 
-    // 7. Wake Spike if she's the target (same gateway)
+    // 7. Wake the primary agent if that target canWake (same gateway)
     let wakeResult = null;
-    if (effectiveAgentKey === 'spike' && clawBridge) {
+    const dispatchTarget = getResolveAgentsList().find(a => a.key === effectiveAgentKey) || { canWake: false };
+    if (dispatchTarget.canWake && clawBridge) {
       try {
         wakeResult = await clawBridge.wakeAgent(
-          `🔧 Alert resolution dispatched by Jimmy.\n\nAlert: ${alertId}\n\nInstructions:\n${instructions.slice(0, 400)}\n\nPlease read your notification file at ${notifDir} and act on it now.`,
+          `🔧 Alert resolution dispatched by ${instanceConfig.operatorName()}.\n\nAlert: ${alertId}\n\nInstructions:\n${instructions.slice(0, 400)}\n\nPlease read your notification file at ${notifDir} and act on it now.`,
           'agent:main'
         );
       } catch (e) {
@@ -1192,7 +1173,7 @@ app.post('/api/resolve/close', async (req, res) => {
     );
     fmKeep.push(`resolution_status: closed`);
     fmKeep.push(`resolution_closed_at: ${nowISO}`);
-    fmKeep.push(`resolution_closed_by: Jimmy`);
+    fmKeep.push(`resolution_closed_by: ${instanceConfig.operatorName()}`);
     const newFm = '---\n' + fmKeep.join('\n') + '\n---';
 
     // Append resolution section
@@ -1200,7 +1181,7 @@ app.post('/api/resolve/close', async (req, res) => {
     const histEntry = [
       '',
       `### Closed — ${nowET}`,
-      `**Closed by:** Jimmy  `,
+      `**Closed by:** ${instanceConfig.operatorName()}  `,
       `**Resolution note:** ${resNote}`,
       '',
     ].join('\n');
@@ -1247,7 +1228,7 @@ app.post('/api/resolve/close', async (req, res) => {
 // next scheduled monitor run.
 //
 // Body: { machine, job, note? }
-//   machine  — "H2FClanker2", "OpenClaw", etc.
+//   machine  — heartbeat machine directory name, e.g. "Server-1", "OpenClaw"
 //   job      — job name, e.g. "bjb-disposition-monitor"
 //   note     — optional free-text recovery note (shown in history)
 //
@@ -1275,7 +1256,7 @@ app.post('/api/alerts/close-by-job', async (req, res) => {
 
     if (result.closed > 0) {
       // Commit the changes to vault so they're durable
-      const syncMsg = `spike: auto-close alert ${job} on ${machine} — recovered`;
+      const syncMsg = `overclaw: auto-close alert ${job} on ${machine} — recovered`;
       const synced = await vaultSync(syncMsg);
       return res.json({
         ok: true,
@@ -1758,15 +1739,15 @@ app.post('/api/vault/task-board/assign', async (req, res) => {
     await fs.writeFile(tbPath, newContent, 'utf-8');
     // Tier 2 — vault notification file
     let notified = false;
-    if (agentKey.toLowerCase() !== 'jimmy') {
+    if (agentKey.toLowerCase() !== (instanceConfig.readInstanceConfig().operatorFilterKey || 'operator').toLowerCase()) {
       try { await writeNotificationFile(agentKey, taskId, taskTitle, fromSection); notified = true; }
       catch (ne) { console.warn('Notification file write failed:', ne.message); }
     }
     // vault-sync commit
     const syncRes = await vaultSync('task: assign ' + taskId + ' \u2192 ' + agentKey);
-    // Tier 1 — live wake for Spike (same gateway, non-fatal if it fails)
+    // Tier 1 — live wake for the primary agent (same gateway, non-fatal if it fails)
     let wake = null;
-    if (agentKey.toLowerCase() === 'spike' && clawBridge) {
+    if (agentKey.toLowerCase() === (instanceConfig.readInstanceConfig().primaryAgentKey || '').toLowerCase() && clawBridge) {
       try {
         await clawBridge.wakeAgent('\ud83d\udccb Task assigned: ' + taskId + ' \u2014 ' + taskTitle + '. Check Task Board.');
         wake = 'sent';
@@ -1800,16 +1781,8 @@ app.get('/api/heartbeat-history', async (req, res) => {
       dayList.push(d.toISOString().slice(0, 10));
     }
 
-    // Agent → vault machine-key mapping (matches swarm summary keys)
-    const agentDefs = {
-      Spike:  ['OpenClaw'],
-      Steve:  ['Example-Laptop'],
-      Lex:    ['Example-Laptop/Cursor'],
-      Bill:   ['H2FClanker1'],
-      Luther: ['Grok-Bot/Luther', 'Grok-Bot'],
-      Peter:  ['Grok-Bot/Peter'],
-      Buster: ['Grok-Bot/Buster'],
-    };
+    // Agent → vault machine-key mapping (from gitignored instance config)
+    const agentDefs = instanceConfig.readInstanceConfig().heartbeatAgents || {};
 
     const history = {};
     for (const [name, keys] of Object.entries(agentDefs)) {
@@ -1837,8 +1810,9 @@ app.get('/security', (req, res) => {
 
 // GET /api/security/summary
 app.get('/api/security/summary', async (req, res) => {
-  const KNOWN_FP_RULES   = new Set(['curl-auth-user']);
-  const KNOWN_FP_SECRETS = new Set(['example-false-positive-secret']); // Ahrefs BKS analytics embed
+  const fpCfg = instanceConfig.readInstanceConfig().securityFalsePositives || {};
+  const KNOWN_FP_RULES   = new Set(fpCfg.rules || []);
+  const KNOWN_FP_SECRETS = new Set(fpCfg.secrets || []);
 
   const out = {
     lastScan: null, gitleaksVersion: '8.26.0',
@@ -1863,18 +1837,20 @@ app.get('/api/security/summary', async (req, res) => {
       out.realFindings   = real.length;
       const byRule = {};
       for (const f of real) (byRule[f.RuleID] = byRule[f.RuleID] || []).push(f);
-      const RULE_META = {
+      const defaultRuleMeta = {
         'slack-webhook-url': {
           label: 'Slack Webhook URL', severity: 'high',
-          remediation: 'Rotate at api.slack.com → ExampleCompany app → Incoming Webhooks. Store new URL in Bitwarden (slack-webhook-brightmove-agent-monitoring) — never paste in vault files.',
+          remediation: 'Rotate the incoming webhook and store the new URL in your password manager. Never paste it into vault files.',
         },
         'generic-api-key': {
           label: 'Generic API Key', severity: 'medium',
-          remediation: 'Verify: check view-source on the site. If it is a public analytics embed key (like Ahrefs), add to suppression list. If a real secret, rotate and move to Bitwarden.',
+          remediation: 'Verify the value. If it is a public analytics embed, add it to the instance suppression list. If it is a real secret, rotate it and move it to your password manager.',
         },
         'private-key': { label: 'Private Key', severity: 'high',
           remediation: 'Rotate immediately and remove from repo history.' },
       };
+      const RULE_META = Object.assign({}, defaultRuleMeta, (instanceConfig.readInstanceConfig().securityRuleMeta || {}));
+
       out.findings = Object.entries(byRule).map(([ruleId, items]) => {
         const meta = RULE_META[ruleId] || {};
         const uniqueFiles = [...new Set(items.map(i => i.File))];
@@ -2123,14 +2099,19 @@ app.get('/api/security/swarm-posture', async (req, res) => {
   const hbStatePath    = path.join(HOME, '.openclaw/workspace/memory/heartbeat-state.json');
   const heartbeatState = await safeAsync(async () => JSON.parse(await fs.readFile(hbStatePath, 'utf-8')), null);
 
-  const overclawLogsDir  = path.join(HOME, 'repos/overclaw/logs');
+  const overclawLogsDir  = instanceConfig.readInstanceConfig().overclawLogsDir || path.join(__dirname, 'logs');
   const overclawLogCount = await safeAsync(async () => (await fs.readdir(overclawLogsDir)).length, null);
 
   // ── PROMPT INJECTION ───────────────────────────────────────────────────────
-  const billPromptPath   = path.join(HOME, 'example-vault/03 - Agents/Bill/system-prompt.md');
-  const lexPromptPath    = path.join(HOME, 'example-vault/03 - Agents/Lex/system-prompt.md');
-  const billPromptExists = await safeAsync(async () => { await fs.access(billPromptPath); return true; }, false);
-  const lexPromptExists  = await safeAsync(async () => { await fs.access(lexPromptPath); return true; }, false);
+  const vaultRoot = path.resolve((ocConfig.brainPath || process.env.VAULT_PATH || '').replace(/^~/, HOME || '') || path.join(HOME || '', 'my-vault'));
+  const promptPaths = instanceConfig.readInstanceConfig().promptCheckPaths || {};
+  const promptExists = {};
+  for (const [name, rel] of Object.entries(promptPaths)) {
+    const abs = path.isAbsolute(rel) ? rel : path.join(vaultRoot, rel);
+    promptExists[name] = await safeAsync(async () => { await fs.access(abs); return true; }, false);
+  }
+  const billPromptExists = !!promptExists.bill;
+  const lexPromptExists  = !!promptExists.lex;
 
   // ── AGENT OVER-PRIVILEGE ───────────────────────────────────────────────────
   const accessPolicyExists = vaultReader
@@ -2316,7 +2297,7 @@ app.post('/api/gap/record', async (req, res) => {
       date:   today,
       taskId: taskId || null,
       region,
-      agent:  agent || 'Spike',
+      agent:  agent || instanceConfig.readInstanceConfig().primaryAgentKey || 'agent',
       title,
       note:   note || '',
     };
@@ -2340,7 +2321,7 @@ app.post('/api/gap/record', async (req, res) => {
       '',
       `**Date:** ${today}`,
       `**Region:** ${region}`,
-      `**Agent:** ${agent || 'Spike'}`,
+      `**Agent:** ${agent || instanceConfig.readInstanceConfig().primaryAgentKey || 'agent'}`,
       `**Task:** ${taskId || '—'}`,
       '',
       '## Note',
@@ -2507,7 +2488,7 @@ app.post('/mcp/message', mcpAuth, async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// REST agent API — simple HTTP shortcuts for non-MCP agents (Bill, Steve, etc.)
+// REST agent API — simple HTTP shortcuts for non-MCP agents
 // These endpoints wrap the same MCP tool logic but speak plain REST.
 // ---------------------------------------------------------------------------
 

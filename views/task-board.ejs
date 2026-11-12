@@ -224,7 +224,7 @@
       border-radius: 4px;
       margin: 4px 0 3px;
     }
-    /* blocked: red tint, prominent Jimmy-action line */
+    /* blocked: red tint, prominent operator-action line */
     .blocked-action {
       background: rgba(127,29,29,0.22);
       border-left: 2px solid #b91c1c;
@@ -525,7 +525,7 @@
     .filter-pill.active          { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; font-weight: 600; }
     .filter-pill.fp-jimmy.active { background: #1a2d1a; border-color: #059669; color: #6ee7b7; }
 
-    /* ── Jimmy “Your Queue” section ── */
+    /* ── Operator “Your Queue” section ── */
     .jimmy-queue {
       flex-shrink: 0;
       background: rgba(251,191,36,0.04);
@@ -730,16 +730,11 @@
       <div class="tb-filter-bar" id="agent-filter-bar">
         <span class="tb-filter-label">Filter:</span>
         <button class="filter-pill active" data-agent="" onclick="setAgentFilter(this)">All</button>
-        <button class="filter-pill" data-agent="spike" onclick="setAgentFilter(this)">🦞 Spike</button>
-        <button class="filter-pill" data-agent="lex" onclick="setAgentFilter(this)">Lex</button>
-        <button class="filter-pill" data-agent="steve" onclick="setAgentFilter(this)">Steve</button>
-        <button class="filter-pill" data-agent="bill" onclick="setAgentFilter(this)">Bill</button>
-        <button class="filter-pill" data-agent="luther" onclick="setAgentFilter(this)">Luther</button>
-        <button class="filter-pill" data-agent="peter"  onclick="setAgentFilter(this)">Peter</button>
-        <button class="filter-pill fp-jimmy" data-agent="jimmy" onclick="setAgentFilter(this)">👤 Jimmy (You)</button>
+        <span id="agent-filter-dynamic"></span>
+        <button class="filter-pill fp-jimmy" id="operator-filter-pill" data-agent="operator" onclick="setAgentFilter(this)">👤 Operator (You)</button>
       </div>
 
-      <!-- Jimmy "Your Queue" -->
+      <!-- Operator Your Queue -->
       <div class="jimmy-queue expanded" id="jimmy-queue" style="display:none">
         <div class="jimmy-queue-header" onclick="toggleJimmyQueue()">
           <div class="jimmy-queue-title">
@@ -858,13 +853,13 @@
       renderCol('col-done-cards',       currentData.done,       false, true);
     }
 
-    /* ── Jimmy “Your Queue” ── */
+    /* ── Operator “Your Queue” ── */
     function renderJimmyQueue(data) {
       const jimmyTasks = [
         ...(data.inbox      || []),
         ...(data.inProgress || []),
         ...(data.blocked    || []),
-      ].filter(t => (t.agent || '').toLowerCase() === 'jimmy');
+      ].filter(t => (t.agent || '').toLowerCase() === (window.__OC_OPERATOR_KEY__ || 'operator'));
 
       const qEl = document.getElementById('jimmy-queue');
       const cEl = document.getElementById('jq-count');
@@ -909,7 +904,7 @@
     }
 
     function agentColor(agent) {
-      const map = { spike:'#7c3aed', steve:'#2563eb', lex:'#0891b2', bill:'#d97706', jimmy:'#059669' };
+      const map = Object.assign({ operator:'#059669' }, window.__OC_AGENT_COLORS__ || {});
       const col = map[(agent||'').toLowerCase()] || '#4b5563';
       return `background:${col}22; color:${col};`;
     }
@@ -938,10 +933,7 @@
         actionEl = `<div class="assign-row">
           <select class="assign-select" id="asel-${tidSafe}" onclick="event.stopPropagation()">
             <option value="">Assign &amp; start\u2026</option>
-            <option value="spike">Spike</option><option value="steve">Steve</option>
-            <option value="lex">Lex</option><option value="bill">Bill</option>
-            <option value="jimmy">Jimmy</option><option value="luther">Luther</option>
-            <option value="peter">Peter</option>
+            ${window.__OC_ASSIGN_OPTIONS_HTML__ || ''}
           </select>
           <button class="assign-btn" data-task-id="${tidSafe}" data-from="inbox"
             onclick="event.stopPropagation();assignTask(this)">\u2192 Start</button>
@@ -961,8 +953,7 @@
         actionEl += `<div class="reassign-section assign-row">
           <select class="assign-select" id="rsel-${tidSafe}" onclick="event.stopPropagation()">
             <option value="">\u21bb Reassign\u2026</option>
-            <option value="spike">Spike</option><option value="steve">Steve</option>
-            <option value="lex">Lex</option><option value="bill">Bill</option>
+             ${window.__OC_ASSIGN_OPTIONS_HTML__ || ''}
           </select>
           <button class="reassign-btn" data-task-id="${tidSafe}" data-from="blocked"
             onclick="event.stopPropagation();assignTask(this)">\u21bb Go</button>
@@ -1423,7 +1414,7 @@
 
     function _tmRenderForm(d) {
       const body    = document.getElementById('tm-body');
-      const AGENTS  = ['spike','steve','lex','bill','luther','peter','jimmy'];
+      const AGENTS  = (window.__OC_ASSIGN_OPTIONS_HTML__ ? Array.from(new DOMParser().parseFromString('<select>'+window.__OC_ASSIGN_OPTIONS_HTML__+'</select>','text/html').querySelectorAll('option')).map(o=>o.value).filter(Boolean) : ['north','west','east','south','orbit','operator']);
       const PRIS    = ['Critical','High','Medium','Low'];
       const ST_MAP  = { inbox:'Inbox', in_progress:'In Progress', inProgress:'In Progress', blocked:'Blocked', done:'Done' };
 
@@ -1523,7 +1514,46 @@
       });
     }
 
-  </script>
+  
+    window.__OC_OPERATOR_KEY__ = 'operator';
+    window.__OC_ASSIGN_OPTIONS_HTML__ = '';
+    window.__OC_AGENT_COLORS__ = {};
+    fetch('/api/instance').then(r=>r.json()).then(inst=>{
+      const opKey = (inst.operatorFilterKey || inst.agentDisplay && Object.keys(inst.agentDisplay).find(k => (inst.agentDisplay[k]||'').toLowerCase()===String(inst.operatorName||'').toLowerCase()) || 'operator').toLowerCase();
+      window.__OC_OPERATOR_KEY__ = opKey;
+      const opName = inst.operatorName || 'Operator';
+      const pill = document.getElementById('operator-filter-pill');
+      if (pill) { pill.setAttribute('data-agent', opKey); pill.textContent = '👤 ' + opName + ' (You)'; }
+      const list = inst.agentsList || [];
+      const colors = inst.agentColors || {};
+      window.__OC_AGENT_COLORS__ = colors;
+      const dyn = document.getElementById('agent-filter-dynamic');
+      if (dyn) {
+        const seen = new Set();
+        dyn.innerHTML = list.map(a => {
+          const key = (a.key||'').toLowerCase();
+          if (!key || seen.has(key) || key===opKey) return '';
+          seen.add(key);
+          const label = (a.label||a.key||key).split('—')[0].trim();
+          return `<button class="filter-pill" data-agent="${key}" onclick="setAgentFilter(this)">${label}</button>`;
+        }).join('');
+      }
+      const opts = [];
+      const seenOpt = new Set();
+      for (const a of list) {
+        const key=(a.key||'').toLowerCase();
+        if (!key || seenOpt.has(key)) continue;
+        seenOpt.add(key);
+        const label=(a.label||a.key||key).split('—')[0].trim();
+        opts.push(`<option value="${key}">${label}</option>`);
+      }
+      if (!seenOpt.has(opKey)) opts.push(`<option value="${opKey}">${opName}</option>`);
+      window.__OC_ASSIGN_OPTIONS_HTML__ = opts.join('');
+      const dp=document.getElementById('dp-agent-select');
+      if (dp) dp.innerHTML = '<option value="">Pick agent…</option>' + window.__OC_ASSIGN_OPTIONS_HTML__;
+
+    }).catch(()=>{});
+</script>
 
 <div id="task-modal-overlay" class="tm-overlay">
   <div class="tm-dialog" role="dialog" aria-modal="true">
@@ -1549,12 +1579,6 @@
     <h4 id="dp-title"></h4>
     <select id="dp-agent-select" style="display:none">
       <option value="">Pick agent…</option>
-      <option value="spike">Spike</option>
-      <option value="steve">Steve</option>
-      <option value="lex">Lex</option>
-      <option value="bill">Bill</option>
-      <option value="luther">Luther</option>
-      <option value="peter">Peter</option>
     </select>
     <textarea id="dp-reason" placeholder="Reason for blocking…" style="display:none"></textarea>
     <div class="dp-actions">
