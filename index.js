@@ -877,7 +877,9 @@ app.get('/task-board', (req, res) => {
 // Legacy vault UI routes — redirected to Brain DB UI
 app.get('/vault/doc',    (req, res) => res.redirect('/brain' + (req.query.path ? '?path=' + encodeURIComponent(req.query.path) : '')));
 app.get('/vault/edit',   (req, res) => res.redirect('/brain' + (req.query.path ? '?path=' + encodeURIComponent(req.query.path) : '')));
-app.get('/vault/graph',  (req, res) => res.redirect('/brain'));
+app.get('/vault/graph', brainAuth, (req, res) => {
+  res.render('vault-graph', { title: 'Brain Graph', currentPath: '/vault/graph', actor: req.brainActor });
+});
 app.get('/vault/browse', (req, res) => res.redirect('/brain'));
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2781,6 +2783,21 @@ app.post('/api/brain/move', brainAuth, (req, res) => {
     res.status(400).json({ error: e.message });
   }
 });
+
+
+// GET /api/brain/graph — knowledge graph of Brain documents (no document bodies)
+function sendBrainGraph(req, res) {
+  if (!requireBrain(req, res)) return;
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json(brainStore.buildGraph());
+  } catch (err) {
+    console.error('[brain/graph] error:', err.message);
+    res.status(500).json({ error: 'Failed to build graph', details: err.message });
+  }
+}
+app.get('/api/brain/graph', brainAuth, sendBrainGraph);
+app.get('/api/vault/graph', brainAuth, sendBrainGraph);
 
 // GET /api/brain/list?dir=&recursive=
 app.get('/api/brain/list', brainAuth, (req, res) => {
