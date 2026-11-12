@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="oc-header">
+        <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
+        <div class="header-controls">
+            <button id="sidebar-toggle" class="control-button">☰</button>
+            <button id="theme-toggle" class="control-button">☀️</button>
+        </div>
+    </header>
+
+    <div class="oc-main-content">
+<%- include('partials/sidebar', { currentPath: typeof currentPath !== 'undefined' ? currentPath : '/version' }) %>
+
+        <main class="oc-dashboard-area">
+          <style>
+            .sw-section { font-size:.7rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#4b5563; padding:.6rem 0 .5rem; border-bottom:1px solid #1f2937; margin-bottom:.75rem; }
+            .ver-card { background:#111827; border:1px solid #1f2937; border-radius:10px; padding:1rem 1.15rem; margin-bottom:1rem; max-width:720px; }
+            .ver-table { width:100%; border-collapse:collapse; }
+            .ver-table th { text-align:left; font-size:.72rem; font-weight:600; color:#6b7280; padding:.45rem .4rem .45rem 0; width:11.5rem; vertical-align:top; }
+            .ver-table td { font-size:.82rem; color:#e2e8f0; padding:.45rem 0; vertical-align:top; word-break:break-word; }
+            .ver-table tr + tr th, .ver-table tr + tr td { border-top:1px solid #1f2937; }
+            .ver-table code { font-size:.78rem; color:#a5b4fc; }
+            .ver-sub { display:block; font-size:.72rem; color:#9ca3af; margin-top:.15rem; }
+            .ver-note { font-size:.75rem; color:#6b7280; margin-top:.25rem; }
+            .ver-note a { color:#818cf8; text-decoration:none; }
+            .ver-note a:hover { color:#e2e8f0; }
+          </style>
+
+          <div class="sw-section">Build version</div>
+          <div class="ver-card">
+            <table class="ver-table">
+              <tr><th>App</th><td><%= version.name %></td></tr>
+              <tr><th>Version</th><td><code><%= version.version %></code></td></tr>
+              <tr><th>Repo</th><td><%= version.repo %></td></tr>
+              <tr>
+                <th>Commit</th>
+                <td>
+                  <code><%= version.git.commitShort %></code>
+                  <span class="ver-sub"><code><%= version.git.commit %></code></span>
+                </td>
+              </tr>
+              <tr>
+                <th>Commit date</th>
+                <td>
+                  <%= version.git.commitDateUtc %>
+                  <span class="ver-sub"><%= version.git.commitDateAmericaNewYork %></span>
+                </td>
+              </tr>
+              <tr><th>Commit subject</th><td><%= version.git.commitSubject %></td></tr>
+              <tr><th>Branch</th><td><code><%= version.git.branch %></code></td></tr>
+              <tr>
+                <th>Started</th>
+                <td>
+                  <%= version.deployed.startedAtUtc %>
+                  <span class="ver-sub"><%= version.deployed.startedAtAmericaNewYork %></span>
+                </td>
+              </tr>
+              <tr>
+                <th>Uptime</th>
+                <td><%= version.deployed.uptime %> <span class="ver-sub"><%= version.deployed.uptimeSeconds %> seconds</span></td>
+              </tr>
+              <tr><th>Node</th><td><code><%= version.runtime.node %></code></td></tr>
+              <tr><th>Hostname</th><td><%= version.runtime.hostname %></td></tr>
+            </table>
+            <p class="ver-note">JSON: <a href="/api/version">/api/version</a>. Times are shown in ISO UTC and America/New_York.</p>
+          </div>
+        </main>
+    </div>
+
+    <script>
+      (function(){
+        const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
+        let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
+        if(col)sb.classList.add('collapsed');
+        btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
+        const th=document.getElementById('theme-toggle');
+        let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+        document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
+        th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
+      })();
+    </script>
+</body>
+</html>

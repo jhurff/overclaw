@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, execFileSync } = require('child_process');
+const os = require('os');
 const fs = require('fs').promises; // For async file operations
 const crypto = require('crypto');
 const ClawBridge = require('./lib/ClawBridge'); // Import ClawBridge
@@ -97,6 +98,123 @@ app.set('views', path.join(__dirname, 'views'));
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+
+
+// ---------------------------------------------------------------------------
+// Build / version info — captured once at process start.
+// No env vars, no filesystem paths (repo folder name only), no secrets.
+// ---------------------------------------------------------------------------
+function gitOut(args) {
+  try {
+    const out = execFileSync('git', args, {
+      cwd: __dirname,
+      encoding: 'utf8',
+      timeout: 5000,
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    const trimmed = String(out).trim();
+    return trimmed || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+function readPackageMeta() {
+  try {
+    const pkg = JSON.parse(require('fs').readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    return {
+      name: pkg.name || 'overclaw',
+      version: pkg.version || 'unknown'
+    };
+  } catch {
+    return { name: 'overclaw', version: 'unknown' };
+  }
+}
+
+function formatInZones(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (!value || value === 'unknown' || isNaN(d.getTime())) {
+    return { utc: 'unknown', americaNewYork: 'unknown' };
+  }
+  let americaNewYork = 'unknown';
+  try {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZoneName: 'short'
+      }).formatToParts(d).filter((p) => p.type !== 'literal').map((p) => [p.type, p.value])
+    );
+    const hour = parts.hour === '24' ? '00' : parts.hour;
+    americaNewYork = `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}:${parts.second} ${parts.timeZoneName}`;
+  } catch {
+    americaNewYork = 'unknown';
+  }
+  return { utc: d.toISOString(), americaNewYork };
+}
+
+function formatUptime(seconds) {
+  const s = Math.max(0, Math.floor(Number(seconds) || 0));
+  const days = Math.floor(s / 86400);
+  const hours = Math.floor((s % 86400) / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  const parts = [];
+  if (days) parts.push(days + 'd');
+  if (hours || days) parts.push(hours + 'h');
+  if (mins || hours || days) parts.push(mins + 'm');
+  parts.push(secs + 's');
+  return parts.join(' ');
+}
+
+const pkgMeta = readPackageMeta();
+const STARTED_AT = new Date();
+const BUILD_INFO = {
+  name: pkgMeta.name,
+  version: pkgMeta.version,
+  repo: path.basename(__dirname),
+  commit: gitOut(['rev-parse', 'HEAD']),
+  commitShort: gitOut(['rev-parse', '--short', 'HEAD']),
+  commitDate: gitOut(['log', '-1', '--format=%cI']),
+  commitSubject: gitOut(['log', '-1', '--format=%s']),
+  branch: gitOut(['rev-parse', '--abbrev-ref', 'HEAD'])
+};
+
+function getVersionPayload() {
+  const commitTimes = formatInZones(BUILD_INFO.commitDate);
+  const started = formatInZones(STARTED_AT);
+  const uptimeSeconds = Math.floor(process.uptime());
+  return {
+    name: BUILD_INFO.name,
+    version: BUILD_INFO.version,
+    repo: BUILD_INFO.repo,
+    git: {
+      commit: BUILD_INFO.commit,
+      commitShort: BUILD_INFO.commitShort,
+      commitDateUtc: commitTimes.utc,
+      commitDateAmericaNewYork: commitTimes.americaNewYork,
+      commitSubject: BUILD_INFO.commitSubject,
+      branch: BUILD_INFO.branch
+    },
+    deployed: {
+      startedAtUtc: started.utc,
+      startedAtAmericaNewYork: started.americaNewYork,
+      uptimeSeconds,
+      uptime: formatUptime(uptimeSeconds)
+    },
+    runtime: {
+      node: process.version,
+      hostname: os.hostname()
+    }
+  };
+}
+
 
 // Helper function to extract agent ID from session key (duplicate for server-side use)
 function getAgentIdFromSessionKey(sessionKey) {
@@ -2491,6 +2609,22 @@ app.post('/api/agent/notifications/handled', agentApiAuth, async (req, res) => {
     const result = await mcpServer._markNotificationHandled({ agent, filename });
     res.json(result);
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
+// Unauthenticated build/version info (also used to verify CI/CD deploys).
+app.get('/api/version', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(getVersionPayload());
+});
+
+app.get('/version', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.render('version', {
+    title: 'OverClaw Version',
+    currentPath: '/version',
+    version: getVersionPayload()
+  });
 });
 
 // Simple /status route
