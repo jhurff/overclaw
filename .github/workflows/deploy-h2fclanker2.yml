@@ -14,6 +14,8 @@ permissions:
 
 jobs:
   deploy:
+    # Self-hosted runner is for jhurff only; never run for forks or other actors.
+    if: github.repository == 'jhurff/overclaw' && github.actor == 'jhurff'
     runs-on: [self-hosted, h2fclanker2]
     steps:
       - name: Deploy live clone
