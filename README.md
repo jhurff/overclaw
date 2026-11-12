@@ -108,10 +108,10 @@ OverClaw is harness-agnostic. Any client that can make an authenticated HTTP req
 
 | Harness | How it connects | Evidence |
 |---|---|---|
-| **Grok Bot** | Brain REST API (`/api/brain/*`) with `X-Agent-Name` | Named Grok Bot agents in the reference swarm: Gunny, Luther, Peter, Jathan, Alec, Brad, Buster, Matlock. Heartbeat paths and activity maps under `Grok-Bot/`. |
-| **Cursor** | Brain REST API, and MCP SSE (`GET /mcp/sse`) which this server documents for Cursor and other legacy MCP clients | Lex in the reference swarm. Onboarding and `/mcp` discovery both mention the SSE transport. |
-| **Claude Cowork** | Brain REST API and `/api/agent/*` | Steve in the reference swarm. Listed as a runtime in the Agents and Tools UI. |
-| **OpenAI ChatGPT** | Brain REST API and `/api/agent/*` (the REST shortcuts are written for non-MCP agents) | Bill in the reference swarm. Listed as a ChatGPT runtime in the Agents UI. |
+| **Grok Bot** | Brain REST API (`/api/brain/*`) with `X-Agent-Name` | Named Grok Bot agents in a reference Agent Registry. Heartbeat paths can use a per-agent subdirectory. |
+| **Cursor** | Brain REST API, and MCP SSE (`GET /mcp/sse`) which this server documents for Cursor and other legacy MCP clients | Onboarding and `/mcp` discovery both mention the SSE transport. |
+| **Claude Cowork** | Brain REST API and `/api/agent/*` | Listed as a runtime in the Agents and Tools UI. |
+| **OpenAI ChatGPT** | Brain REST API and `/api/agent/*` (the REST shortcuts are written for non-MCP agents) | Listed as a ChatGPT runtime in the Agents UI. |
 | **OpenAI Codex** | Shared Brain documents and heartbeats | Codex is a registered swarm agent with `Heartbeats/Codex/`. This repo does not yet have a first-class Codex row in the in-app agent maps. |
 | **MCP clients** | `POST /mcp` or SSE | Built-in MCP server. Any client that speaks MCP 2025-03-26 or 2024-11-05 can call the Brain and task tools. |
 | **OpenClaw** | Optional WebSocket gateway for live sessions, scheduled jobs, skills, and nodes (`lib/ClawBridge.js`). OpenClaw agents can also use MCP or the REST API. | Supported, but optional. OverClaw runs without an OpenClaw gateway. |
@@ -170,7 +170,7 @@ Environment variables, or a gitignored `config/overclaw.json` (see `config/overc
 | `PORT` | `8355` | HTTP port |
 | `BIND_HOST` | `127.0.0.1` | Listen address |
 | `BRAIN_DB_PATH` | `data/brain.db` | BrainStore SQLite file |
-| `VAULT_PATH` | `~/My-AI-Brain` | On-disk vault used for heartbeat scanning and import |
+| `VAULT_PATH` | `~/my-vault` | On-disk vault used for heartbeat scanning and import |
 | `MCP_API_KEY` | *(none)* | Shared Bearer / `X-Api-Key` secret for Brain, MCP, and agent REST routes |
 | `OVERCLAW_ADMIN_USER` / `OVERCLAW_ADMIN_PASS` | *(none)* | If both are set and no user exists yet, seed a browser admin account |
 | `OPENCLAW_GATEWAY_URL` | `ws://127.0.0.1:18789` | Optional OpenClaw gateway WebSocket |

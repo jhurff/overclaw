@@ -64,32 +64,22 @@
       th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
     })();
 
-    const AGENTS_STATIC=[
-      {name:'Spike',emoji:'🦞',color:'#f97316',runtime:'OpenClaw',modelKey:'main',
-       modelFallback:'Claude Sonnet 4.6 (Bedrock)',machine:'H2FClanker2 — Ubuntu 26.04',
-       focus:'Chief of Staff · Content · Sys Ops · Research',
-       tools:['exec/bash','web_search','web_fetch','memory_search','cron','sessions_spawn','image_generate','video_generate','vault read/write','GitHub','rclone','Bitwarden CLI'],
-       skills:['weather','browser-automation','notion','taskflow','gemini','meme-maker','diagram-maker','spike','healthcheck','node-connect']},
-      {name:'Steve',emoji:'📈',color:'#3b82f6',runtime:'Claude Cowork',modelKey:null,
-       modelFallback:'Claude Sonnet (Anthropic)',machine:'BrightMove-MBP — macOS',
-       focus:'Intelligence & Monitoring',
-       tools:['web_search','vault write','Slack API','Google Analytics','GitHub (read)','rclone','bash (limited)'],
-       skills:['SEO/AEO tracking','daily traffic reports','BrightMove marketing intel','Slack reporting','agent health checks','vault management']},
-      {name:'Lex',emoji:'💻',color:'#a855f7',runtime:'Cursor',modelKey:null,
-       modelFallback:'Claude Sonnet + GPT-4o (Cursor)',machine:'BrightMove-MBP — macOS',
+    let AGENTS_STATIC=[
+      {name:'North',emoji:'🦞',color:'#f97316',runtime:'OpenClaw',modelKey:'main',
+       modelFallback:'Example model',machine:'Server-1 — Linux',
+       focus:'Coordination',
+       tools:['exec/bash','web_search','vault read/write'],
+       skills:['healthcheck','research']},
+      {name:'West',emoji:'📈',color:'#3b82f6',runtime:'Claude Cowork',modelKey:null,
+       modelFallback:'Example model',machine:'Laptop-1 — macOS',
+       focus:'Monitoring',
+       tools:['web_search','vault write'],
+       skills:['reporting','health checks']},
+      {name:'East',emoji:'💻',color:'#a855f7',runtime:'Cursor',modelKey:null,
+       modelFallback:'Example model',machine:'Laptop-1 — macOS',
        focus:'Engineering',
-       tools:['code editor','file ops','bash/terminal','browser preview','Git','npm/node','Python','SQL'],
-       skills:['Next.js / React','HTML/CSS','BrightMove ATS','Here2Fish site','FTMarine site','BoatJobBoard','scripting & data analysis']},
-      {name:'Bill',emoji:'🐟',color:'#10b981',runtime:'Claude Cowork',modelKey:null,
-       modelFallback:'Claude Sonnet (Anthropic)',machine:'H2FClanker1 — Ubuntu',
-       focus:'Here2Fish Ops · BJB',
-       tools:['bash','vault write','web_search','rclone','Git','WP REST API'],
-       skills:['Here2Fish operations','BoatJobBoard management','FTM data pipelines','content publishing','WordPress automation']},
-      {name:'Luther',emoji:'🤖',color:'#eab308',runtime:'Grok Bot',modelKey:null,
-       modelFallback:'Grok (xAI)',machine:'Grok Bot cloud + BrightMove MBP — macOS',
-       focus:'Engineering (review-only drafts)',
-       tools:['code editor','file ops','bash/terminal','Git'],
-       skills:['BrightMove & Here2Fish dev alongside Lex','BoatJobBoard seeker funnel drafts','review-only draft mode']},
+       tools:['code editor','Git'],
+       skills:['web development','scripting']},
     ];
 
     function chipHtml(arr,cls=''){
@@ -152,20 +142,25 @@
     document.getElementById('f-runtime').addEventListener('change',e=>{filterRuntime=e.target.value;applyAndRender();});
 
     async function load(){
-      let spikeModel=null;
+      let liveModel=null;
       try{
         const d=await fetch('/api/agent-model-settings/main').then(r=>r.json());
-        spikeModel=d.agentSpecificModel||d.globalDefaultModel||null;
+        liveModel=d.agentSpecificModel||d.globalDefaultModel||null;
+      }catch{}
+      try{
+        const inst=await fetch('/api/instance').then(r=>r.json());
+        if (Array.isArray(inst.toolsCatalog) && inst.toolsCatalog.length) AGENTS_STATIC=inst.toolsCatalog;
       }catch{}
       rows=AGENTS_STATIC.map(a=>{
-        const model=(a.name==='Spike'&&spikeModel)?spikeModel:a.modelFallback;
+        const useLive=!!(a.modelKey && liveModel);
+        const model=useLive?liveModel:a.modelFallback;
         return{
           name:a.name,emoji:a.emoji,color:a.color,
-          runtime:a.runtime,model,modelLive:a.name==='Spike'&&!!spikeModel,
+          runtime:a.runtime,model,modelLive:useLive,
           machine:a.machine,focus:a.focus,
-          toolsHtml:chipHtml(a.tools),
-          skillsHtml:chipHtml(a.skills,'oc-chip-skill'),
-          allText:[...a.tools,...a.skills].join(' '),
+          toolsHtml:chipHtml(a.tools||[]),
+          skillsHtml:chipHtml(a.skills||[],'oc-chip-skill'),
+          allText:[...(a.tools||[]),...(a.skills||[])].join(' '),
         };
       });
       applyAndRender();

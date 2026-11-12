@@ -1,31 +1,500 @@
 {
   "_readme": "Copy this file to config/instance.json and fill in your values. config/instance.json is gitignored and never committed.",
+  "operatorName": "Operator",
+  "operatorNames": [
+    "Operator"
+  ],
+  "swarmName": "your agent swarm",
+  "securityAuditLogUrl": "",
+  "overclawLogsDir": "",
+  "network": {
+    "localhostIp": "127.0.0.1",
+    "localnetIp": "192.0.2.10",
+    "privateWanIp": "10.0.0.1",
+    "publicWanIp": ""
+  },
   "nodes": [
     {
       "name": "Server-1",
       "os": "Ubuntu 22.04 LTS",
-      "ip": "192.168.x.x",
-      "tailscale": null,
-      "agents": ["AgentName (OpenClaw)"],
-      "hbKey": "VaultHeartbeatDirName",
+      "ip": "192.0.2.10",
+      "tailscale": "10.0.0.1",
+      "agents": [
+        "North (OpenClaw)"
+      ],
+      "hbKey": "OpenClaw",
       "color": "#f97316",
       "desc": "Primary OpenClaw runtime host.",
       "links": [
-        { "label": "📡 Agent Activity", "href": "/activity?agent=AgentName" }
+        {
+          "label": "Agent Activity",
+          "href": "/activity?agent=North"
+        }
+      ]
+    },
+    {
+      "name": "Laptop-1",
+      "os": "macOS",
+      "ip": "192.0.2.21",
+      "tailscale": null,
+      "agents": [
+        "West (Claude Cowork)",
+        "East (Cursor)"
+      ],
+      "hbKey": "Laptop-1",
+      "color": "#3b82f6",
+      "desc": "Secondary machine \u2014 describe agents and roles here.",
+      "links": [
+        {
+          "label": "Activity",
+          "href": "/activity?agent=West"
+        }
       ]
     },
     {
       "name": "Server-2",
-      "os": "macOS",
-      "ip": "192.168.x.x",
+      "os": "Linux",
+      "ip": "192.0.2.11",
       "tailscale": null,
-      "agents": ["AgentName2 (Claude Cowork)", "AgentName3 (Cursor)"],
-      "hbKey": "VaultHeartbeatDirName2",
-      "color": "#3b82f6",
-      "desc": "Secondary machine — describe agents and roles here.",
+      "agents": [
+        "South (ChatGPT)"
+      ],
+      "hbKey": "Server-2",
+      "color": "#10b981",
+      "desc": "Third machine \u2014 describe agents and roles here.",
       "links": [
-        { "label": "📡 Activity", "href": "/activity?agent=AgentName2" }
+        {
+          "label": "Activity",
+          "href": "/activity?agent=South"
+        }
       ]
     }
-  ]
+  ],
+  "defaultAgentMapKey": "OpenClaw",
+  "agentMap": {
+    "OpenClaw": {
+      "key": "north",
+      "label": "North \u2014 OpenClaw / Server-1",
+      "canWake": true,
+      "inferPatterns": [
+        "north",
+        "openclaw"
+      ]
+    },
+    "Server-1": {
+      "key": "north",
+      "label": "North \u2014 OpenClaw / Server-1",
+      "canWake": true,
+      "inferPatterns": [
+        "north",
+        "openclaw"
+      ]
+    },
+    "Laptop-1": {
+      "key": "west",
+      "label": "West \u2014 Claude Cowork / Laptop-1",
+      "canWake": false,
+      "inferPatterns": [
+        "west"
+      ]
+    },
+    "Laptop-1/Cursor": {
+      "key": "east",
+      "label": "East \u2014 Cursor / Laptop-1",
+      "canWake": false,
+      "inferPatterns": [
+        "east",
+        "cursor"
+      ]
+    },
+    "Server-2": {
+      "key": "south",
+      "label": "South \u2014 ChatGPT / Server-2",
+      "canWake": false,
+      "inferPatterns": [
+        "south"
+      ]
+    },
+    "Cloud-Bot/Orbit": {
+      "key": "orbit",
+      "label": "Orbit \u2014 cloud agent",
+      "canWake": false,
+      "inferPatterns": [
+        "orbit"
+      ]
+    },
+    "Cloud-Bot": {
+      "key": "orbit",
+      "label": "Orbit \u2014 cloud agent (legacy)",
+      "canWake": false,
+      "inferPatterns": [
+        "orbit"
+      ]
+    }
+  },
+  "agentsList": [
+    {
+      "key": "north",
+      "label": "North \u2014 OpenClaw / Server-1",
+      "canWake": true
+    },
+    {
+      "key": "west",
+      "label": "West \u2014 Claude Cowork / Laptop-1",
+      "canWake": false
+    },
+    {
+      "key": "south",
+      "label": "South \u2014 ChatGPT / Server-2",
+      "canWake": false
+    },
+    {
+      "key": "east",
+      "label": "East \u2014 Cursor / Laptop-1",
+      "canWake": false
+    },
+    {
+      "key": "orbit",
+      "label": "Orbit \u2014 cloud agent",
+      "canWake": false
+    }
+  ],
+  "agentDisplay": {
+    "north": "North",
+    "west": "West",
+    "east": "East",
+    "south": "South",
+    "orbit": "Orbit",
+    "operator": "Operator"
+  },
+  "heartbeatAgents": {
+    "North": [
+      "OpenClaw",
+      "Server-1"
+    ],
+    "West": [
+      "Laptop-1"
+    ],
+    "East": [
+      "Laptop-1/Cursor"
+    ],
+    "South": [
+      "Server-2"
+    ],
+    "Orbit": [
+      "Cloud-Bot/Orbit",
+      "Cloud-Bot"
+    ]
+  },
+  "heartbeatKeyRules": [
+    {
+      "match": {
+        "nicknameIn": [
+          "north"
+        ],
+        "machineIncludes": [
+          "server-1"
+        ]
+      },
+      "keys": [
+        "OpenClaw",
+        "Server-1"
+      ]
+    },
+    {
+      "match": {
+        "typeIncludes": [
+          "cursor"
+        ]
+      },
+      "keys": [
+        "Laptop-1/Cursor"
+      ]
+    },
+    {
+      "match": {
+        "machineIncludes": [
+          "laptop"
+        ]
+      },
+      "keys": [
+        "Laptop-1"
+      ]
+    },
+    {
+      "match": {
+        "machineIncludes": [
+          "server-2"
+        ]
+      },
+      "keys": [
+        "Server-2"
+      ]
+    },
+    {
+      "match": {
+        "machineIncludes": [
+          "cloud"
+        ],
+        "typeIncludes": [
+          "grok"
+        ],
+        "nickname": "orbit"
+      },
+      "requireNickname": "orbit",
+      "keys": [
+        "Cloud-Bot/Orbit"
+      ]
+    },
+    {
+      "match": {
+        "machineIncludes": [
+          "cloud"
+        ],
+        "typeIncludes": [
+          "grok"
+        ]
+      },
+      "keys": [
+        "Cloud-Bot/Orbit",
+        "Cloud-Bot"
+      ]
+    }
+  ],
+  "activityActors": {
+    "north": {
+      "emoji": "\ud83e\udd9e",
+      "color": "#f97316",
+      "label": "North"
+    },
+    "west": {
+      "emoji": "\ud83d\udcc8",
+      "color": "#3b82f6",
+      "label": "West"
+    },
+    "east": {
+      "emoji": "\ud83d\udcbb",
+      "color": "#a855f7",
+      "label": "East"
+    },
+    "south": {
+      "emoji": "\ud83d\udc1f",
+      "color": "#10b981",
+      "label": "South"
+    },
+    "orbit": {
+      "emoji": "\ud83e\udd16",
+      "color": "#eab308",
+      "label": "Orbit"
+    },
+    "operator": {
+      "emoji": "\ud83d\udc64",
+      "color": "#6366f1",
+      "label": "Operator"
+    },
+    "agent": {
+      "emoji": "\ud83e\udd16",
+      "color": "#6b7280",
+      "label": "Agent"
+    }
+  },
+  "agentMeta": {
+    "North": {
+      "emoji": "\ud83e\udd9e",
+      "color": "#f97316"
+    },
+    "West": {
+      "emoji": "\ud83d\udcc8",
+      "color": "#3b82f6"
+    },
+    "East": {
+      "emoji": "\ud83d\udcbb",
+      "color": "#a855f7"
+    },
+    "South": {
+      "emoji": "\ud83d\udc1f",
+      "color": "#10b981"
+    },
+    "Orbit": {
+      "emoji": "\ud83e\udd16",
+      "color": "#eab308"
+    }
+  },
+  "agentHbKeys": {
+    "North": "Server-1/OpenClaw",
+    "West": "Laptop-1",
+    "East": "Laptop-1/Cursor",
+    "South": "Server-2",
+    "Orbit": "Cloud-Bot"
+  },
+  "kanbanOwners": [
+    "north",
+    "west",
+    "east",
+    "south",
+    "main"
+  ],
+  "toolsCatalog": [
+    {
+      "name": "North",
+      "emoji": "\ud83e\udd9e",
+      "color": "#f97316",
+      "runtime": "OpenClaw",
+      "modelKey": "main",
+      "modelFallback": "Example model",
+      "machine": "Server-1 \u2014 Linux",
+      "focus": "Coordination",
+      "tools": [
+        "exec/bash",
+        "web_search",
+        "vault read/write"
+      ],
+      "skills": [
+        "healthcheck",
+        "research"
+      ]
+    },
+    {
+      "name": "West",
+      "emoji": "\ud83d\udcc8",
+      "color": "#3b82f6",
+      "runtime": "Claude Cowork",
+      "modelKey": null,
+      "modelFallback": "Example model",
+      "machine": "Laptop-1 \u2014 macOS",
+      "focus": "Monitoring",
+      "tools": [
+        "web_search",
+        "vault write"
+      ],
+      "skills": [
+        "reporting",
+        "health checks"
+      ]
+    },
+    {
+      "name": "East",
+      "emoji": "\ud83d\udcbb",
+      "color": "#a855f7",
+      "runtime": "Cursor",
+      "modelKey": null,
+      "modelFallback": "Example model",
+      "machine": "Laptop-1 \u2014 macOS",
+      "focus": "Engineering",
+      "tools": [
+        "code editor",
+        "Git"
+      ],
+      "skills": [
+        "web development",
+        "scripting"
+      ]
+    }
+  ],
+  "scheduledTasksFallback": [
+    {
+      "name": "Daily Status Report",
+      "schedStr": "08:00 daily",
+      "agent": "West",
+      "enabled": true,
+      "desc": "Example traffic report"
+    },
+    {
+      "name": "Agent Health Check",
+      "schedStr": "Every 4h",
+      "agent": "West",
+      "enabled": true,
+      "desc": "Heartbeat sweep"
+    },
+    {
+      "name": "Vault Auto-Push",
+      "schedStr": "Hourly",
+      "agent": "West",
+      "enabled": true,
+      "desc": "Sync the local vault"
+    }
+  ],
+  "resolvePlaceholders": {
+    "closeNote": "e.g. Operator confirmed the webhook is active again.",
+    "instructions": "e.g. Rotate the incoming webhook, update the password manager item, then re-run the job to confirm delivery."
+  },
+  "securityRecommendations": {
+    "slackWebhook": "Webhook URLs were found in git history. Rotate the incoming webhook in your chat app, store the new URL in your password manager, and never paste it into vault files.",
+    "genericApiKey": "Verify unrecognized API keys. If a value is a public analytics embed, add it to the instance suppression list. If it is a real secret, rotate it and move it to your password manager.",
+    "gitignore": ".env, *.key, *.pem, *.token, .ocb-token, *.sqlite, *.db, and runlogs-*.json are blocked by .gitignore."
+  },
+  "securityRuleMeta": {
+    "slack-webhook-url": {
+      "label": "Slack Webhook URL",
+      "severity": "high",
+      "remediation": "Rotate the incoming webhook and store the new URL in your password manager. Never paste it into vault files."
+    },
+    "generic-api-key": {
+      "label": "Generic API Key",
+      "severity": "medium",
+      "remediation": "Verify the value. If it is a public analytics embed, add it to the instance suppression list. If it is a real secret, rotate it and move it to your password manager."
+    }
+  },
+  "securityFalsePositives": {
+    "rules": [
+      "curl-auth-user"
+    ],
+    "secrets": []
+  },
+  "promptCheckPaths": {},
+  "securityPostureNotes": {
+    "promptInjection": [
+      {
+        "status": "ok",
+        "text": "Primary runtime: injection guard active (built-in)."
+      },
+      {
+        "status": "warn",
+        "text": "Review other agent runtimes for an injection guard in their system prompt or editor rules."
+      }
+    ],
+    "accessPolicyMissing": "No per-agent access policy \u2014 decide whether to add one."
+  },
+  "primaryCronAgent": "North",
+  "operatorFilterKey": "operator",
+  "agentColors": {
+    "north": "#f97316",
+    "west": "#3b82f6",
+    "east": "#a855f7",
+    "south": "#10b981",
+    "orbit": "#eab308",
+    "operator": "#059669"
+  },
+  "gitAuthorPatterns": {
+    "east": "east|cursor"
+  },
+  "heatmapFallbackAgents": [
+    {
+      "name": "North",
+      "pattern": "north",
+      "color": "#f97316"
+    },
+    {
+      "name": "West",
+      "pattern": "west",
+      "color": "#3b82f6"
+    },
+    {
+      "name": "East",
+      "pattern": "east|cursor",
+      "color": "#a855f7"
+    },
+    {
+      "name": "South",
+      "pattern": "south",
+      "color": "#10b981"
+    },
+    {
+      "name": "Orbit",
+      "pattern": "orbit",
+      "color": "#eab308"
+    }
+  ],
+  "heartbeatAgentAliases": {},
+  "primaryAgentKey": "north"
 }

@@ -135,7 +135,7 @@
         <h1 class="sec-title">🔒 Vault Security</h1>
         <div class="sec-meta">
           <span id="sec-last">Loading…</span>
-          <a class="sec-btn" href="https://github.com/jhurff/My-Ai-Brain/blob/main/08%20-%20QA-and-Monitoring/Security/Security-Audit-Log.md" target="_blank" style="text-decoration:none;">📋 Full Report</a>
+          <a class="sec-btn" id="sec-full-report" href="#" target="_blank" style="text-decoration:none;display:none;">📋 Full Report</a>
           <button class="sec-btn" id="scan-btn" onclick="runScan()">⚡ Run Scan</button>
         </div>
       </div>
@@ -199,8 +199,8 @@
       <!-- Scan History -->
       <div class="sw-section">
         📋 Scan History
-        <a href="https://github.com/jhurff/My-Ai-Brain/blob/main/08%20-%20QA-and-Monitoring/Security/Security-Audit-Log.md"
-           target="_blank" style="font-size:.7rem;color:#6b7280;text-decoration:none;font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto;">GitHub →</a>
+        <a id="sec-history-link" href="#"
+           target="_blank" style="font-size:.7rem;color:#6b7280;text-decoration:none;font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto;display:none;">Full report →</a>
       </div>
       <div id="history-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
 
@@ -343,14 +343,15 @@
       const recs = [];
       const hasSlack  = (d.findings||[]).some(f => f.ruleId === 'slack-webhook-url');
       const hasApiKey = (d.findings||[]).some(f => f.ruleId === 'generic-api-key');
-      if (hasSlack)  recs.push({ icon:'🔴', title:'Rotate Slack webhook(s)', desc:'Webhook URLs are in git history. Go to api.slack.com → BrightMove app → Incoming Webhooks → Regenerate. Store the new URL in Bitwarden (slack-webhook-brightmove-agent-monitoring).' });
-      if (hasApiKey) recs.push({ icon:'🟡', title:'Verify unrecognized API key in BestFishingStuff.md', desc:'Check view-source on bestfishingstuff.com. If it\'s a public Ahrefs analytics embed, I\'ll add it to the suppression list. If real, rotate and move to Bitwarden.' });
+      const recCfg = (window.__OC_INSTANCE__ && window.__OC_INSTANCE__.securityRecommendations) || {};
+      if (hasSlack)  recs.push({ icon:'🔴', title:'Rotate Slack webhook(s)', desc: recCfg.slackWebhook || 'Webhook URLs were found in git history. Rotate the incoming webhook, store the new URL in your password manager, and never paste it into vault files.' });
+      if (hasApiKey) recs.push({ icon:'🟡', title:'Verify unrecognized API key', desc: recCfg.genericApiKey || 'Verify unrecognized API keys. If a value is a public analytics embed, add it to the instance suppression list. If it is a real secret, rotate it and move it to your password manager.' });
       recs.push({ icon:'🟢', title:'SECURITY.md policy in repo root', desc:'In place ✓' });
       recs.push({ icon:'🟢', title:'GitHub push protection enabled', desc:'Blocks future secret commits at push time ✓' });
       recs.push({ icon:'🟢', title:'GitHub secret scanning enabled', desc:'Continuous passive monitoring ✓' });
-      recs.push({ icon:'🟢', title:'.gitignore hardened', desc:'.env, *.key, *.pem, *.token and related patterns blocked ✓' });
-      recs.push({ icon:'🟢', title:'Weekly gitleaks scan active', desc:'Every Sunday at 9 AM ET — results delivered to Telegram ✓' });
-      if (hasSlack) recs.push({ icon:'🟡', title:'Optional: scrub webhook URLs from git history', desc:'Use git filter-repo to clean commit history. Low priority (private repo), but eliminates the finding permanently.' });
+      recs.push({ icon:'🟢', title:'.gitignore hardened', desc: recCfg.gitignore || '.env, *.key, *.pem, *.token, .ocb-token, *.sqlite, *.db, and runlogs-*.json are blocked by .gitignore.' });
+      recs.push({ icon:'🟢', title:'Weekly gitleaks scan active', desc:'Every Sunday at 9 AM ET' });
+      if (hasSlack) recs.push({ icon:'🟡', title:'Optional: scrub webhook URLs from git history', desc:'Use git filter-repo to clean commit history. This eliminates the finding permanently.' });
       return recs;
     }
 
@@ -433,16 +434,17 @@
         {
           icon: '💉', name: 'Prompt Injection',
           items: [
-            { status: 'ok',   text: 'OpenClaw (Spike): EXTERNAL_UNTRUSTED_CONTENT tag wrapping active (built-in) ✓' },
-            { status: 'warn', text: 'Bill (ChatGPT / H2FClanker1): no injection guard in system prompt — TASK-20260822-006' },
-            { status: 'warn', text: 'Lex (Cursor / BrightMove MBP): no injection guard in Cursor rules — TASK-20260822-006' },
+            ...(((window.__OC_INSTANCE__||{}).securityPostureNotes||{}).promptInjection || [
+              { status: 'ok',   text: 'Primary runtime: injection guard active (built-in).' },
+              { status: 'warn', text: 'Review other agent runtimes for an injection guard in their system prompt or editor rules.' },
+            ]),
           ],
         },
         {
           icon: '🤖', name: 'Agent Over-Privilege',
           items: [
             { status: p.agentPrivilege.accessPolicyExists === null ? 'unknown' : p.agentPrivilege.accessPolicyExists ? 'ok' : 'warn',
-              text: p.agentPrivilege.accessPolicyExists ? 'Per-agent access policy in vault ✓' : 'No per-agent access policy — needs Jimmy decision (TASK-20260822-007)' },
+              text: p.agentPrivilege.accessPolicyExists ? 'Per-agent access policy in vault ✓' : ((((window.__OC_INSTANCE__||{}).securityPostureNotes||{}).accessPolicyMissing) || 'No per-agent access policy — decide whether to add one.') },
             { status: 'warn', text: 'Shared PAT in use for vault sync — acceptable; per-agent scoping not yet documented' },
             { status: p.agentPrivilege.deployKeysCount > 0 ? 'ok' : 'warn',
               text: p.agentPrivilege.deployKeysCount > 0 ? `${p.agentPrivilege.deployKeysCount} SSH deploy key(s) on host ✓` : 'No per-repo SSH deploy keys found on host yet' },
@@ -473,6 +475,17 @@
 
     loadPosture();
     load();
-  </script>
+  
+    fetch('/api/instance').then(r=>r.json()).then(inst=>{
+      window.__OC_INSTANCE__ = inst || {};
+      const url = inst.securityAuditLogUrl || '';
+      ['sec-full-report','sec-history-link'].forEach(id=>{
+        const a=document.getElementById(id);
+        if (!a) return;
+        if (url) { a.href=url; a.style.display=''; }
+        else { a.style.display='none'; }
+      });
+    }).catch(()=>{ window.__OC_INSTANCE__ = {}; });
+</script>
 </body>
 </html>

@@ -25,10 +25,6 @@
           <input type="search" id="q" class="oc-search-input" placeholder="Search tasks…">
           <select id="f-agent" class="oc-filter-select">
             <option value="">All agents</option>
-            <option value="Spike">🦞 Spike</option>
-            <option value="Steve">📈 Steve</option>
-            <option value="Lex">💻 Lex</option>
-            <option value="Bill">🐟 Bill</option>
           </select>
           <select id="f-status" class="oc-filter-select">
             <option value="">All statuses</option>
@@ -67,18 +63,16 @@
       th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
     })();
 
-    /* ── Static tasks for non-Spike agents ── */
-    const KNOWN_TASKS = [
-      { name:'Daily SEO/Traffic Report',  schedStr:'08:00 daily',  agent:'Steve', enabled:true,  desc:'BrightMove SEO + GA traffic → Slack' },
-      { name:'Agent Health Check',        schedStr:'Every 4h',     agent:'Steve', enabled:true,  desc:'Heartbeat sweep; writes vault health summary' },
-      { name:'Vault Auto-Push',           schedStr:'Hourly',       agent:'Steve', enabled:true,  desc:'git pull + push My-AI-Brain repo' },
-      { name:'FTMarine Traffic Report',   schedStr:'08:30 daily',  agent:'Steve', enabled:true,  desc:'GA traffic → Slack' },
-      { name:'Here2Fish Ops Check',       schedStr:'On-demand',    agent:'Bill',  enabled:false, desc:'Bill silent — last heartbeat Jul 2026' },
-      { name:'BoatJobBoard Content Push', schedStr:'On-demand',    agent:'Bill',  enabled:false, desc:'WP REST API post queue; currently paused' },
+    /* ── Fallback tasks for agents not covered by the live gateway cron API ── */
+    let primaryCronAgent = 'North';
+    let KNOWN_TASKS = [
+      { name:'Daily Status Report', schedStr:'08:00 daily', agent:'West', enabled:true,  desc:'Example status report' },
+      { name:'Agent Health Check',  schedStr:'Every 4h',    agent:'West', enabled:true,  desc:'Heartbeat sweep' },
     ];
 
-    const AGENT_COLORS = { Spike:'#f97316', Steve:'#3b82f6', Lex:'#a855f7', Bill:'#10b981', Luther:'#eab308' };
-    const AGENT_BG     = { Spike:'#431407', Steve:'#172554', Lex:'#2e1065',  Bill:'#022c22', Luther:'#422006' };
+    let AGENT_COLORS = {};
+    let AGENT_BG = {};
+    let AGENT_EMOJI = {};
 
     let allTasks=[], sortKey='agent', sortDir=1;
 
@@ -101,7 +95,7 @@
     function agentBadge(name) {
       const c = AGENT_COLORS[name]||'#9ca3af';
       const bg = AGENT_BG[name]||'#1c1917';
-      const emoji = {Spike:'🦞',Steve:'📈',Lex:'💻',Bill:'🐟',Luther:'🤖'}[name]||'';
+      const emoji = AGENT_EMOJI[name]||'';
       return `<span style="display:inline-block;padding:1px 9px;border-radius:9999px;font-size:.7rem;font-weight:700;background:${bg};color:${c}">${emoji} ${name}</span>`;
     }
 
@@ -136,7 +130,7 @@
             ${t.desc ? `<div style="font-size:.7rem;color:#6b7280;margin-top:.1rem">${t.desc}</div>` : ''}
           </td>
           <td style="font-family:monospace;font-size:.72rem;color:#94a3b8;white-space:nowrap">${t.schedStr}</td>
-          <td>${agentBadge(t.agent||'Spike')}</td>
+          <td>${agentBadge(t.agent||primaryCronAgent||'Agent')}</td>
           <td style="font-size:.72rem;font-weight:600;${t.enabled!==false?'color:#86efac':'color:#6b7280'}">${t.enabled!==false?'● On':'○ Off'}</td>
         </tr>`).join('')
         : `<tr class="oc-empty-row"><td colspan="4">No tasks match.</td></tr>`;
@@ -167,6 +161,26 @@
 
     async function load() {
       try {
+        try {
+          const inst = await fetch('/api/instance').then(r=>r.json());
+          if (Array.isArray(inst.scheduledTasksFallback) && inst.scheduledTasksFallback.length) {
+            KNOWN_TASKS = inst.scheduledTasksFallback;
+          }
+          if (inst.primaryCronAgent) primaryCronAgent = inst.primaryCronAgent;
+          const meta = inst.agentMeta || {};
+          for (const [name, m] of Object.entries(meta)) {
+            if (m && m.color) AGENT_COLORS[name] = m.color;
+            if (m && m.emoji) AGENT_EMOJI[name] = m.emoji;
+          }
+          const sel = document.getElementById('f-agent');
+          const names = Object.keys(meta).length ? Object.keys(meta) : [...new Set((inst.scheduledTasksFallback||[]).map(x=>x.agent).filter(Boolean))];
+          if (sel && names.length) {
+            sel.innerHTML = '<option value="">All agents</option>' + names.map(n => {
+              const em = (meta[n]&&meta[n].emoji) || '';
+              return `<option value="${n}">${em} ${n}</option>`;
+            }).join('');
+          }
+        } catch {}
         let cronTasks = [];
         try {
           const raw  = await fetch('/api/cron-jobs').then(r=>r.json());
@@ -174,7 +188,7 @@
           cronTasks  = list.map(j => ({
             name:        j.name||j.displayName||j.id||'(unnamed)',
             schedStr:    schedFmt(j),
-            agent:       'Spike',
+            agent:       primaryCronAgent,
             enabled:     j.enabled!==false,
             desc:        j.description||'',
             id:          j.id,
