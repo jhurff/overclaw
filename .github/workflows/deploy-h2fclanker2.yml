@@ -1,0 +1,81 @@
+name: Deploy OverClaw to H2FClanker2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-h2fclanker2
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, h2fclanker2]
+    steps:
+      - name: Deploy live clone
+        run: |
+          set -euo pipefail
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+
+          cd /home/jhurff/repos/overclaw
+
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            echo "Tracked working tree is dirty; refusing to deploy."
+            git status --porcelain --untracked-files=no
+            exit 1
+          fi
+
+          PREV=$(git rev-parse HEAD)
+          echo "Previous HEAD: ${PREV}"
+
+          git fetch origin main
+          git reset --hard origin/main
+          NEW=$(git rev-parse HEAD)
+          echo "New HEAD: ${NEW}"
+
+          LOCK_CHANGED=0
+          if ! git diff --quiet "${PREV}" HEAD -- package-lock.json; then
+            echo "package-lock.json changed; running npm ci --omit=dev"
+            npm ci --omit=dev
+            LOCK_CHANGED=1
+          fi
+
+          systemctl --user restart overclaw
+
+          # /api/brain/stats requires a bearer token, so do not call it from CI.
+          # GET /swarm is unauthenticated and returns 200 when node is up.
+          ok=0
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8355/swarm || true)
+            if [ "${code}" = "200" ]; then
+              ok=1
+              echo "Health check passed (GET /swarm 200) after ${i} attempt(s)"
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "${ok}" -ne 1 ]; then
+            echo "Health check failed; rolling back to ${PREV}"
+            git reset --hard "${PREV}"
+            if [ "${LOCK_CHANGED}" -eq 1 ]; then
+              npm ci --omit=dev
+            fi
+            systemctl --user restart overclaw
+            for i in $(seq 1 15); do
+              code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8355/swarm || true)
+              if [ "${code}" = "200" ]; then
+                echo "Rollback health check passed"
+                break
+              fi
+              sleep 2
+            done
+            exit 1
+          fi
+
+          echo "Deployed ${NEW}"
