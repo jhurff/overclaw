@@ -43,21 +43,6 @@ try {
 }
 
 // ---------------------------------------------------------------------------
-// VaultReader — reads swarm coordination data from the Obsidian vault
-// ---------------------------------------------------------------------------
-const VAULT_PATH = process.env.VAULT_PATH
-  || (ocConfig.brainPath && ocConfig.brainPath.replace(/^~/, process.env.HOME))
-  || path.join(process.env.HOME, 'my-vault');
-let vaultReader;
-try {
-  vaultReader = new VaultReader(VAULT_PATH);
-  console.log(`VaultReader initialized for: ${VAULT_PATH}`);
-} catch (err) {
-  console.warn(`VaultReader init failed: ${err.message} — vault routes will return degraded responses`);
-  vaultReader = null;
-}
-
-// ---------------------------------------------------------------------------
 // BrainStore — centralized document DB (replaces Git/vault-sync)
 // ---------------------------------------------------------------------------
 const BRAIN_DB_PATH = process.env.BRAIN_DB_PATH
@@ -69,6 +54,22 @@ try {
 } catch (err) {
   console.warn(`BrainStore init failed: ${err.message}`);
   brainStore = null;
+}
+
+// ---------------------------------------------------------------------------
+// VaultReader — coordination reads/writes. brain.db is primary; the on-disk
+// vault is only used when the database cannot be opened. Git pull is disabled.
+// ---------------------------------------------------------------------------
+const VAULT_PATH = process.env.VAULT_PATH
+  || (ocConfig.brainPath && ocConfig.brainPath.replace(/^~/, process.env.HOME))
+  || path.join(process.env.HOME, 'my-vault');
+let vaultReader;
+try {
+  vaultReader = new VaultReader(VAULT_PATH, { brainStore });
+  console.log(`VaultReader initialized (source: ${brainStore ? 'brain' : 'filesystem'}) vault fallback: ${VAULT_PATH}`);
+} catch (err) {
+  console.warn(`VaultReader init failed: ${err.message} — vault routes will return degraded responses`);
+  vaultReader = null;
 }
 
 // Seed admin user from env if users table is empty
@@ -246,6 +247,8 @@ function parseTaskDate(str) {
  * Call on any in-progress task before returning it to the client.
  */
 function flagStuckTask(task, now = Date.now(), stuckDays = STUCK_DAYS_DEFAULT) {
+  // Standing / operational tasks are not "in progress" and are never stuck.
+  if (!task || task.type === 'standing' || task.status === 'standing') return;
   // 1. Past deadline?
   if (task.deadline && task.deadline !== '\u2014') {
     const dl = parseTaskDate(task.deadline);
@@ -451,25 +454,66 @@ function moveTaskToInbox(content, taskId, fromSection) {
   return newLines.join('\n');
 }
 
-/** Reusable vault-sync push. */
-async function vaultSync(message) {
-  const { execFile } = require('child_process');
-  const bin = require('path').join(process.env.HOME, '.local', 'bin', 'vault-sync');
-  return new Promise(resolve =>
-    execFile(bin, ['push', message], { timeout: 30000 },
-      (err, stdout, stderr) => resolve({ ok: !err, stdout, stderr })
-    )
-  );
+const TASK_BOARD_DOC = '03 - Agents/Coordination/Task Board.md';
+
+/** Git pull / vault-sync push is disabled. Writes already persist in brain.db. */
+async function vaultSync(_message) {
+  return {
+    ok: true,
+    skipped: true,
+    disabled: true,
+    stdout: '',
+    stderr: '',
+    message: 'vault-sync disabled; writes go to brain.db',
+    source: vaultReader && vaultReader._brainUsable() ? 'brain' : 'filesystem',
+  };
+}
+
+async function readCoordDoc(rel) {
+  if (!vaultReader) throw new Error('VaultReader not available');
+  return vaultReader.getFile(rel);
+}
+
+async function writeCoordDoc(rel, content, changeNote) {
+  if (!vaultReader) throw new Error('VaultReader not available');
+  const written = await vaultReader._writeVaultFile(rel, content, {
+    updatedBy: 'overclaw',
+    changeNote: changeNote || null,
+  });
+  return { ok: true, via: vaultReader._brainUsable() ? 'brain' : 'filesystem', ...written };
+}
+
+/** Classify a task id from its note in brain.db (filesystem only if the DB is down). */
+async function loadTaskClassification(taskId, title) {
+  const { classifyTask } = require('./lib/taskClassification');
+  const rel = '03 - Agents/Coordination/Tasks/' + taskId + '.md';
+  let content = '';
+  try { content = await readCoordDoc(rel); } catch { content = ''; }
+  const fm = parseFrontmatterText(content);
+  let body = content;
+  if (content.startsWith('---')) {
+    const end = content.indexOf('\n---', 3);
+    if (end !== -1) body = content.slice(end + 4);
+  }
+  let heartbeats = [];
+  try {
+    if (vaultReader && vaultReader.heartbeatIndex) heartbeats = await vaultReader.heartbeatIndex();
+  } catch { heartbeats = []; }
+  return classifyTask({
+    taskId,
+    title: title || fm.title || '',
+    frontmatter: fm,
+    body,
+    heartbeats,
+  });
 }
 
 /** Write a Tier-2 notification .md for any agent. */
 async function writeNotificationFile(agentKey, taskId, title, fromSection) {
-  // Any agent key: capitalize first letter (no hardcoded list — new agents work automatically)
   const agentName = agentKey.charAt(0).toUpperCase() + agentKey.slice(1);
   const now   = new Date();
   const stamp = now.toISOString().slice(0, 16).replace('T', '-').replace(':', '-');
-  const dir   = require('path').join(VAULT_PATH, '03 - Agents', 'Notifications', agentName);
-  await require('fs').promises.mkdir(dir, { recursive: true });
+  const rel   = '03 - Agents/Notifications/' + agentName + '/' + stamp + '-task-assigned.md';
   const body = [
     '---',
     'type: task-assigned',
@@ -480,11 +524,11 @@ async function writeNotificationFile(agentKey, taskId, title, fromSection) {
     `# Task Assignment: ${taskId}`, '',
     `You have been assigned **${taskId}** from the Task Board.`, '',
     `**Title:** ${title}`,
-    `**From:** ${fromSection === 'inbox' ? 'Inbox \u2192 In Progress' : 'Blocked (agent reassigned)'}`,
+    `**From:** ${fromSection === 'inbox' ? 'Inbox → In Progress' : 'Blocked (agent reassigned)'}`,
     `**Assigned at:** ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })} ET`, '',
     'Check the Task Board for full details.', '',
   ].join('\n');
-  await require('fs').promises.writeFile(require('path').join(dir, stamp + '-task-assigned.md'), body, 'utf-8');
+  await writeCoordDoc(rel, body, 'task assignment notification ' + taskId);
   return { agentName };
 }
 
@@ -1057,15 +1101,14 @@ app.post('/api/resolve', async (req, res) => {
       newBody = body.trimEnd() + '\n\n---\n\n## 🔧 Resolution History\n' + histEntry;
     }
 
-    // 4. Write updated alert file
+    // 4. Write updated alert file (brain.db when open; filesystem only if the DB is down)
     const newContent = newFm + '\n\n' + newBody;
-    await fs.writeFile(abs, newContent, 'utf-8');
+    await writeCoordDoc(filePath, newContent, 'resolution_status: dispatched');
 
     // 5. Write notification file to agent
     const agentName  = effectiveAgentKey.charAt(0).toUpperCase() + effectiveAgentKey.slice(1);
     const alertId    = path.basename(alertPath, '.md');
-    const notifDir   = path.join(VAULT_PATH, '03 - Agents', 'Notifications', agentName);
-    await fs.mkdir(notifDir, { recursive: true });
+    const notifDir   = '03 - Agents/Notifications/' + agentName;
     const stamp      = now.toISOString().slice(0, 16).replace('T', '-').replace(/:(\d{2})$/, '-$1');
     const notifLines = [
       '---',
@@ -1090,11 +1133,7 @@ app.post('/api/resolve', async (req, res) => {
       '4. Write a brief resolution note in the file before renaming (optional but encouraged)',
       '',
     ];
-    await fs.writeFile(
-      path.join(notifDir, stamp + '-alert-resolution.md'),
-      notifLines.join('\n'),
-      'utf-8'
-    );
+    await writeCoordDoc(notifDir + '/' + stamp + '-alert-resolution.md', notifLines.join('\n'), 'alert resolution ' + alertId);
 
     // 6. Vault sync (commit + push everything)
     const synced = await vaultSync(
@@ -1193,15 +1232,15 @@ app.post('/api/resolve/close', async (req, res) => {
       newBody = body.trimEnd() + '\n\n---\n\n## 🔧 Resolution History\n' + histEntry;
     }
 
-    // Write updated content to the file first
     const newContent = newFm + '\n\n' + newBody;
-    await fs.writeFile(abs, newContent, 'utf-8');
-
-    // Rename NEEDS-ATTENTION-* → HANDLED-*
-    const dir         = path.dirname(abs);
     const handledName = basename.replace(/^NEEDS-ATTENTION[-_]/i, 'HANDLED-');
-    const handledAbs  = path.join(dir, handledName);
-    await fs.rename(abs, handledAbs);
+    const handledRel  = filePath.slice(0, filePath.length - basename.length) + handledName;
+    await writeCoordDoc(filePath, newContent, 'resolution_status: closed');
+    if (brainStore && vaultReader._brainUsable()) {
+      brainStore.moveDoc(filePath, handledRel, { updatedBy: 'overclaw' });
+    } else {
+      await fs.rename(abs, path.join(path.dirname(abs), handledName));
+    }
 
     // Derive vault-relative paths for the commit message
     const alertId = path.basename(alertPath, '.md');
@@ -1290,6 +1329,17 @@ function gatewayUnavailable(res) {
 }
 
 
+
+app.get('/api/vault/status', async (req, res) => {
+  if (!vaultReader) return res.json({ available: false, gitSync: false });
+  const status = await vaultReader.isAvailable();
+  res.json({ ...status, gitSync: false, lastSyncAt: vaultReader.lastSyncAt });
+});
+
+app.post('/api/vault/sync', async (req, res) => {
+  if (!vaultReader) return vaultUnavailable(res);
+  res.json(await vaultReader.sync());
+});
 
 // GET /api/vault/task-board
 app.get('/api/vault/task-board', async (req, res) => {
@@ -1638,33 +1688,11 @@ app.post('/api/vault/task-board/escalate', async (req, res) => {
     const escalateReason = (reason || '').trim()
       || `Auto-escalated by OverClaw on ${today}: stuck in progress with no recent activity`;
 
-    const taskBoardPath = path.join(VAULT_PATH, '03 - Agents', 'Coordination', 'Task Board.md');
-    const content       = await fs.readFile(taskBoardPath, 'utf-8');
-    const newContent    = moveTaskToBlocked(content, taskId, escalateReason);
-
-    await fs.writeFile(taskBoardPath, newContent, 'utf-8');
-    console.log(`Escalated ${taskId} to Blocked in Task Board.md`);
-
-    // Commit via vault-sync
-    const { execFile } = require('child_process');
-    const vaultSyncBin = path.join(process.env.HOME, '.local', 'bin', 'vault-sync');
-    const syncResult = await new Promise(resolve =>
-      execFile(vaultSyncBin, ['push', `task: escalate ${taskId} \u2192 blocked`],
-        { timeout: 30000 },
-        (err, stdout, stderr) => resolve({ err, stdout, stderr })
-      )
-    );
-
-    if (syncResult.err) {
-      console.warn(`vault-sync after escalation of ${taskId}: ${syncResult.stderr}`);
-      return res.status(207).json({
-        ok: true, synced: false, taskId,
-        warning: 'Task moved locally but vault-sync failed — run a manual Sync',
-        details: syncResult.stderr,
-      });
-    }
-
-    res.json({ ok: true, synced: true, taskId, reason: escalateReason, escalatedAt: new Date().toISOString() });
+    const content    = await readCoordDoc(TASK_BOARD_DOC);
+    const newContent = moveTaskToBlocked(content, taskId, escalateReason);
+    const written    = await writeCoordDoc(TASK_BOARD_DOC, newContent, `escalate ${taskId} → blocked`);
+    console.log(`Escalated ${taskId} to Blocked via ${written.via}`);
+    res.json({ ok: true, synced: true, via: written.via, taskId, reason: escalateReason, escalatedAt: new Date().toISOString() });
   } catch (err) {
     console.error(`Escalation failed for ${taskId}: ${err.message}`);
     res.status(500).json({ error: 'Escalation failed', details: err.message });
@@ -1682,24 +1710,11 @@ app.post('/api/vault/task-board/return-to-inbox', async (req, res) => {
     const status = await vaultReader.isAvailable();
     if (!status.available) return vaultUnavailable(res, status.error);
 
-    const taskBoardPath = path.join(VAULT_PATH, '03 - Agents', 'Coordination', 'Task Board.md');
-    const content       = await fs.readFile(taskBoardPath, 'utf-8');
-    const newContent    = moveTaskToInbox(content, taskId, fromSection);
-
-    await fs.writeFile(taskBoardPath, newContent, 'utf-8');
-    console.log(`Moved ${taskId} back to Inbox from ${fromSection}`);
-
-    const syncResult = await vaultSync(`task: return ${taskId} \u2192 inbox`);
-    if (!syncResult.ok) {
-      console.warn(`vault-sync after return-to-inbox of ${taskId}: ${syncResult.stderr}`);
-      return res.status(207).json({
-        ok: true, synced: false, taskId,
-        warning: 'Task moved locally but vault-sync failed \u2014 run a manual Sync',
-        details: syncResult.stderr,
-      });
-    }
-
-    res.json({ ok: true, synced: true, taskId, fromSection, returnedAt: new Date().toISOString() });
+    const content    = await readCoordDoc(TASK_BOARD_DOC);
+    const newContent = moveTaskToInbox(content, taskId, fromSection);
+    const written    = await writeCoordDoc(TASK_BOARD_DOC, newContent, `return ${taskId} → inbox`);
+    console.log(`Moved ${taskId} back to Inbox from ${fromSection} via ${written.via}`);
+    res.json({ ok: true, synced: true, via: written.via, taskId, fromSection, returnedAt: new Date().toISOString() });
   } catch (err) {
     console.error(`Return-to-inbox failed for ${taskId}: ${err.message}`);
     res.status(500).json({ error: 'Return to inbox failed', details: err.message });
@@ -1727,24 +1742,29 @@ app.post('/api/vault/task-board/assign', async (req, res) => {
   try {
     const status = await vaultReader.isAvailable();
     if (!status.available) return vaultUnavailable(res, status.error);
-    const tbPath = path.join(VAULT_PATH, '03 - Agents', 'Coordination', 'Task Board.md');
-    const raw    = await fs.readFile(tbPath, 'utf-8');
-    // Best-effort title extraction for the notification message
+    const raw = await readCoordDoc(TASK_BOARD_DOC);
     let taskTitle = taskId;
     const tm = raw.match(new RegExp('\\|[^|]*' + taskId.replace(/-/g,'\\-') + '[^|]*\\|\\s*([^|]+)\\|'));
     if (tm) taskTitle = tm[1].replace(/\*+/g,'').trim().slice(0, 80);
+    const cls = await loadTaskClassification(taskId, taskTitle);
+    if (cls.type === 'standing') {
+      return res.status(409).json({
+        error: taskId + ' is a standing task and is not moved to In Progress',
+        type: 'standing',
+        typeSource: cls.typeSource,
+        standingStatus: cls.standingStatus,
+      });
+    }
     const newContent = fromSection === 'inbox'
       ? moveTaskToInProgress(raw, taskId, agentKey.toLowerCase())
       : updateBlockedTaskAgent(raw, taskId, agentKey.toLowerCase());
-    await fs.writeFile(tbPath, newContent, 'utf-8');
+    const written = await writeCoordDoc(TASK_BOARD_DOC, newContent, 'assign ' + taskId + ' → ' + agentKey);
     // Tier 2 — vault notification file
     let notified = false;
     if (agentKey.toLowerCase() !== (instanceConfig.readInstanceConfig().operatorFilterKey || 'operator').toLowerCase()) {
       try { await writeNotificationFile(agentKey, taskId, taskTitle, fromSection); notified = true; }
       catch (ne) { console.warn('Notification file write failed:', ne.message); }
     }
-    // vault-sync commit
-    const syncRes = await vaultSync('task: assign ' + taskId + ' \u2192 ' + agentKey);
     // Tier 1 — live wake for the primary agent (same gateway, non-fatal if it fails)
     let wake = null;
     if (agentKey.toLowerCase() === (instanceConfig.readInstanceConfig().primaryAgentKey || '').toLowerCase() && clawBridge) {
@@ -1753,10 +1773,7 @@ app.post('/api/vault/task-board/assign', async (req, res) => {
         wake = 'sent';
       } catch (we) { console.warn('Tier-1 wake (non-fatal):', we.message); wake = 'failed: ' + we.message; }
     }
-    if (!syncRes.ok)
-      return res.status(207).json({ ok: true, synced: false, taskId, agentKey, fromSection,
-        notified, wake, warning: 'Updated locally but vault-sync failed', details: syncRes.stderr });
-    res.json({ ok: true, synced: true, taskId, agentKey, fromSection, notified, wake, assignedAt: new Date().toISOString() });
+    res.json({ ok: true, synced: true, via: written.via, taskId, agentKey, fromSection, notified, wake, assignedAt: new Date().toISOString() });
   } catch (err) {
     console.error('Assign failed for ' + taskId + ': ' + err.message);
     res.status(500).json({ error: 'Assign failed', details: err.message });
@@ -1938,82 +1955,16 @@ app.post('/api/security/scan', async (req, res) => {
 app.get('/api/swarm/summary', async (req, res) => {
   try {
     // Task board + agent registry from BrainStore
-    let taskBoard = { inbox:[], inProgress:[], blocked:[], done:[], stats:{} };
+    let taskBoard = { inbox:[], inProgress:[], blocked:[], done:[], parked:[], standing:{ scheduled:[], active:[], inactive:[] }, stats:{} };
     let agents = [];
-    if (brainStore) {
-      const boardDoc = brainStore.getDoc('03 - Agents/Coordination/Task Board.md');
-      if (boardDoc) {
-        const { parseTaskBoardSimple, parseAgentRegistrySimple } = require('./lib/McpServer');
-        // Use BrainStore stats directly
-        const searchRows = brainStore.listDir('03 - Agents', { recursive: false });
-        // Parse task board markdown
-        const boardLines = boardDoc.content.split('\n');
-        const sectionAliases = {
-          inbox: ['inbox'], inProgress: ['in progress','in-progress'],
-          blocked: ['blocked'], done: ['done'],
-        };
-        let curSection = null;
-        const sectionMap = {};
-        for (const line of boardLines) {
-          const m = line.match(/^##\s+(.+)/);
-          if (m) {
-            curSection = m[1].trim().toLowerCase();
-            sectionMap[curSection] = sectionMap[curSection] || [];
-          } else if (curSection) {
-            sectionMap[curSection].push(line);
-          }
-        }
-        for (const [heading, lines] of Object.entries(sectionMap)) {
-          let key = null;
-          if (sectionAliases.inbox.some(a => heading.includes(a))) key = 'inbox';
-          else if (sectionAliases.inProgress.some(a => heading.includes(a))) key = 'inProgress';
-          else if (sectionAliases.blocked.some(a => heading.includes(a))) key = 'blocked';
-          else if (sectionAliases.done.some(a => heading.includes(a))) key = 'done';
-          if (!key) continue;
-          const rows = [];
-          for (const line of lines) {
-            const t = line.trim();
-            if (!t.startsWith('|') || /^\|[\s\-:]+\|/.test(t)) continue;
-            const cells = t.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
-            rows.push(cells);
-          }
-          taskBoard[key] = rows.slice(1).map(cells => {
-            if (!cells[0]) return null;
-            const m2 = cells[0].match(/TASK-[A-Z0-9]+-\d+/);
-            const taskId = m2 ? m2[0] : cells[0].replace(/\*\*/g,'').trim();
-            if (!taskId || /^[\s\-–—|]+$/.test(taskId)) return null;
-            return { taskId, title: (cells[1]||'').replace(/\*\*/g,'').trim(), agent: (cells[2]||'').trim() };
-          }).filter(Boolean);
-        }
-        taskBoard.stats = {
-          total: taskBoard.inbox.length + taskBoard.inProgress.length + taskBoard.blocked.length + taskBoard.done.length,
-          inbox: taskBoard.inbox.length, inProgress: taskBoard.inProgress.length,
-          blocked: taskBoard.blocked.length, done: taskBoard.done.length,
-        };
-        const agentDoc = brainStore.getDoc('03 - Agents/Agent Registry.md');
-        if (agentDoc) {
-          const lines2 = agentDoc.content.split('\n');
-          let inTable = false, header = null;
-          for (const line of lines2) {
-            const t = line.trim();
-            if (!t.startsWith('|')) { if (inTable) break; continue; }
-            if (/^\|[\s\-:|]+\|/.test(t)) continue;
-            const cells = t.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
-            if (!inTable) {
-              if (cells.map(c=>c.toLowerCase()).some(c=>c.includes('nickname'))) {
-                inTable = true; header = cells.map(c=>c.toLowerCase().replace(/\s+/g,'_'));
-              }
-              continue;
-            }
-            if (cells.every(c=>c===''||c==='-')) continue;
-            const a = {}; header.forEach((k,i)=>{ a[k]=(cells[i]||'').replace(/\*\*/g,'').trim(); });
-            agents.push(a);
-          }
-        }
-      }
+    if (vaultReader) {
+      try { taskBoard = await vaultReader.getTaskBoard(); }
+      catch (e) { console.warn('[swarm/summary] task board: ' + e.message); }
+      try { agents = await vaultReader.getAgentRegistry(); }
+      catch (e) { console.warn('[swarm/summary] agents: ' + e.message); }
     }
 
-    // Heartbeats + heatmap still from VaultReader (filesystem scan)
+    // Heartbeats, heatmap, and alerts come from the same reader (brain.db, filesystem fallback)
     let heartbeats = [], heatmap = { days:[], agents:[] }, alerts = [];
     if (vaultReader) {
       [heartbeats, heatmap, alerts] = await Promise.all([
