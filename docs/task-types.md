@@ -22,10 +22,12 @@ Task notes live at `03 - Agents/Coordination/Tasks/TASK-*.md` inside `brain.db` 
 
 `type` in frontmatter wins (`typeSource: "explicit"`). Otherwise the first matching signal wins:
 
+Tasks whose frontmatter `status` is `done` or `cancelled`, and tasks sitting in the Done column, are not inferred as standing. They stay `project` unless `type` is set explicitly.
+
 1. `cadence`, `schedule`, or `cron` frontmatter → `inferred:cadence`
-2. `heartbeat_job`, or a heartbeat document that names the task id or the same job → `inferred:heartbeat`
-3. Progress-note dates on 3 or more distinct days with a regular gap → `inferred:progress-notes`
-4. A title matching `daily` / `weekly` / `monthly` together with `check`, `watch`, `scan`, `sweep`, or `monitor` → `inferred:title`
+2. Explicit `heartbeat_job` that matches a heartbeat job name, type, or filename → `inferred:heartbeat`. Heartbeat bodies are not scanned for task ids or agent names.
+3. Progress notes on 5 or more distinct days with a regular gap, and a title or frontmatter hint (`daily`, `weekdays`, `weekly`, `monthly`, `report`, `check`, `watch`, `scan`, `sweep`, `monitor`) → `inferred:progress-notes`
+4. A title matching `daily` / `weekdays` / `weekly` / `monthly` together with `check`, `watch`, `scan`, `sweep`, `monitor`, or `report` → `inferred:title`
 
 Anything else is `type: "project"` with `typeSource: "default"`.
 
