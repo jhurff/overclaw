@@ -928,9 +928,16 @@ app.get('/swarm', (req, res) => {
   res.render('swarm', { title: 'Swarm Overview', currentPath: '/swarm' });
 });
 
-// Task board page
+// Project tasks keep the historical /task-board URL. /tasks/project is the same page.
 app.get('/task-board', (req, res) => {
-  res.render('task-board', { title: 'Task Board', currentPath: '/task-board' });
+  res.render('task-board', { title: 'Project Tasks', currentPath: '/task-board', boardKind: 'project' });
+});
+app.get('/tasks/project', (req, res) => {
+  const q = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '';
+  res.redirect(302, '/task-board' + q);
+});
+app.get('/tasks/standing', (req, res) => {
+  res.render('task-board', { title: 'Standing Tasks', currentPath: '/tasks/standing', boardKind: 'standing' });
 });
 
 // Vault document viewer page
@@ -1352,6 +1359,10 @@ app.get('/api/vault/task-board', async (req, res) => {
     const now = Date.now();
     (data.inProgress || []).forEach(t => flagStuckTask(t, now));
     if (data.stats) data.stats.stuck = (data.inProgress || []).filter(t => t.isStuck).length;
+    const typeFilter = String(req.query.type || '').toLowerCase();
+    if (typeFilter === 'project' || typeFilter === 'standing') {
+      applyTaskBoardTypeFilter(data, typeFilter);
+    }
     res.json(data);
   } catch (err) {
     console.error(`Error reading task board: ${err.message}`);
@@ -1578,9 +1589,41 @@ app.get('/debug-agents-data', async (req, res) => {
   }
 });
 
-// Projects Kanban board — redirected to vault-backed task board
+// Legacy project kanban URLs land on Project Tasks.
 app.get('/projects/kanban', (req, res) => res.redirect(301, '/task-board'));
 app.get('/kanban', (req, res) => res.redirect(301, '/task-board'));
+
+/** Narrow a full task-board payload. Omitted type keeps every section. */
+function applyTaskBoardTypeFilter(data, type) {
+  data.filter = type;
+  if (type === 'project') {
+    data.standing = { scheduled: [], active: [], inactive: [] };
+    if (data.stats) {
+      const standing = data.stats.standing || 0;
+      data.stats.total = Math.max(0, (data.stats.total || 0) - standing);
+      data.stats.standing = 0;
+      data.stats.standingScheduled = 0;
+      data.stats.standingActive = 0;
+      data.stats.standingInactive = 0;
+    }
+    return data;
+  }
+  data.inbox = [];
+  data.inProgress = [];
+  data.parked = [];
+  data.blocked = [];
+  data.done = [];
+  if (data.stats) {
+    data.stats.inbox = 0;
+    data.stats.inProgress = 0;
+    data.stats.parked = 0;
+    data.stats.blocked = 0;
+    data.stats.done = 0;
+    data.stats.stuck = 0;
+    data.stats.total = data.stats.standing || 0;
+  }
+  return data;
+}
 
 // Helper function to read projects data
 async function readProjects() {

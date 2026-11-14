@@ -256,7 +256,30 @@ test('app starts and /status responds', async () => {
     const page = await fetch('http://127.0.0.1:' + port + '/task-board');
     const html = await page.text();
     assert.equal(page.status, 200);
-    assert.match(html, /Standing \/ Operational/);
+    assert.match(html, /Project Tasks/);
+    assert.match(html, /id="kanban-board"/);
+    assert.match(html, /BOARD_KIND\s*=\s*"project"/);
+    assert.match(html, /href="\/tasks\/standing"/);
+    assert.doesNotMatch(html, /id="standing-board"/);
+    assert.doesNotMatch(html, />Task Board</);
+
+    const standingPage = await fetch('http://127.0.0.1:' + port + '/tasks/standing');
+    const standingHtml = await standingPage.text();
+    assert.equal(standingPage.status, 200);
+    assert.match(standingHtml, /Standing Tasks/);
+    assert.match(standingHtml, /id="standing-board"/);
+    assert.match(standingHtml, /Scheduled/);
+    assert.match(standingHtml, /Inactive/);
+    assert.match(standingHtml, /BOARD_KIND\s*=\s*"standing"/);
+    assert.doesNotMatch(standingHtml, /id="kanban-board"/);
+    assert.doesNotMatch(standingHtml, />Task Board</);
+
+    const kanban = await fetch('http://127.0.0.1:' + port + '/kanban', { redirect: 'manual' });
+    assert.equal(kanban.status, 301);
+    assert.match(kanban.headers.get('location') || '', /\/task-board$/);
+    const projectsKanban = await fetch('http://127.0.0.1:' + port + '/projects/kanban', { redirect: 'manual' });
+    assert.equal(projectsKanban.status, 301);
+    assert.match(projectsKanban.headers.get('location') || '', /\/task-board$/);
   } finally {
     child.kill('SIGTERM');
   }
