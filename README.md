@@ -12,6 +12,28 @@ BrainStore (`lib/BrainStore.js`) is the shared memory layer. It is a SQLite data
 
 It replaces the older git / vault-sync model. Writes are ACID transactional. Every write saves a full snapshot in version history. FTS5 provides full-text search across all documents. Paths stay hierarchical and vault-relative, for example `03 - Agents/Coordination/Task Board.md`.
 
+The Task Board, task notes, agent registry, heartbeats, and other vault reads go through BrainStore. `VaultReader.sync()` does not run `git pull`. The on-disk vault is used only when `brain.db` cannot be opened.
+
+### Task types
+
+Task notes (`03 - Agents/Coordination/Tasks/TASK-*.md`) carry:
+
+| Field | Values |
+|---|---|
+| `type` | `project` (default) or `standing` |
+| `standing_status` | `scheduled`, `active`, or `inactive` (standing only) |
+| `cadence` | `daily`, `weekdays`, `weekly`, `monthly`, or a cron string |
+| `heartbeat_job` | optional heartbeat job name |
+
+Project tasks stay on Inbox / In Progress / Parked / Blocked / Done. Standing tasks are operational: they are removed from In Progress (and the other workflow columns) and shown as Scheduled, Active, or Inactive. Explicit `type` wins. Otherwise standing is inferred, in order: a `cadence` / `schedule` / `cron` field (`inferred:cadence`); a tie to a doc under `08 - QA-and-Monitoring/Heartbeats/` or a `heartbeat_job` field (`inferred:heartbeat`); progress notes on 3+ distinct days with a regular gap (`inferred:progress-notes`); a title like “daily … check/watch/scan/sweep/monitor” (`inferred:title`). The API returns `type` and `typeSource` (`explicit` or `inferred:<signal>`). Inferred status is `active` when a progress note or matching heartbeat is inside about 2× the cadence (48h if unknown, 72h for weekdays), otherwise `inactive`. `scheduled` is explicit only.
+
+```bash
+node scripts/migrate-task-types.js --db data/brain.db          # dry-run
+node scripts/migrate-task-types.js --db data/brain.db --apply  # writes frontmatter + document_versions
+```
+
+See [docs/task-types.md](docs/task-types.md).
+
 To load an existing Obsidian vault into BrainStore:
 
 ```bash
@@ -213,7 +235,7 @@ HANDLED-YYYY-MM-DD-HH-MM-*.md
 
 1. **BrainStore** (`lib/BrainStore.js`) - SQLite document DB. Source of truth for Brain API reads and writes.
 2. **HTTP API and UI** (`index.js`, `views/`, `public/`) - Express + EJS. Brain REST, MCP, agent REST, and the dashboard.
-3. **VaultReader** (`lib/VaultReader.js`) - read-only scan of heartbeat and coordination files still on disk.
+3. **VaultReader** (`lib/VaultReader.js`) - task board, notes, registry, and heartbeats. Reads and writes `brain.db` through BrainStore. Filesystem is the fallback when the database is unavailable. Git pull is disabled.
 4. **OpenClaw bridge** (`lib/ClawBridge.js`) - optional WebSocket client for one supported agent runtime.
 
 `data/` is gitignored and should never contain secrets or a live `brain.db` in git.

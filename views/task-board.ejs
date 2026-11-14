@@ -127,6 +127,18 @@
     .col-done     .kb-col-header { color: #6ee7b7; border-bottom-color: #0d3326; }
     .col-done     { border-top: 2px solid #059669; }
 
+    .standing-board {
+      flex-shrink: 0; max-height: 30%; overflow: auto;
+      margin-bottom: 0.55rem; border: 1px solid #1f2937;
+      border-top: 2px solid #d97706; border-radius: 8px; background: #111827;
+    }
+    .standing-groups { display: flex; gap: 0.6rem; padding: 0.45rem 0.6rem 0.6rem; }
+    .standing-group { flex: 1; min-width: 0; }
+    .standing-group h3 {
+      margin: 0 0 0.35rem; font-size: 0.68rem; color: #d1d5db;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+
     .kb-count {
       font-size: 0.68rem;
       background: #374151;
@@ -757,6 +769,14 @@
         <button class="kb-tab tab-done" id="ktab-done">✅ <span class="kb-tab-count" id="tab-count-done">—</span></button>
       </div>
 
+      <section id="standing-board" class="standing-board" style="display:none">
+        <div class="kb-col-header" style="color:#fbbf24">
+          <span>Standing / Operational</span>
+          <span class="kb-count" id="count-standing">0</span>
+        </div>
+        <div class="standing-groups" id="standing-groups"></div>
+      </section>
+
       <!-- Board -->
       <div class="kb-board" id="kanban-board">
         <div class="kb-col col-inbox">
@@ -851,6 +871,29 @@
       renderCol('col-inprogress-cards', currentData.inProgress, false, false);
       renderCol('col-blocked-cards',    currentData.blocked,    true,  false);
       renderCol('col-done-cards',       currentData.done,       false, true);
+      renderStanding(currentData);
+    }
+
+    function renderStanding(data) {
+      const s = (data && data.standing) || { scheduled: [], active: [], inactive: [] };
+      const wrap = document.getElementById('standing-board');
+      const total = (s.scheduled || []).length + (s.active || []).length + (s.inactive || []).length;
+      const countEl = document.getElementById('count-standing');
+      if (countEl) countEl.textContent = String(total);
+      if (!wrap) return;
+      if (!total) { wrap.style.display = 'none'; return; }
+      wrap.style.display = '';
+      const filter = t => !activeAgentFilter || (t.agent || '').toLowerCase() === activeAgentFilter;
+      wrap.querySelector('#standing-groups').innerHTML = [
+        ['Scheduled', 'scheduled'], ['Active', 'active'], ['Inactive', 'inactive'],
+      ].map(([label, key]) => {
+        const all = s[key] || [];
+        const tasks = all.filter(filter);
+        const body = tasks.length
+          ? tasks.map(t => card(t, '')).join('')
+          : '<div class="kb-empty">Empty</div>';
+        return `<div class="standing-group"><h3>${label} <span class="kb-count">${all.length}</span></h3>${body}</div>`;
+      }).join('');
     }
 
     /* ── Operator “Your Queue” ── */
@@ -923,6 +966,10 @@
 
       const agentEl = task.agent
         ? `<span class="chip chip-agent" style="${agentColor(task.agent)}">${task.agent}</span>` : '';
+      const cadenceEl = task.cadence
+        ? `<span class="chip">${String(task.cadence).replace(/</g,'')}</span>` : '';
+      const lastEl = task.lastRun
+        ? `<span class="kb-date">last ${String(task.lastRun).slice(0, 16).replace(/</g,'')}</span>` : '';
       const priEl  = priorityChip(task.priority);
       const rawDt  = st === 'inProgress' ? (task.deadline||'') : (task.deadline||task.created||'');
       const dateEl = rawDt && rawDt !== '\u2014'
@@ -960,15 +1007,15 @@
         </div>`;
       }
 
-      const stCls    = { inbox:'st-inbox', inProgress:'st-wip', blocked:'st-blocked', done:'st-done' };
-      const draggable = st !== 'done' ? 'draggable="true"' : '';
+      const stCls    = { inbox:'st-inbox', inProgress:'st-wip', blocked:'st-blocked', done:'st-done', standing:'st-standing' };
+      const draggable = (st !== 'done' && st !== 'standing') ? 'draggable="true"' : '';
       const pathAttr  = docPath ? `data-task-path="${encodeURIComponent(docPath)}"` : '';
 
       return `<div class="kb-card ${extraCls||''} ${stCls[st]||''} ${task.isStuck?'is-stuck':''}"
         ${draggable} data-task-id="${task.taskId||''}" data-section="${st}" ${pathAttr}>
         ${idEl}
         <div class="card-label">${label}</div>
-        <div class="card-chips">${agentEl}${priEl}${dateEl}</div>
+        <div class="card-chips">${agentEl}${cadenceEl}${lastEl}${priEl}${dateEl}</div>
         ${actionEl}
       </div>`;
     }
@@ -1072,6 +1119,7 @@
         renderCol('col-inprogress-cards', data.inProgress, false, false);
         renderCol('col-blocked-cards',    data.blocked,    true,  false);
         renderCol('col-done-cards',       data.done,       false, true);
+        renderStanding(data);
         renderJimmyQueue(data);
         document.getElementById('tb-refresh-note').textContent =
           'Updated ' + new Date().toLocaleTimeString();
