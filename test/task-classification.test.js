@@ -90,10 +90,10 @@ test('explicit standing_status scheduled is kept', () => {
   assert.equal(info.standingStatus, 'scheduled');
 });
 
-test('heartbeat mention infers standing', () => {
+test('a task id inside a heartbeat does not infer standing', () => {
   const info = classifyTask({
-    taskId: 'TASK-20261023-001',
-    title: 'security routine',
+    taskId: 'TASK-20261011-004',
+    title: 'GigOrder checkout',
     frontmatter: {},
     body: '',
     heartbeats: [{
@@ -101,28 +101,163 @@ test('heartbeat mention infers standing', () => {
       job: 'swarm-security-watch',
       type: 'swarm security watch',
       filename: '2026-11-14-09-00-swarm-security-watch.md',
-      taskIds: ['TASK-20261023-001'],
+      taskIds: ['TASK-20261011-004'],
+      content: 'Checked TASK-20261011-004 for agent north',
     }],
     now: NOW,
   });
-  assert.equal(info.typeSource, 'inferred:heartbeat');
-  assert.equal(info.standingStatus, 'active');
-  assert.equal(info.heartbeatJob, 'swarm-security-watch');
+  assert.equal(info.type, 'project');
+  assert.equal(info.typeSource, 'default');
 });
 
-test('three evenly spaced progress notes infer a daily cadence', () => {
-  const dates = extractProgressDates(notesOn(['2026-11-12', '2026-11-13', '2026-11-14']));
-  assert.deepEqual(dates, ['2026-11-12', '2026-11-13', '2026-11-14']);
+test('heartbeat_job infers standing only when it matches a heartbeat job or file', () => {
+  const heartbeats = [{
+    date: '2026-11-14T09:00',
+    job: 'swarm-security-watch',
+    type: 'swarm security watch',
+    filename: '2026-11-14-09-00-swarm-security-watch.md',
+    taskIds: [],
+  }];
+  const matched = classifyTask({
+    taskId: 'TASK-20261023-001',
+    title: 'security routine',
+    frontmatter: { heartbeat_job: 'swarm-security-watch' },
+    body: '',
+    heartbeats,
+    now: NOW,
+  });
+  assert.equal(matched.typeSource, 'inferred:heartbeat');
+  assert.equal(matched.standingStatus, 'active');
+  assert.equal(matched.heartbeatJob, 'swarm-security-watch');
+
+  const unmatched = classifyTask({
+    title: 'security routine',
+    frontmatter: { heartbeat_job: 'some-other-job' },
+    body: '',
+    heartbeats,
+    now: NOW,
+  });
+  assert.equal(unmatched.type, 'project');
+});
+
+test('five daily notes plus an operational hint infer standing; fewer notes do not', () => {
+  const five = ['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14'];
+  const dates = extractProgressDates(notesOn(five));
+  assert.deepEqual(dates, five);
   assert.equal(inferCadenceFromDates(dates), 'daily');
-  const info = classifyTask({
-    title: 'routine pass',
+  assert.equal(inferCadenceFromDates(['2026-11-12', '2026-11-13', '2026-11-14']), null);
+  const hinted = classifyTask({
+    title: 'Swarm + host security watch',
+    frontmatter: {},
+    body: notesOn(five),
+    now: NOW,
+  });
+  assert.equal(hinted.typeSource, 'inferred:progress-notes');
+  assert.equal(hinted.cadence, 'daily');
+  assert.equal(hinted.standingStatus, 'active');
+
+  const shortRun = classifyTask({
+    title: 'Swarm + host security watch',
     frontmatter: {},
     body: notesOn(['2026-11-12', '2026-11-13', '2026-11-14']),
     now: NOW,
   });
-  assert.equal(info.typeSource, 'inferred:progress-notes');
-  assert.equal(info.cadence, 'daily');
-  assert.equal(info.standingStatus, 'active');
+  assert.equal(shortRun.type, 'project');
+
+  const noHint = classifyTask({
+    title: 'GigOrder checkout',
+    frontmatter: {},
+    body: notesOn(five),
+    now: NOW,
+  });
+  assert.equal(noHint.type, 'project');
+});
+
+test('done and cancelled tasks stay project even when the title looks operational', () => {
+  const titled = {
+    title: 'GCP daily spend report',
+    frontmatter: { status: 'done' },
+    body: '',
+    now: NOW,
+  };
+  assert.equal(classifyTask(titled).type, 'project');
+  assert.equal(classifyTask({
+    title: 'daily swarm security watch',
+    frontmatter: { status: 'cancelled' },
+    now: NOW,
+  }).type, 'project');
+  assert.equal(classifyTask({
+    title: 'daily swarm security watch',
+    frontmatter: {},
+    section: 'done',
+    now: NOW,
+  }).type, 'project');
+  assert.equal(classifyTask({
+    title: 'GCP daily spend report',
+    frontmatter: { type: 'standing', standing_status: 'active' },
+    section: 'done',
+    now: NOW,
+  }).typeSource, 'explicit');
+});
+
+test('prod false positives stay project; the two daily routines stay standing', () => {
+  const noise = [{
+    date: '2026-11-14T09:00',
+    job: 'morning-digest',
+    type: 'morning digest',
+    filename: '2026-11-14-09-00-morning-digest.md',
+    taskIds: [
+      'TASK-20261011-004',
+      'TASK-20261008-001',
+      'TASK-20261029-001',
+      'TASK-20260701-004',
+      'TASK-20261023-001',
+      'TASK-20261021-001',
+    ],
+  }];
+  const projects = [
+    ['TASK-20261011-004', 'GigOrder checkout'],
+    ['TASK-20261008-001', 'BJB one-step claim signup'],
+    ['TASK-20261029-001', 'Retire Bitwarden'],
+    ['TASK-20260701-004', 'BKS Migration'],
+  ];
+  for (const [taskId, title] of projects) {
+    const info = classifyTask({
+      taskId,
+      title,
+      frontmatter: { status: 'inProgress' },
+      body: notesOn(['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14']),
+      heartbeats: noise,
+      section: 'inProgress',
+      now: NOW,
+    });
+    assert.equal(info.type, 'project', title);
+    assert.notEqual(info.typeSource, 'inferred:heartbeat', title);
+  }
+
+  const security = classifyTask({
+    taskId: 'TASK-20261023-001',
+    title: 'Swarm + host security watch',
+    frontmatter: {},
+    body: notesOn(['2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14']),
+    heartbeats: noise,
+    section: 'inProgress',
+    now: NOW,
+  });
+  assert.equal(security.type, 'standing');
+  assert.equal(security.typeSource, 'inferred:progress-notes');
+
+  const spend = classifyTask({
+    taskId: 'TASK-20261021-001',
+    title: 'GCP daily spend report',
+    frontmatter: {},
+    body: '',
+    heartbeats: noise,
+    section: 'inProgress',
+    now: NOW,
+  });
+  assert.equal(spend.type, 'standing');
+  assert.equal(spend.typeSource, 'inferred:title');
 });
 
 test('irregular dates do not infer standing from progress notes', () => {
