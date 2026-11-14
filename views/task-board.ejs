@@ -126,18 +126,12 @@
     .col-blocked  { border-top: 2px solid #dc2626; }
     .col-done     .kb-col-header { color: #6ee7b7; border-bottom-color: #0d3326; }
     .col-done     { border-top: 2px solid #059669; }
-
-    .standing-board {
-      flex-shrink: 0; max-height: 30%; overflow: auto;
-      margin-bottom: 0.55rem; border: 1px solid #1f2937;
-      border-top: 2px solid #d97706; border-radius: 8px; background: #111827;
-    }
-    .standing-groups { display: flex; gap: 0.6rem; padding: 0.45rem 0.6rem 0.6rem; }
-    .standing-group { flex: 1; min-width: 0; }
-    .standing-group h3 {
-      margin: 0 0 0.35rem; font-size: 0.68rem; color: #d1d5db;
-      text-transform: uppercase; letter-spacing: 0.06em;
-    }
+    .col-scheduled .kb-col-header { color: #fbbf24; border-bottom-color: #4a3b12; }
+    .col-scheduled { border-top: 2px solid #d97706; }
+    .col-active .kb-col-header { color: #6ee7b7; border-bottom-color: #0d3326; }
+    .col-active { border-top: 2px solid #059669; }
+    .col-inactive .kb-col-header { color: #9ca3af; border-bottom-color: #374151; }
+    .col-inactive { border-top: 2px solid #4b5563; }
 
     .kb-count {
       font-size: 0.68rem;
@@ -724,13 +718,13 @@
   </header>
 
   <div class="oc-main-content">
-    <%- include('partials/sidebar', { currentPath: '/task-board' }) %>
+    <%- include('partials/sidebar', { currentPath: currentPath }) %>
 
     <main class="oc-dashboard-area">
 
       <!-- Top strip -->
       <div class="tb-topbar">
-        <h1 class="tb-title">📋 Task Board</h1>
+        <h1 class="tb-title"><%= boardKind === 'standing' ? '⏱️ Standing Tasks' : '📋 Project Tasks' %></h1>
         <div class="tb-meta">
           <span id="tb-refresh-note">Loading…</span>
           <span id="tb-sync-ts"></span>
@@ -761,6 +755,31 @@
       <!-- Vault error -->
       <div class="tb-error" id="vault-error"></div>
 
+      <% if (boardKind === 'standing') { %>
+      <div class="kb-board" id="standing-board">
+        <div class="kb-col col-scheduled">
+          <div class="kb-col-header">
+            <span>Scheduled</span>
+            <span class="kb-count" id="count-standing-scheduled">—</span>
+          </div>
+          <div class="kb-col-body" id="col-standing-scheduled" data-section="standing"></div>
+        </div>
+        <div class="kb-col col-active">
+          <div class="kb-col-header">
+            <span>Active</span>
+            <span class="kb-count" id="count-standing-active">—</span>
+          </div>
+          <div class="kb-col-body" id="col-standing-active" data-section="standing"></div>
+        </div>
+        <div class="kb-col col-inactive">
+          <div class="kb-col-header">
+            <span>Inactive</span>
+            <span class="kb-count" id="count-standing-inactive">—</span>
+          </div>
+          <div class="kb-col-body" id="col-standing-inactive" data-section="standing"></div>
+        </div>
+      </div>
+      <% } else { %>
       <!-- Mobile column tabs -->
       <div class="kb-tabs">
         <button class="kb-tab tab-inbox active" id="ktab-inbox">📥 <span class="kb-tab-count" id="tab-count-inbox">—</span></button>
@@ -768,14 +787,6 @@
         <button class="kb-tab tab-blocked" id="ktab-blocked">🚫 <span class="kb-tab-count" id="tab-count-blocked">—</span></button>
         <button class="kb-tab tab-done" id="ktab-done">✅ <span class="kb-tab-count" id="tab-count-done">—</span></button>
       </div>
-
-      <section id="standing-board" class="standing-board" style="display:none">
-        <div class="kb-col-header" style="color:#fbbf24">
-          <span>Standing / Operational</span>
-          <span class="kb-count" id="count-standing">0</span>
-        </div>
-        <div class="standing-groups" id="standing-groups"></div>
-      </section>
 
       <!-- Board -->
       <div class="kb-board" id="kanban-board">
@@ -819,6 +830,7 @@
           </div>
         </div>
       </div>
+      <% } %>
 
     </main>
   </div>
@@ -852,6 +864,7 @@
     })();
 
     /* ── State ── */
+    const BOARD_KIND   = <%- JSON.stringify(boardKind === 'standing' ? 'standing' : 'project') %>;
     const DONE_LIMIT   = 10;
     let currentData    = null;
     let doneExpanded   = false;
@@ -867,42 +880,45 @@
     }
 
     function reRenderAll() {
+      if (BOARD_KIND === 'standing') {
+        renderStanding(currentData);
+        return;
+      }
       renderCol('col-inbox-cards',      currentData.inbox,      false, false);
       renderCol('col-inprogress-cards', currentData.inProgress, false, false);
       renderCol('col-blocked-cards',    currentData.blocked,    true,  false);
       renderCol('col-done-cards',       currentData.done,       false, true);
-      renderStanding(currentData);
     }
 
     function renderStanding(data) {
       const s = (data && data.standing) || { scheduled: [], active: [], inactive: [] };
-      const wrap = document.getElementById('standing-board');
-      const total = (s.scheduled || []).length + (s.active || []).length + (s.inactive || []).length;
-      const countEl = document.getElementById('count-standing');
-      if (countEl) countEl.textContent = String(total);
-      if (!wrap) return;
-      if (!total) { wrap.style.display = 'none'; return; }
-      wrap.style.display = '';
       const filter = t => !activeAgentFilter || (t.agent || '').toLowerCase() === activeAgentFilter;
-      wrap.querySelector('#standing-groups').innerHTML = [
-        ['Scheduled', 'scheduled'], ['Active', 'active'], ['Inactive', 'inactive'],
-      ].map(([label, key]) => {
+      [['scheduled', 'col-standing-scheduled', 'count-standing-scheduled'],
+       ['active', 'col-standing-active', 'count-standing-active'],
+       ['inactive', 'col-standing-inactive', 'count-standing-inactive']].forEach(([key, colId, countId]) => {
+        const col = document.getElementById(colId);
+        const countEl = document.getElementById(countId);
+        if (!col) return;
         const all = s[key] || [];
+        if (countEl) countEl.textContent = String(all.length);
         const tasks = all.filter(filter);
-        const body = tasks.length
+        col.innerHTML = tasks.length
           ? tasks.map(t => card(t, '')).join('')
           : '<div class="kb-empty">Empty</div>';
-        return `<div class="standing-group"><h3>${label} <span class="kb-count">${all.length}</span></h3>${body}</div>`;
-      }).join('');
+      });
     }
 
     /* ── Operator “Your Queue” ── */
     function renderJimmyQueue(data) {
-      const jimmyTasks = [
-        ...(data.inbox      || []),
-        ...(data.inProgress || []),
-        ...(data.blocked    || []),
-      ].filter(t => (t.agent || '').toLowerCase() === (window.__OC_OPERATOR_KEY__ || 'operator'));
+      const standingGroups = (data.standing) || {};
+      const jimmyTasks = (BOARD_KIND === 'standing'
+        ? [...(standingGroups.scheduled || []), ...(standingGroups.active || []), ...(standingGroups.inactive || [])]
+        : [
+            ...(data.inbox      || []),
+            ...(data.inProgress || []),
+            ...(data.blocked    || []),
+          ]
+      ).filter(t => (t.agent || '').toLowerCase() === (window.__OC_OPERATOR_KEY__ || 'operator'));
 
       const qEl = document.getElementById('jimmy-queue');
       const cEl = document.getElementById('jq-count');
@@ -921,6 +937,7 @@
         let sCls = 'jq-status-inbox', sLabel = '\ud83d\udce5 Inbox';
         if (t.status === 'inProgress') { sCls = 'jq-status-progress'; sLabel = '\ud83d\udd04 In Progress'; }
         if (t.status === 'blocked')    { sCls = 'jq-status-blocked';  sLabel = '\ud83d\udeab Blocked'; }
+        if (t.status === 'standing')   { sCls = 'jq-status-progress'; sLabel = t.standingStatus || 'standing'; }
         return `<div class="jq-card">`
           + `<div class="jq-status-label ${sCls}">${sLabel}</div>`
           + idEl
@@ -970,6 +987,8 @@
         ? `<span class="chip">${String(task.cadence).replace(/</g,'')}</span>` : '';
       const lastEl = task.lastRun
         ? `<span class="kb-date">last ${String(task.lastRun).slice(0, 16).replace(/</g,'')}</span>` : '';
+      const sourceEl = (st === 'standing' && task.typeSource)
+        ? `<span class="chip">${String(task.typeSource).replace(/</g,'')}</span>` : '';
       const priEl  = priorityChip(task.priority);
       const rawDt  = st === 'inProgress' ? (task.deadline||'') : (task.deadline||task.created||'');
       const dateEl = rawDt && rawDt !== '\u2014'
@@ -1015,7 +1034,7 @@
         ${draggable} data-task-id="${task.taskId||''}" data-section="${st}" ${pathAttr}>
         ${idEl}
         <div class="card-label">${label}</div>
-        <div class="card-chips">${agentEl}${cadenceEl}${lastEl}${priEl}${dateEl}</div>
+        <div class="card-chips">${agentEl}${cadenceEl}${lastEl}${sourceEl}${priEl}${dateEl}</div>
         ${actionEl}
       </div>`;
     }
@@ -1094,16 +1113,26 @@
     async function loadBoard() {
       const err = document.getElementById('vault-error');
       try {
-        const data = await fetch('/api/vault/task-board').then(r => r.json());
+        const data = await fetch('/api/vault/task-board?type=' + BOARD_KIND).then(r => r.json());
         if (data.error) {
           err.style.display = 'block';
           err.textContent = '⚠️ Vault unavailable: ' + (data.details || data.error);
-          ['inbox','inprogress','blocked','done'].forEach(k =>
-            document.getElementById('col-'+k+'-cards').innerHTML = '<div class="kb-empty">No data</div>');
+          ['inbox','inprogress','blocked','done'].forEach(k => {
+            const el = document.getElementById('col-'+k+'-cards');
+            if (el) el.innerHTML = '<div class="kb-empty">No data</div>';
+          });
+          if (BOARD_KIND === 'standing') renderStanding({ standing: { scheduled: [], active: [], inactive: [] } });
           return;
         }
         err.style.display = 'none';
         currentData = data;
+        if (BOARD_KIND === 'standing') {
+          renderStanding(data);
+          renderJimmyQueue(data);
+          document.getElementById('tb-refresh-note').textContent =
+            'Updated ' + new Date().toLocaleTimeString();
+          return;
+        }
         document.getElementById('count-inbox').textContent      = data.inbox.length;
         const stuckCount = (data.inProgress || []).filter(t => t.isStuck).length;
         const wipCountEl  = document.getElementById('count-inprogress');
@@ -1119,7 +1148,6 @@
         renderCol('col-inprogress-cards', data.inProgress, false, false);
         renderCol('col-blocked-cards',    data.blocked,    true,  false);
         renderCol('col-done-cards',       data.done,       false, true);
-        renderStanding(data);
         renderJimmyQueue(data);
         document.getElementById('tb-refresh-note').textContent =
           'Updated ' + new Date().toLocaleTimeString();
@@ -1199,8 +1227,10 @@
     let _isDraggingCard = false;
 
     function initDragDrop() {
+      const board = document.getElementById('kanban-board');
+      if (!board) return;
       // Drag start on cards
-      document.getElementById('kanban-board').addEventListener('dragstart', e => {
+      board.addEventListener('dragstart', e => {
         const card = e.target.closest('.kb-card[draggable]');
         if (!card) return;
         _dragState = { taskId: card.dataset.taskId, section: card.dataset.section };
@@ -1210,7 +1240,7 @@
         setTimeout(() => card.classList.add('is-dragging'), 0);
       });
 
-      document.getElementById('kanban-board').addEventListener('dragend', e => {
+      board.addEventListener('dragend', e => {
     setTimeout(() => { _isDraggingCard = false; }, 50);
         document.querySelectorAll('.kb-card.is-dragging').forEach(c => c.classList.remove('is-dragging'));
         document.querySelectorAll('.kb-col-body.drag-over, .kb-col-body.drag-over-blocked').forEach(c => {
@@ -1220,8 +1250,6 @@
 
       // Delegated dragover/dragleave/drop on column bodies
       // (must use delegation — column bodies are created dynamically by loadBoard)
-      const board = document.getElementById('kanban-board');
-
       // Resolve the nearest .kb-col-body from any element inside a column
       // (handles drops on column headers, gaps, cards, or the body itself)
       function nearestColBody(target) {
@@ -1365,6 +1393,7 @@
     (function () {
       if (window.innerWidth > 820) return;
       var board = document.getElementById('kanban-board');
+      if (!board) return;
       var tabs  = ['inbox','inprogress','blocked','done'].map(function(k) {
         return document.getElementById('ktab-' + k);
       });
@@ -1547,7 +1576,9 @@
     }
 
     function initCardModal() {
-      document.getElementById('kanban-board').addEventListener('click', e => {
+      const cardRoot = document.getElementById('kanban-board') || document.getElementById('standing-board');
+      if (!cardRoot) return;
+      cardRoot.addEventListener('click', e => {
         if (_isDraggingCard) return;
         const card = e.target.closest('.kb-card');
         if (!card) return;

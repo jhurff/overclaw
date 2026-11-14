@@ -4,7 +4,8 @@
         <ul>
             <li><a href="/swarm"       class="<%= typeof currentPath !== 'undefined' && currentPath === '/swarm'       ? 'active' : '' %>"><span class="icon">🌐</span>Overview</a></li>
             <li><a href="/vault/browse" class="<%= typeof currentPath !== 'undefined' && currentPath === '/vault/browse' ? 'active' : '' %>"><span class="icon">📁</span>Browse</a></li>
-            <li><a href="/task-board"  class="<%= typeof currentPath !== 'undefined' && currentPath === '/task-board'  ? 'active' : '' %>"><span class="icon">📋</span>Task Board</a></li>
+            <li><a href="/task-board" class="<%= typeof currentPath !== 'undefined' && (currentPath === '/task-board' || currentPath === '/tasks/project') ? 'active' : '' %>"><span class="icon">📋</span>Project Tasks</a></li>
+            <li><a href="/tasks/standing" class="<%= typeof currentPath !== 'undefined' && currentPath === '/tasks/standing' ? 'active' : '' %>"><span class="icon">⏱️</span>Standing Tasks</a></li>
             <li><a href="/activity"    class="<%= typeof currentPath !== 'undefined' && currentPath === '/activity'    ? 'active' : '' %>"><span class="icon">📡</span>Feed</a></li>
             <li><a href="/vault/graph" class="<%= typeof currentPath !== 'undefined' && currentPath === '/vault/graph' ? 'active' : '' %>"><span class="icon">🕸️</span>Graph</a></li>
             <li><a href="/security"    class="<%= typeof currentPath !== 'undefined' && currentPath === '/security'    ? 'active' : '' %>"><span class="icon">🔒</span>Security</a></li>

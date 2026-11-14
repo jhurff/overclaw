@@ -149,7 +149,8 @@ The Express / EJS app is a read-mostly oversight UI on top of BrainStore and, wh
 | Screen | What it shows |
 |---|---|
 | `/swarm` | Swarm snapshot and recent Brain activity |
-| `/task-board` | Kanban of swarm tasks |
+| `/task-board` | Project Tasks kanban (Inbox, In Progress, Parked, Blocked, Done). `/tasks/project`, `/kanban`, and `/projects/kanban` redirect here. |
+| `/tasks/standing` | Standing Tasks, grouped Scheduled, Active, and Inactive |
 | `/agents` | Agent roster |
 | `/activity` | Unified feed of Brain ops, writes, heartbeats, and MCP connects |
 | `/brain` | Brain browser and editor |
