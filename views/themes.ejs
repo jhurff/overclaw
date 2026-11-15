@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/document-head') %>
+</head>
+<body>
+  <%- include('partials/app-header') %>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/settings/themes' }) %>
+    <main class="oc-dashboard-area">
+      <div class="oc-card full-width theme-page">
+        <div>
+          <h1>Themes</h1>
+          <p class="theme-lead">Pick a pack for every page. Matrix is the default. Built-in packs stay installed. Imported packs can be removed.</p>
+        </div>
+        <div class="theme-actions">
+          <button type="button" class="btn-secondary" id="theme-reset">Reset to Matrix</button>
+        </div>
+        <div class="theme-error" id="theme-error" role="alert"></div>
+        <div class="theme-grid" id="theme-grid">
+          <p>Loading themes...</p>
+        </div>
+        <form class="theme-file" id="theme-import-form">
+          <h2>Load a theme pack</h2>
+          <p class="theme-lead">Upload a theme.json file or a zip that contains theme.json and an optional extra.css. CSS only. Scripts, imports, and URL loads are rejected.</p>
+          <input id="theme-file" type="file" accept=".json,.zip,application/json,application/zip" aria-label="Theme pack file">
+          <div>
+            <button type="submit" class="btn-primary">Import pack</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <%- include('partials/chrome-end') %>
+  <script>
+    (function () {
+      var grid = document.getElementById('theme-grid');
+      var errorBox = document.getElementById('theme-error');
+
+      function showError(msg) {
+        errorBox.style.display = msg ? 'block' : 'none';
+        errorBox.textContent = msg || '';
+      }
+
+      function previewStyle(tokens) {
+        var keys = ['--oc-bg', '--oc-bg-header', '--oc-bg-card', '--oc-text', '--oc-text-header', '--oc-accent', '--oc-border', '--oc-font-sans'];
+        return keys.map(function (k) {
+          return tokens[k] ? k + ':' + tokens[k] : '';
+        }).filter(Boolean).join(';');
+      }
+
+      function render(themes) {
+        grid.innerHTML = '';
+        themes.forEach(function (theme) {
+          var card = document.createElement('article');
+          card.className = 'theme-card' + (theme.active ? ' is-active' : '');
+          var preview = document.createElement('div');
+          preview.className = 'theme-preview';
+          preview.setAttribute('style', previewStyle(theme.tokens || {}));
+          preview.style.background = 'var(--oc-bg)';
+          preview.style.color = 'var(--oc-text)';
+          preview.style.fontFamily = 'var(--oc-font-sans)';
+          preview.style.borderBottom = '1px solid var(--oc-border)';
+          preview.innerHTML = '<div class="pv-bar"></div><div class="pv-row"><div class="pv-card"></div><div class="pv-card"></div></div>';
+          var bar = preview.querySelector('.pv-bar');
+          bar.style.background = 'var(--oc-bg-header)';
+          preview.querySelectorAll('.pv-card').forEach(function (el) {
+            el.style.background = 'var(--oc-bg-card)';
+            el.style.border = '1px solid var(--oc-border)';
+            el.style.boxShadow = 'inset 3px 0 0 var(--oc-accent)';
+          });
+          var body = document.createElement('div');
+          body.className = 'theme-card-body';
+          var title = document.createElement('h2');
+          title.textContent = theme.name;
+          var meta = document.createElement('div');
+          meta.className = 'theme-meta';
+          meta.textContent = theme.builtin ? 'Built-in' : 'Imported';
+          if (theme.active) meta.textContent += ' · Active';
+          var desc = document.createElement('p');
+          desc.textContent = theme.description || '';
+          var actions = document.createElement('div');
+          actions.className = 'theme-card-actions';
+          if (!theme.active) {
+            var use = document.createElement('button');
+            use.type = 'button';
+            use.className = 'btn-primary';
+            use.textContent = 'Use theme';
+            use.addEventListener('click', function () { activate(theme.id); });
+            actions.appendChild(use);
+          }
+          if (!theme.builtin) {
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn-danger';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', function () { removeTheme(theme.id, theme.name); });
+            actions.appendChild(remove);
+          }
+          body.appendChild(title);
+          body.appendChild(meta);
+          body.appendChild(desc);
+          body.appendChild(actions);
+          card.appendChild(preview);
+          card.appendChild(body);
+          grid.appendChild(card);
+        });
+      }
+
+      function load() {
+        return fetch('/api/themes').then(function (r) { return r.json(); }).then(function (data) {
+          if (data.error) throw new Error(data.error);
+          render(data.themes || []);
+        }).catch(function (err) {
+          showError(err.message || 'Could not load themes');
+        });
+      }
+
+      function activate(id) {
+        showError('');
+        try { localStorage.setItem('overclaw-theme-pending', id); } catch (e) {}
+        fetch('/api/themes/active', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: id })
+        }).then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.body.error || 'Could not switch theme');
+            try { localStorage.removeItem('overclaw-theme-pending'); } catch (e) {}
+            if (window.ocApplyThemePack) window.ocApplyThemePack(res.body);
+            return load();
+          }).catch(function (err) {
+            try { localStorage.removeItem('overclaw-theme-pending'); } catch (e) {}
+            showError(err.message || 'Could not switch theme');
+          });
+      }
+
+      function removeTheme(id, name) {
+        if (!window.confirm('Remove the imported theme "' + name + '"?')) return;
+        fetch('/api/themes/' + encodeURIComponent(id), { method: 'DELETE' })
+          .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.body.error || 'Could not remove theme');
+            if (res.body.active && window.ocApplyThemePack) window.ocApplyThemePack(res.body.active);
+            return load();
+          }).catch(function (err) {
+            showError(err.message || 'Could not remove theme');
+          });
+      }
+
+      document.getElementById('theme-reset').addEventListener('click', function () {
+        showError('');
+        fetch('/api/themes/reset', { method: 'POST' })
+          .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.body.error || 'Could not reset');
+            try { localStorage.removeItem('overclaw-theme-pending'); } catch (e) {}
+            if (window.ocApplyThemePack) window.ocApplyThemePack(res.body);
+            return load();
+          }).catch(function (err) {
+            showError(err.message || 'Could not reset');
+          });
+      });
+
+      function bytesToBase64(bytes) {
+        var bin = '';
+        for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin);
+      }
+
+      document.getElementById('theme-import-form').addEventListener('submit', function (event) {
+        event.preventDefault();
+        showError('');
+        var file = document.getElementById('theme-file').files[0];
+        if (!file) { showError('Choose a theme.json or zip file first.'); return; }
+        var lower = file.name.toLowerCase();
+        var done = function (payload) {
+          return fetch('/api/themes/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+            .then(function (res) {
+              if (!res.ok) throw new Error(res.body.error || 'Import failed');
+              document.getElementById('theme-file').value = '';
+              return load();
+            });
+        };
+        if (lower.endsWith('.zip')) {
+          file.arrayBuffer().then(function (buf) {
+            return done({ zipBase64: bytesToBase64(new Uint8Array(buf)) });
+          }).catch(function (err) { showError(err.message || 'Import failed'); });
+          return;
+        }
+        file.text().then(function (text) {
+          var pack;
+          try { pack = JSON.parse(text); }
+          catch (e) { throw new Error('That file is not valid JSON'); }
+          return done({ pack: pack });
+        }).catch(function (err) { showError(err.message || 'Import failed'); });
+      });
+
+      load();
+    })();
+  </script>
+</body>
+</html>

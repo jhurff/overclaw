@@ -20,6 +20,7 @@
         </ul>
         <div class="nav-group-title">Settings</div>
         <ul>
+            <li><a href="/settings/themes" class="<%= typeof currentPath !== 'undefined' && currentPath === '/settings/themes' ? 'active' : '' %>"><span class="icon">◐</span>Themes</a></li>
             <li><a href="/config" class="<%= typeof currentPath !== 'undefined' && currentPath === '/config' ? 'active' : '' %>"><span class="icon">⚙️</span>Config</a></li>
             <li><a href="/logs"   class="<%= typeof currentPath !== 'undefined' && currentPath === '/logs'   ? 'active' : '' %>"><span class="icon">📜</span>Logs</a></li>
             <li><a href="/debug"  class="<%= typeof currentPath !== 'undefined' && currentPath === '/debug'  ? 'active' : '' %>"><span class="icon">🐛</span>Debug</a></li>

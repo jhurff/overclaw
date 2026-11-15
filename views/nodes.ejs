@@ -1,32 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-</head>
+  <%- include('partials/document-head') %>
+
+  </head>
 <body>
-  <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/nodes' }) %>
     <main class="oc-dashboard-area">
-      <div id="nodes-err" style="display:none;color:#f87171;font-size:.82rem;margin-bottom:.5rem"></div>
-      <div id="nodes-setup" style="display:none;color:#6b7280;font-size:.82rem;line-height:1.7;padding:.4rem 0;margin-bottom:.75rem">
-        <strong style="color:#9ca3af">No nodes configured.</strong><br>
-        Copy <code style="font-size:.75rem;color:#818cf8">config/instance.example.json</code>
-        to <code style="font-size:.75rem;color:#818cf8">config/instance.json</code>
+      <div id="nodes-err" style="display:none;color:var(--oc-danger-text);font-size:.82rem;margin-bottom:.5rem"></div>
+      <div id="nodes-setup" style="display:none;color:var(--oc-text-muted);font-size:.82rem;line-height:1.7;padding:.4rem 0;margin-bottom:.75rem">
+        <strong style="color:var(--oc-text-muted)">No nodes configured.</strong><br>
+        Copy <code style="font-size:.75rem;color:var(--oc-info-text)">config/instance.example.json</code>
+        to <code style="font-size:.75rem;color:var(--oc-info-text)">config/instance.json</code>
         and fill in your machine details.<br>
-        <span style="font-size:.72rem;color:#4b5563">That file is gitignored — safe to include IPs, Tailscale addresses, and ports.</span>
+        <span style="font-size:.72rem;color:var(--oc-text-faint)">That file is gitignored  -  safe to include IPs, Tailscale addresses, and ports.</span>
       </div>
       <div id="nodes-table-wrap" style="display:none">
         <div class="oc-table-toolbar">
@@ -51,17 +40,7 @@
     </main>
   </div>
   <script>
-    /* ── sidebar/theme ── */
-    (function(){
-      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-      if(col)sb.classList.add('collapsed');
-      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-      const th=document.getElementById('theme-toggle');
-      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
-    })();
+
 
     function timeAgo(d){
       if(!d)return null;
@@ -97,13 +76,13 @@
       const tbody=document.getElementById('nodes-tbody');
       tbody.innerHTML=vis.length ? vis.map(r=>`
         <tr>
-          <td style="font-weight:700;color:${r.color||'#e2e8f0'}">${r.name}</td>
-          <td style="font-size:.75rem;color:#9ca3af">${r.os||'—'}</td>
-          <td class="${r.ip?'':'dim'}" style="font-family:monospace;font-size:.74rem">${r.ip||'—'}</td>
-          <td class="${r.tailscale?'':'dim'}" style="font-family:monospace;font-size:.74rem">${r.tailscale||'—'}</td>
-          <td style="font-size:.75rem;color:#9ca3af">${r.agentsStr||'—'}</td>
+          <td style="font-weight:700;color:${r.color||'var(--oc-text)'}">${r.name}</td>
+          <td style="font-size:.75rem;color:var(--oc-text-muted)">${r.os||' - '}</td>
+          <td class="${r.ip?'':'dim'}" style="font-family:monospace;font-size:.74rem">${r.ip||' - '}</td>
+          <td class="${r.tailscale?'':'dim'}" style="font-family:monospace;font-size:.74rem">${r.tailscale||' - '}</td>
+          <td style="font-size:.75rem;color:var(--oc-text-muted)">${r.agentsStr||' - '}</td>
           <td style="white-space:nowrap;font-size:.78rem">
-            <span class="oc-hb-dot ${r.hbDot}"></span>${r.hbAgo||'<span style="color:#374151;font-style:italic">never</span>'}
+            <span class="oc-hb-dot ${r.hbDot}"></span>${r.hbAgo||'<span style="color:var(--oc-text-faint);font-style:italic">never</span>'}
           </td>
           <td><div class="oc-action-btns">
             ${r.links.map(l=>`<a href="${l.href}" class="oc-action-btn">${l.label}</a>`).join('')}
@@ -144,7 +123,7 @@
             name:n.name,os:n.os||'',
             ip:n.ip||null,tailscale:n.tailscale||null,
             agentsStr:(n.agents||[]).join(', '),
-            color:n.color||'#e2e8f0',
+            color:n.color||'var(--oc-text)',
             hbDate:hbDate||'',hbAgo:timeAgo(hbDate)||null,hbDot:hbDot(hbDate),
             links:n.links||[],
           };
@@ -158,5 +137,6 @@
     }
     load();
   </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

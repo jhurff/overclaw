@@ -1,0 +1,60 @@
+/* Loaded after page styles so small screens win over desktop page rules. */
+
+@media (max-width: 767px) {
+  html, body { overflow-x: clip; }
+
+  .oc-main-content {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .oc-dashboard-area {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .kb-board, .kanban-board {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-snap-type: x mandatory;
+    max-width: 100%;
+  }
+
+  .kb-col, .swimlane {
+    flex: 0 0 86% !important;
+    width: 86% !important;
+    min-width: 86% !important;
+    max-width: 86% !important;
+    scroll-snap-align: start;
+  }
+
+  .kb-board.kb-stacked, .kanban-board.kb-stacked {
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    scroll-snap-type: none !important;
+  }
+
+  .kb-board.kb-stacked .kb-col,
+  .kanban-board.kb-stacked .swimlane {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .kb-board.kb-stacked .kb-col:not(.is-open) .kb-col-body {
+    display: none !important;
+  }
+
+  input, textarea, select { font-size: 16px !important; }
+
+  .oc-data-table, .oc-agent-table, .oc-table-scroll, .oc-table-wrap {
+    max-width: 100%;
+  }
+}

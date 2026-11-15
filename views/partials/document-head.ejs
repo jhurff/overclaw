@@ -1,0 +1,66 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="<%= typeof themeColor !== 'undefined' ? themeColor : '#000000' %>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OverClaw">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<title><%= typeof title !== 'undefined' ? title : 'OverClaw' %></title>
+<link rel="stylesheet" href="/styles.css">
+<style id="oc-theme-server"><%- typeof themeCss !== 'undefined' ? themeCss : '' %></style>
+<% if (typeof themeFontStylesheet !== 'undefined' && themeFontStylesheet) { %>
+<link rel="stylesheet" href="<%= themeFontStylesheet %>" data-oc-font="1">
+<% } %>
+<script>
+(function () {
+  var serverId = <%- JSON.stringify(typeof themeId !== 'undefined' ? themeId : 'matrix') %>;
+  var effects = <%- JSON.stringify(typeof themeEffects !== 'undefined' ? themeEffects : []) %>;
+  var themeColor = <%- JSON.stringify(typeof themeColor !== 'undefined' ? themeColor : '#000000') %>;
+  var fontHref = <%- JSON.stringify(typeof themeFontStylesheet !== 'undefined' ? themeFontStylesheet : '') %>;
+  var style = document.getElementById('oc-theme-server');
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem('overclaw-theme-pack') || 'null'); } catch (e) { cached = null; }
+  var pending = '';
+  try { pending = localStorage.getItem('overclaw-theme-pending') || ''; } catch (e) { pending = ''; }
+  if (pending && cached && cached.id === pending && cached.css && style) {
+    style.textContent = cached.css;
+    serverId = cached.id;
+    effects = cached.effects || effects;
+    themeColor = cached.themeColor || themeColor;
+  } else if ((!style || !style.textContent) && cached && cached.css) {
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'oc-theme-server';
+      document.head.appendChild(style);
+    }
+    style.textContent = cached.css;
+    serverId = cached.id || serverId;
+    themeColor = cached.themeColor || themeColor;
+    effects = cached.effects || effects;
+  }
+  document.documentElement.setAttribute('data-theme', serverId);
+  document.documentElement.setAttribute('data-effects', (effects || []).join(' '));
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta && themeColor) meta.setAttribute('content', themeColor);
+  try {
+    if (style && style.textContent) {
+      localStorage.setItem('overclaw-theme-pack', JSON.stringify({
+        id: serverId,
+        css: style.textContent,
+        themeColor: themeColor,
+        effects: effects || [],
+        fontStylesheet: fontHref
+      }));
+    }
+  } catch (e) {}
+  window.ocToken = function (name) {
+    return (getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim();
+  };
+  window.ocSeries = function (i) {
+    return window.ocToken('--oc-series-' + ((Math.abs(Number(i) || 0) % 8) + 1)) || 'currentColor';
+  };
+})();
+</script>

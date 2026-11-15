@@ -1,22 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-</head>
+  <%- include('partials/document-head') %>
+
+    </head>
 <body>
-    <header class="oc-header">
-        <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
-        <div class="header-controls">
-            <button id="sidebar-toggle" class="control-button">☰</button>
-            <button id="theme-toggle" class="control-button">☀️</button>
-        </div>
-    </header>
+    <%- include('partials/app-header') %>
 
     <div class="oc-main-content">
 <%- include('partials/sidebar', { currentPath: '/debug' }) %>
@@ -27,44 +16,20 @@
                 <div id="debug-content">
                     <p><strong>Gateway Status:</strong> <span id="gateway-status">Checking...</span></p>
                     <p><strong>Current OverClaw Version:</strong> <span id="overclaw-version">Loading...</span></p>
-                    <h3 style="margin-top: 1.5rem;">Upgrade History</h3>
+                    <h3 style="margin-top:1.5rem;">Upgrade History</h3>
                     <div id="upgrade-history-list" class="oc-list-group">
-                        <p style="padding: 1rem;">Loading upgrade history...</p>
+                        <p style="padding:1rem;">Loading upgrade history...</p>
                     </div>
-                    <button id="refresh-debug" class="oc-button-secondary" style="margin-top: 1rem;">Refresh Debug Info</button>
+                    <button id="refresh-debug" class="oc-button-secondary" style="margin-top:1rem;">Refresh Debug Info</button>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebar = document.getElementById('oc-sidebar');
 
-        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (sidebarCollapsed) sidebar.classList.add('collapsed');
 
-        sidebarToggle.addEventListener('click', () => {
-            sidebarCollapsed = !sidebarCollapsed;
-            sidebarCollapsed ? sidebar.classList.add('collapsed') : sidebar.classList.remove('collapsed');
-            localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
-        });
-
-        const themeToggle = document.getElementById('theme-toggle');
-        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-        let currentTheme = localStorage.getItem('overclaw-theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
-        document.body.classList.add(currentTheme + '-mode');
-        themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-
-        themeToggle.addEventListener('click', () => {
-            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.body.classList.toggle('light-mode', currentTheme === 'light');
-            document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-            localStorage.setItem('overclaw-theme', currentTheme);
-            themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-        });
-
-        async function fetchOverClawVersions() {
+async function fetchOverClawVersions() {
             const overclawVersionSpan = document.getElementById('overclaw-version');
             const upgradeHistoryListDiv = document.getElementById('upgrade-history-list');
             try {
@@ -73,7 +38,7 @@
 
                 if (data.error) {
                     overclawVersionSpan.textContent = `Error: ${data.error}`;
-                    upgradeHistoryListDiv.innerHTML = `<p style="color: red; padding: 1rem;">Error loading history: ${data.details || 'N/A'}</p>`;
+                    upgradeHistoryListDiv.innerHTML = `<p style="color:var(--oc-danger); padding:1rem;">Error loading history: ${data.details || 'N/A'}</p>`;
                     return;
                 }
 
@@ -98,7 +63,7 @@
             } catch (error) {
                 console.error('Error fetching OverClaw versions:', error);
                 overclawVersionSpan.textContent = 'Error loading version';
-                upgradeHistoryListDiv.innerHTML = '<p style="color: red; padding: 1rem;">Failed to load upgrade history.</p>';
+                upgradeHistoryListDiv.innerHTML = '<p style="color:var(--oc-danger); padding:1rem;">Failed to load upgrade history.</p>';
             }
         }
 
@@ -118,5 +83,6 @@
         document.getElementById('refresh-debug').addEventListener('click', refreshDebugInfo);
         document.addEventListener('DOMContentLoaded', refreshDebugInfo);
     </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

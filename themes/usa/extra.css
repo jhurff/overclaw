@@ -1,0 +1,8 @@
+:root { color-scheme: light; }
+.oc-header {
+  box-shadow: inset 0 -4px 0 var(--oc-text-header), inset 0 -8px 0 var(--oc-stripe);
+}
+.oc-sidebar {
+  background-image: radial-gradient(circle, var(--oc-accent-soft) 1.1px, transparent 1.5px);
+  background-size: 18px 18px;
+}

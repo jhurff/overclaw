@@ -34,6 +34,8 @@ node scripts/migrate-task-types.js --db data/brain.db --apply  # writes frontmat
 
 See [docs/task-types.md](docs/task-types.md).
 
+Themes are pack files under `themes/<id>/`. Matrix is the default. See [docs/themes.md](docs/themes.md).
+
 To load an existing Obsidian vault into BrainStore:
 
 ```bash

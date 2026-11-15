@@ -1,22 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-</head>
+  <%- include('partials/document-head') %>
+
+    </head>
 <body>
-    <header class="oc-header">
-        <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
-        <div class="header-controls">
-            <button id="sidebar-toggle" class="control-button">☰</button>
-            <button id="theme-toggle" class="control-button">☀️</button>
-        </div>
-    </header>
+    <%- include('partials/app-header') %>
 
     <div class="oc-main-content">
 <%- include('partials/sidebar', { currentPath: '/sessions' }) %>
@@ -32,63 +21,10 @@
     </div>
 
     <script>
-        const sidebarToggle = document.getElementById('sidebar-toggle');
-        const sidebar = document.getElementById('oc-sidebar');
 
-        let sidebarCollapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (sidebarCollapsed) {
-            sidebar.classList.add('collapsed');
-        } else {
-            sidebar.classList.remove('collapsed');
-        }
 
-        sidebarToggle.addEventListener('click', () => {
-            sidebarCollapsed = !sidebarCollapsed;
-            if (sidebarCollapsed) {
-                sidebar.classList.add('collapsed');
-            } else {
-                sidebar.classList.remove('collapsed');
-            }
-            localStorage.setItem('overclaw-sidebar-collapsed', sidebarCollapsed);
-        });
 
-        const themeToggle = document.getElementById('theme-toggle');
-        const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-
-        let currentTheme = localStorage.getItem('overclaw-theme') || (prefersDarkScheme.matches ? 'dark' : 'light');
-        document.body.classList.add(currentTheme + '-mode');
-        if (currentTheme === 'dark') {
-            themeToggle.textContent = '🌙';
-        } else {
-            themeToggle.textContent = '☀️';
-        }
-
-        themeToggle.addEventListener('click', () => {
-            currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
-            document.body.classList.toggle('light-mode', currentTheme === 'light');
-            document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-            localStorage.setItem('overclaw-theme', currentTheme);
-            if (currentTheme === 'dark') {
-                themeToggle.textContent = '🌙';
-            } else {
-                themeToggle.textContent = '☀️';
-            }
-        });
-
-        prefersDarkScheme.addEventListener('change', (e) => {
-            if (!localStorage.getItem('overclaw-theme')) {
-                currentTheme = e.matches ? 'dark' : 'light';
-                document.body.classList.toggle('light-mode', currentTheme === 'light');
-                document.body.classList.toggle('dark-mode', currentTheme === 'dark');
-                if (currentTheme === 'dark') {
-                    themeToggle.textContent = '🌙';
-                } else {
-                    themeToggle.textContent = '☀️';
-                }
-            }
-        });
-
-        // Helper function to extract agent ID from session key
+// Helper function to extract agent ID from session key
         function getAgentIdFromSessionKey(sessionKey) {
             const parts = sessionKey.split(':');
             if (parts.length > 1 && parts[0] === 'agent') {
@@ -104,7 +40,7 @@
                 const sessionsData = await response.json();
 
                 if (sessionsData.error) {
-                    sessionsListDiv.innerHTML = `<p style="color: red;">Error fetching sessions: ${sessionsData.error}</p><p>Details: ${sessionsData.details || 'N/A'}</p><p>Stdout (partial): ${sessionsData.stdout || 'N/A'}</p>`;
+                    sessionsListDiv.innerHTML = `<p style="color:var(--oc-danger);">Error fetching sessions: ${sessionsData.error}</p><p>Details: ${sessionsData.details || 'N/A'}</p><p>Stdout (partial): ${sessionsData.stdout || 'N/A'}</p>`;
                     return;
                 }
 
@@ -158,11 +94,12 @@
 
             } catch (error) {
                 console.error('Error fetching session details:', error);
-                sessionsListDiv.innerHTML = '<p style="color: red;">Failed to load session data due to client-side error. Check console for details.</p>';
+                sessionsListDiv.innerHTML = '<p style="color:var(--oc-danger);">Failed to load session data due to client-side error. Check console for details.</p>';
             }
         }
 
         document.addEventListener('DOMContentLoaded', fetchSessionDetails);
     </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

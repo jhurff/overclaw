@@ -1,22 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-</head>
+  <%- include('partials/document-head') %>
+
+  </head>
 <body>
-  <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/tools' }) %>
     <main class="oc-dashboard-area">
@@ -44,7 +33,7 @@
             <th class="no-sort">Actions</th>
           </tr></thead>
           <tbody id="tools-tbody">
-            <tr><td colspan="8" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
+            <tr><td colspan="8" style="text-align:center;color:var(--oc-text-faint);padding:1.5rem">Loading…</td></tr>
           </tbody>
         </table>
         </div>
@@ -52,31 +41,21 @@
     </main>
   </div>
   <script>
-    /* ── sidebar/theme ── */
-    (function(){
-      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-      if(col)sb.classList.add('collapsed');
-      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-      const th=document.getElementById('theme-toggle');
-      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
-    })();
+
 
     let AGENTS_STATIC=[
-      {name:'North',emoji:'🦞',color:'#f97316',runtime:'OpenClaw',modelKey:'main',
-       modelFallback:'Example model',machine:'Server-1 — Linux',
+      {name:'North',emoji:'🦞',color:'var(--oc-series-1)',runtime:'OpenClaw',modelKey:'main',
+       modelFallback:'Example model',machine:'Server-1  -  Linux',
        focus:'Coordination',
        tools:['exec/bash','web_search','vault read/write'],
        skills:['healthcheck','research']},
-      {name:'West',emoji:'📈',color:'#3b82f6',runtime:'Claude Cowork',modelKey:null,
-       modelFallback:'Example model',machine:'Laptop-1 — macOS',
+      {name:'West',emoji:'📈',color:'var(--oc-series-2)',runtime:'Claude Cowork',modelKey:null,
+       modelFallback:'Example model',machine:'Laptop-1  -  macOS',
        focus:'Monitoring',
        tools:['web_search','vault write'],
        skills:['reporting','health checks']},
-      {name:'East',emoji:'💻',color:'#a855f7',runtime:'Cursor',modelKey:null,
-       modelFallback:'Example model',machine:'Laptop-1 — macOS',
+      {name:'East',emoji:'💻',color:'var(--oc-series-3)',runtime:'Cursor',modelKey:null,
+       modelFallback:'Example model',machine:'Laptop-1  -  macOS',
        focus:'Engineering',
        tools:['code editor','Git'],
        skills:['web development','scripting']},
@@ -86,7 +65,7 @@
       const show=arr.slice(0,4);
       const rest=arr.length-show.length;
       return show.map(t=>`<span class="oc-chip-inline ${cls}">${t}</span>`).join('')
-        +(rest>0?`<span class="oc-chip-inline" style="color:#374151">+${rest}</span>`:'');
+        +(rest>0?`<span class="oc-chip-inline" style="color:var(--oc-text-faint)">+${rest}</span>`:'');
     }
 
     let rows=[], sortKey='name', sortDir=1, filterRuntime='', searchQ='';
@@ -113,10 +92,10 @@
             <span style="font-size:1.1rem;color:${r.color}">${r.emoji}</span>
             <span style="font-weight:700;color:${r.color}">${r.name}</span>
           </div></td>
-          <td style="font-size:.75rem;color:#9ca3af">${r.runtime}</td>
-          <td style="font-size:.75rem;${r.modelLive?'color:#f59e0b':''}">${r.modelLive?'⚡ ':''}<span>${r.model}</span></td>
-          <td style="font-size:.73rem;color:#6b7280">${r.machine}</td>
-          <td style="font-size:.75rem;color:#cbd5e1;max-width:160px">${r.focus}</td>
+          <td style="font-size:.75rem;color:var(--oc-text-muted)">${r.runtime}</td>
+          <td style="font-size:.75rem;${r.modelLive?'color:var(--oc-warning-text)':''}">${r.modelLive?'⚡ ':''}<span>${r.model}</span></td>
+          <td style="font-size:.73rem;color:var(--oc-text-muted)">${r.machine}</td>
+          <td style="font-size:.75rem;color:var(--oc-text);max-width:160px">${r.focus}</td>
           <td style="max-width:200px">${r.toolsHtml}</td>
           <td style="max-width:200px">${r.skillsHtml}</td>
           <td><div class="oc-action-btns">
@@ -167,5 +146,6 @@
     }
     load();
   </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

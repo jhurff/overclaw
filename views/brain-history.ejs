@@ -1,80 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <%- include('partials/document-head') %>
+
   <style>
-    .bh-page   { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-    .bh-topbar { padding: 10px 18px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .bh-back   { color: #6366f1; text-decoration: none; font-size: 13px; display: inline-flex; align-items: center; gap: 4px; }
-    .bh-back:hover { text-decoration: underline; }
-    .bh-title  { font-size: 15px; font-weight: 700; color: #e0e4f0; }
-    .bh-path   { font-size: 11px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
-    .bh-body   { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+    .bh-page   { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+    .bh-topbar { padding:10px 18px; border-bottom:1px solid var(--oc-border); display:flex; align-items:center; gap:12px; flex-shrink:0; }
+    .bh-back   { color:var(--oc-info-text); text-decoration:none; font-size:13px; display:inline-flex; align-items:center; gap:4px; }
+    .bh-back:hover { text-decoration:underline; }
+    .bh-title  { font-size:15px; font-weight:700; color:var(--oc-text); }
+    .bh-path   { font-size:11px; color:var(--oc-text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:400px; }
+    .bh-body   { display:flex; flex:1; overflow:hidden; min-height:0; }
 
     /* Version list */
-    .bh-list   { width: 300px; min-width: 220px; border-right: 1px solid var(--border,#2a2a4a); overflow-y: auto; flex-shrink: 0; }
-    .bh-ver    { padding: 12px 14px; border-bottom: 1px solid var(--border,#2a2a4a); cursor: pointer; display: flex; align-items: flex-start; gap: 10px; }
-    .bh-ver:hover { background: rgba(255,255,255,.04); }
-    .bh-ver.active { background: rgba(99,102,241,.12); border-left: 3px solid #6366f1; }
-    .bh-ver-num  { font-size: 18px; font-weight: 800; color: #6366f1; min-width: 32px; line-height: 1.2; }
-    .bh-ver-meta { flex: 1; min-width: 0; }
-    .bh-ver-by   { font-size: 12px; font-weight: 600; color: #c0c8e0; }
-    .bh-ver-when { font-size: 11px; color: #666; }
-    .bh-ver-note { font-size: 11px; color: #888; font-style: italic; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bh-ver-size { font-size: 10px; color: #555; white-space: nowrap; }
+    .bh-list   { width:300px; min-width:220px; border-right:1px solid var(--oc-border); overflow-y:auto; flex-shrink:0; }
+    .bh-ver    { padding:12px 14px; border-bottom:1px solid var(--oc-border); cursor:pointer; display:flex; align-items:flex-start; gap:10px; }
+    .bh-ver:hover { background:var(--oc-bg-hover); }
+    .bh-ver.active { background:var(--oc-accent-soft); border-left:3px solid var(--oc-accent); }
+    .bh-ver-num  { font-size:18px; font-weight:800; color:var(--oc-info-text); min-width:32px; line-height:1.2; }
+    .bh-ver-meta { flex:1; min-width:0; }
+    .bh-ver-by   { font-size:12px; font-weight:600; color:var(--oc-info-text); }
+    .bh-ver-when { font-size:11px; color:var(--oc-text-faint); }
+    .bh-ver-note { font-size:11px; color:var(--oc-accent-text); font-style:italic; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bh-ver-size { font-size:10px; color:var(--oc-text-faint); white-space:nowrap; }
 
     /* Content panel */
-    .bh-panel  { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .bh-ptoolbar { padding: 8px 14px; border-bottom: 1px solid var(--border,#2a2a4a); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    .bh-btn    { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
-    .bh-btn-primary   { background: #6366f1; color: #fff; }
-    .bh-btn-secondary { background: var(--surface-3,#111122); color: #aaa; border: 1px solid var(--border,#2a2a4a); }
-    .bh-btn-danger    { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
-    .bh-btn:hover { opacity: .85; }
-    .bh-btn:disabled { opacity: .4; cursor: default; }
-    .bh-tab    { padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid transparent; color: #888; }
-    .bh-tab.active { border-color: var(--border,#2a2a4a); background: var(--surface-2,#1a1a2e); color: #a0aaff; }
+    .bh-panel  { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+    .bh-ptoolbar { padding:8px 14px; border-bottom:1px solid var(--oc-border); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .bh-btn    { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:none; }
+    .bh-btn-primary   { background:var(--oc-accent); color:var(--oc-text-on-accent); }
+    .bh-btn-secondary { background:var(--oc-bg-input); color:var(--oc-text-muted); border:1px solid var(--oc-border); }
+    .bh-btn-danger    { background:rgba(239,68,68,.15); color:var(--oc-danger-text); border:1px solid rgba(239,68,68,.3); }
+    .bh-btn:hover { opacity:.85; }
+    .bh-btn:disabled { opacity:.4; cursor:default; }
+    .bh-tab    { padding:4px 12px; border-radius:6px; font-size:12px; cursor:pointer; border:1px solid transparent; color:var(--oc-accent-text); }
+    .bh-tab.active { border-color:var(--oc-border); background:var(--oc-bg-card); color:var(--oc-info-text); }
 
-    .bh-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
-    .bh-empty   { color: #555; font-size: 14px; text-align: center; padding: 60px 20px; }
+    .bh-content { flex:1; overflow-y:auto; padding:20px 24px; }
+    .bh-empty   { color:var(--oc-text-faint); font-size:14px; text-align:center; padding:60px 20px; }
 
     /* Rendered markdown */
-    .bh-preview h1,h2,h3,h4 { color: #e0e4f0; margin-top: 1.2em; }
-    .bh-preview p { color: #b0b8d0; line-height: 1.7; }
-    .bh-preview code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-    .bh-preview pre { background: rgba(0,0,0,.3); padding: 12px; border-radius: 8px; overflow-x: auto; }
+    .bh-preview h1,h2,h3,h4 { color:var(--oc-text); margin-top:1.2em; }
+    .bh-preview p { color:var(--oc-info-text); line-height:1.7; }
+    .bh-preview code { background:var(--oc-bg-hover); padding:2px 6px; border-radius:4px; font-size:12px; }
+    .bh-preview pre { background:var(--oc-overlay); padding:12px; border-radius:8px; overflow-x:auto; }
 
     /* Raw text */
-    .bh-raw    { white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #c0c8e0; line-height: 1.6; }
+    .bh-raw    { white-space:pre-wrap; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--oc-info-text); line-height:1.6; }
 
     /* Diff */
-    .diff-line      { display: flex; gap: 8px; font-family: monospace; font-size: 12px; line-height: 1.6; padding: 1px 8px; }
-    .diff-line-num  { color: #555; min-width: 36px; text-align: right; flex-shrink: 0; user-select: none; }
-    .diff-line-text { flex: 1; white-space: pre-wrap; word-break: break-all; }
-    .diff-add  { background: rgba(34,197,94,.12); }
-    .diff-add .diff-line-text { color: #86efac; }
-    .diff-del  { background: rgba(239,68,68,.12); }
-    .diff-del .diff-line-text { color: #fca5a5; }
+    .diff-line      { display:flex; gap:8px; font-family:monospace; font-size:12px; line-height:1.6; padding:1px 8px; }
+    .diff-line-num  { color:var(--oc-text-faint); min-width:36px; text-align:right; flex-shrink:0; user-select:none; }
+    .diff-line-text { flex:1; white-space:pre-wrap; word-break:break-all; }
+    .diff-add  { background:rgba(34,197,94,.12); }
+    .diff-add .diff-line-text { color:var(--oc-success-text); }
+    .diff-del  { background:rgba(239,68,68,.12); }
+    .diff-del .diff-line-text { color:var(--oc-danger-text); }
     .diff-ctx  { }
-    .diff-ctx .diff-line-text { color: #8892aa; }
-    .diff-hunk { padding: 4px 8px; color: #6366f1; font-size: 11px; font-family: monospace; background: rgba(99,102,241,.06); }
+    .diff-ctx .diff-line-text { color:var(--oc-info-text); }
+    .diff-hunk { padding:4px 8px; color:var(--oc-info-text); font-size:11px; font-family:monospace; background:var(--oc-accent-soft); }
 
-    .bh-current-badge { font-size: 10px; background: rgba(99,102,241,.2); color: #a0aaff; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
-    .bh-empty-list { color: #555; font-size: 13px; padding: 24px; text-align: center; }
+    .bh-current-badge { font-size:10px; background:var(--oc-accent-soft); color:var(--oc-info-text); padding:2px 6px; border-radius:4px; margin-left:6px; }
+    .bh-empty-list { color:var(--oc-text-faint); font-size:13px; padding:24px; text-align:center; }
   </style>
 </head>
 <body class="oc-body">
-  <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">VERSION HISTORY</span></a></div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
     <main class="oc-dashboard-area" style="padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important">
@@ -83,10 +74,10 @@
         <!-- Top bar -->
         <div class="bh-topbar">
           <a class="bh-back" href="/brain?path=<%= encodeURIComponent(docPath) %>">← Back to doc</a>
-          <span style="color:#2a2a4a">|</span>
+          <span style="color:var(--oc-text-faint)">|</span>
           <span class="bh-title">⏱ Version History</span>
           <span class="bh-path" title="<%= docPath %>"><%= docPath %></span>
-          <span id="verCount" style="font-size:11px;color:#555;margin-left:auto"></span>
+          <span id="verCount" style="font-size:11px;color:var(--oc-text-faint);margin-left:auto"></span>
         </div>
 
         <!-- Two-pane body -->
@@ -99,7 +90,7 @@
           <!-- Content panel -->
           <div class="bh-panel">
             <div class="bh-ptoolbar" id="ptoolbar" style="display:none">
-              <span id="ptitle" style="font-size:13px;font-weight:700;color:#e0e4f0"></span>
+              <span id="ptitle" style="font-size:13px;font-weight:700;color:var(--oc-text)"></span>
               <div style="display:flex;gap:4px;margin-left:8px">
                 <span class="bh-tab active" id="tabDiff"    onclick="setPanelTab('diff')">Diff</span>
                 <span class="bh-tab"        id="tabPreview" onclick="setPanelTab('preview')">Preview</span>
@@ -201,7 +192,7 @@ function renderDiff(oldText, newText) {
   const newLines = newText.split('\n');
   const lcs = computeLCS(oldLines, newLines);
   const hunks = buildHunks(oldLines, newLines, lcs, 3);
-  if (!hunks.length) return '<div style="color:#555;padding:20px">No differences — this version matches the current document.</div>';
+  if (!hunks.length) return '<div style="color:var(--oc-text-faint);padding:20px">No differences  -  this version matches the current document.</div>';
   return hunks.map(renderHunk).join('');
 }
 
@@ -307,6 +298,6 @@ function esc(s) {
 
 boot();
 </script>
-<%- include('partials/theme-sidebar') %>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

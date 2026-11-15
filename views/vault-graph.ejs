@@ -1,223 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <%- include('partials/document-head') %>
+
   <!-- D3 v7, vendored so the graph works without a CDN -->
   <script src="/vendor/d3.v7.min.js"></script>
   <style>
     /* ── Full-viewport layout ── */
     .oc-main-content {
-      overflow: hidden !important;
-      height: calc(100vh - 60px);
+      overflow:hidden !important;
+      height:calc(100vh - var(--oc-header-height));
     }
     .oc-dashboard-area {
-      display: flex !important;
-      flex-direction: column !important;
-      grid-template-columns: unset !important;
-      overflow: hidden !important;
-      padding: 0 !important;
-      gap: 0 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      grid-template-columns:unset !important;
+      overflow:hidden !important;
+      padding:0 !important;
+      gap:0 !important;
     }
 
-    /* ── Top bar — two-row layout ── */
+    /* ── Top bar  -  two-row layout ── */
     .vg-topbar {
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      border-bottom: 1px solid #1f2937;
-      background: #0d1117;
+      display:flex;
+      flex-direction:column;
+      flex-shrink:0;
+      border-bottom:1px solid var(--oc-border);
+      background:var(--oc-bg);
     }
     /* Row 1: title + stats + spinner */
     .vg-topbar-row1 {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      height: 44px;
-      padding: 0 1rem;
+      display:flex;
+      align-items:center;
+      gap:0.75rem;
+      height:44px;
+      padding:0 1rem;
     }
     /* Row 2: search + chips */
     .vg-topbar-row2 {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.5rem 1rem 0.6rem;
-      border-top: 1px solid #0f1621;
-      flex-wrap: wrap;
+      display:flex;
+      align-items:center;
+      gap:0.75rem;
+      padding:0.5rem 1rem 0.6rem;
+      border-top:1px solid var(--oc-border);
+      flex-wrap:wrap;
     }
     .vg-title {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #e2e8f0;
-      white-space: nowrap;
+      font-size:0.9rem;
+      font-weight:700;
+      color:var(--oc-text);
+      white-space:nowrap;
     }
     .vg-stats {
-      font-size: 0.73rem;
-      color: #4b5563;
-      white-space: nowrap;
+      font-size:0.73rem;
+      color:var(--oc-text-faint);
+      white-space:nowrap;
     }
     .vg-search-wrap {
-      position: relative;
-      flex: 0 0 220px;
+      position:relative;
+      flex:0 0 220px;
     }
     .vg-search {
-      width: 100%;
-      box-sizing: border-box;
-      background: #111827;
-      border: 1px solid #1f2937;
-      border-radius: 6px;
-      color: #e2e8f0;
-      font-size: 0.82rem;
-      padding: 6px 30px 6px 10px;
-      outline: none;
-      transition: border-color .15s;
+      width:100%;
+      box-sizing:border-box;
+      background:var(--oc-bg-card);
+      border:1px solid var(--oc-border);
+      border-radius:6px;
+      color:var(--oc-text);
+      font-size:0.82rem;
+      padding:6px 30px 6px 10px;
+      outline:none;
+      transition:border-color .15s;
     }
-    .vg-search:focus { border-color: #4b5563; box-shadow: 0 0 0 2px rgba(99,102,241,0.12); }
-    .vg-search::placeholder { color: #4b5563; }
+    .vg-search:focus { border-color:var(--oc-border-strong); box-shadow:0 0 0 2px var(--oc-accent-soft); }
+    .vg-search::placeholder { color:var(--oc-text-faint); }
     .vg-search-clear {
-      position: absolute;
-      right: 8px; top: 50%;
-      transform: translateY(-50%);
-      background: none; border: none;
-      color: #6b7280; cursor: pointer;
-      font-size: 1rem; line-height: 1;
-      display: none;
-      padding: 2px;
+      position:absolute;
+      right:8px; top:50%;
+      transform:translateY(-50%);
+      background:none; border:none;
+      color:var(--oc-text-muted); cursor:pointer;
+      font-size:1rem; line-height:1;
+      display:none;
+      padding:2px;
     }
-    .vg-search-clear:hover { color: #e2e8f0; }
-    .vg-search-clear.visible { display: block; }
+    .vg-search-clear:hover { color:var(--oc-text); }
+    .vg-search-clear.visible { display:block; }
     /* divider between search and chips */
     .vg-ctrl-divider {
-      width: 1px;
-      height: 20px;
-      background: #1f2937;
-      flex-shrink: 0;
+      width:1px;
+      height:20px;
+      background:var(--oc-bg-hover);
+      flex-shrink:0;
     }
     .vg-filter-chips {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      flex: 1;
-      min-width: 0;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      flex:1;
+      min-width:0;
     }
     .vg-chip {
-      font-size: 0.69rem;
-      padding: 4px 11px;
-      border-radius: 9999px;
-      border: 1px solid transparent;
-      cursor: pointer;
-      white-space: nowrap;
-      opacity: 0.5;
-      transition: opacity .15s, background .1s;
-      user-select: none;
+      font-size:0.69rem;
+      padding:4px 11px;
+      border-radius:9999px;
+      border:1px solid transparent;
+      cursor:pointer;
+      white-space:nowrap;
+      opacity:0.5;
+      transition:opacity .15s, background .1s;
+      user-select:none;
     }
-    .vg-chip:hover { opacity: 0.8; }
-    .vg-chip.active { opacity: 1; border-color: rgba(255,255,255,0.18); }
+    .vg-chip:hover { opacity:0.8; }
+    .vg-chip.active { opacity:1; border-color:var(--oc-bg-hover); }
     .vg-spinner {
-      width: 16px; height: 16px;
-      border: 2px solid #1f2937;
-      border-top-color: #818cf8;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      flex-shrink: 0;
-      display: none;
+      width:16px; height:16px;
+      border:2px solid var(--oc-border);
+      border-top-color:var(--oc-info);
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+      flex-shrink:0;
+      display:none;
     }
-    .vg-spinner.visible { display: block; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .vg-spinner.visible { display:block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
 
     /* ── SVG canvas ── */
     #vg-svg {
-      flex: 1;
-      min-height: 0;
-      width: 100%;
-      background: #080d14;
-      display: block;
+      flex:1;
+      min-height:0;
+      width:100%;
+      background:var(--oc-bg);
+      display:block;
     }
 
     /* ── Tooltip ── */
     .vg-tooltip {
-      position: fixed;
-      background: rgba(13,17,23,0.95);
-      border: 1px solid #374151;
-      border-radius: 6px;
-      padding: 7px 10px;
-      font-size: 0.75rem;
-      color: #e2e8f0;
-      pointer-events: none;
-      z-index: 100;
-      display: none;
-      max-width: 260px;
+      position:fixed;
+      background:rgba(13,17,23,0.95);
+      border:1px solid var(--oc-border-strong);
+      border-radius:6px;
+      padding:7px 10px;
+      font-size:0.75rem;
+      color:var(--oc-text);
+      pointer-events:none;
+      z-index:100;
+      display:none;
+      max-width:260px;
     }
-    .vg-tooltip .tt-name { font-weight: 600; margin-bottom: 2px; word-break: break-all; }
-    .vg-tooltip .tt-dir  { color: #6b7280; font-size: 0.68rem; }
-    .vg-tooltip .tt-deg  { color: #9ca3af; font-size: 0.7rem; }
+    .vg-tooltip .tt-name { font-weight:600; margin-bottom:2px; word-break:break-all; }
+    .vg-tooltip .tt-dir  { color:var(--oc-text-muted); font-size:0.68rem; }
+    .vg-tooltip .tt-deg  { color:var(--oc-text-muted); font-size:0.7rem; }
 
     /* ── Legend overlay ── */
     .vg-legend {
-      position: absolute;
-      top: 56px; right: 8px;
-      background: rgba(8,13,20,0.88);
-      border: 1px solid #1f2937;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 0.65rem;
-      z-index: 10;
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
+      position:absolute;
+      top:56px; right:8px;
+      background:rgba(8,13,20,0.88);
+      border:1px solid var(--oc-border);
+      border-radius:6px;
+      padding:8px 10px;
+      font-size:0.65rem;
+      z-index:10;
+      max-height:calc(100vh - 120px);
+      overflow-y:auto;
     }
     .vg-legend-title {
-      font-size: 0.62rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: #4b5563;
-      margin-bottom: 5px;
-      cursor: pointer;
-      user-select: none;
+      font-size:0.62rem;
+      text-transform:uppercase;
+      letter-spacing:0.07em;
+      color:var(--oc-text-faint);
+      margin-bottom:5px;
+      cursor:pointer;
+      user-select:none;
     }
-    .vg-legend-body { display: flex; flex-direction: column; gap: 3px; }
-    .vg-legend-body.collapsed { display: none; }
-    .vg-legend-row { display: flex; align-items: center; gap: 5px; color: #9ca3af; }
-    .vg-legend-swatch { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .vg-legend-body { display:flex; flex-direction:column; gap:3px; }
+    .vg-legend-body.collapsed { display:none; }
+    .vg-legend-row { display:flex; align-items:center; gap:5px; color:var(--oc-text-muted); }
+    .vg-legend-swatch { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 
     /* ── Graph area wrapper (relative for legend positioning) ── */
     .vg-canvas-wrap {
-      flex: 1;
-      min-height: 0;
-      position: relative;
-      overflow: hidden;
+      flex:1;
+      min-height:0;
+      position:relative;
+      overflow:hidden;
     }
 
     .vg-toggles {
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      flex-wrap: wrap;
+      display:flex;
+      align-items:center;
+      gap:0.85rem;
+      flex-wrap:wrap;
     }
     .vg-toggle {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.72rem;
-      color: #9ca3af;
-      cursor: pointer;
-      user-select: none;
-      white-space: nowrap;
+      display:flex;
+      align-items:center;
+      gap:5px;
+      font-size:0.72rem;
+      color:var(--oc-text-muted);
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
     }
-    .vg-toggle input { accent-color: #818cf8; cursor: pointer; }
+    .vg-toggle input { accent-color:var(--oc-info-text); cursor:pointer; }
   </style>
 </head>
 <body>
-  <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">BRAIN GRAPH</span></a></div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
 
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/vault/graph' }) %>
@@ -267,50 +257,32 @@
   </div>
 
   <script>
-    /* ── Sidebar / theme boilerplate ── */
-    (function () {
-      const toggle  = document.getElementById('sidebar-toggle');
-      const sidebar = document.getElementById('oc-sidebar');
-      if (toggle && sidebar) {
-        let collapsed = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (collapsed) sidebar.classList.add('collapsed');
-        toggle.addEventListener('click', () => {
-          collapsed = !collapsed;
-          sidebar.classList.toggle('collapsed', collapsed);
-          localStorage.setItem('overclaw-sidebar-collapsed', collapsed);
-        });
-      }
-      const themeBtn = document.getElementById('theme-toggle');
-      const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
-      let theme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
-      document.body.classList.add(theme + '-mode');
-      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-      themeBtn.addEventListener('click', () => {
-        theme = theme === 'dark' ? 'light' : 'dark';
-        document.body.classList.toggle('dark-mode',  theme === 'dark');
-        document.body.classList.toggle('light-mode', theme === 'light');
-        themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-        localStorage.setItem('overclaw-theme', theme);
-      });
-    })();
+
 
     /* ── Color map by top-level directory ── */
     const DIR_COLORS = {
-      '00 - Home':             '#94a3b8',
-      '01 - Prompts':          '#fbbf24',
-      '02 - Projects':         '#34d399',
-      '03 - Agents':           '#818cf8',
-      '04 - Models-and-Tools': '#22d3ee',
-      '05 - Research':         '#60a5fa',
-      '06 - Loops':            '#fb923c',
-      '07 - Weekly-Reviews':   '#2dd4bf',
-      '08 - QA-and-Monitoring':'#f87171',
-      '_Archive':              '#374151',
-      '_Templates':            '#4b5563',
-      '_Scripts':              '#6b7280',
-      'root':                  '#9ca3af',
+      '00 - Home':             'var(--oc-text-muted)',
+      '01 - Prompts':          'var(--oc-warning)',
+      '02 - Projects':         'var(--oc-success)',
+      '03 - Agents':           'var(--oc-accent)',
+      '04 - Models-and-Tools': 'var(--oc-info)',
+      '05 - Research':         'var(--oc-info-text)',
+      '06 - Loops':            'var(--oc-status-scheduled)',
+      '07 - Weekly-Reviews':   'var(--oc-series-4)',
+      '08 - QA-and-Monitoring':'var(--oc-danger)',
+      '_Archive':              'var(--oc-text-faint)',
+      '_Templates':            'var(--oc-text-muted)',
+      '_Scripts':              'var(--oc-text-faint)',
+      'root':                  'var(--oc-text)',
     };
-    function nodeColor(dir) { return DIR_COLORS[dir] || '#6b7280'; }
+    function nodeColor(dir) { return DIR_COLORS[dir] || 'var(--oc-text-muted)'; }
+    function tint(color, percent) {
+      if (/^#[0-9a-f]{6}$/i.test(color)) {
+        const alpha = Math.round(percent * 2.55).toString(16).padStart(2, '0');
+        return color + alpha;
+      }
+      return 'color-mix(in srgb, ' + color + ' ' + percent + '%, transparent)';
+    }
     function nodeRadius(d) { return 3 + Math.min(12, Math.log(1 + (d.degree || 0)) * 3); }
 
     /* ── Graph state ── */
@@ -401,9 +373,9 @@
         const chip = document.createElement('button');
         chip.className = 'vg-chip' + (activeDir === null || activeDir === dir ? ' active' : '');
         chip.textContent = dir.replace(/^\d+\s*-\s*/, '');
-        chip.style.background = nodeColor(dir) + '22';
+        chip.style.background = tint(nodeColor(dir), 13);
         chip.style.color       = nodeColor(dir);
-        chip.style.borderColor = nodeColor(dir) + '44';
+        chip.style.borderColor = tint(nodeColor(dir), 27);
         chip.dataset.dir = dir;
         chip.addEventListener('click', () => toggleDirFilter(dir));
         container.appendChild(chip);
@@ -566,7 +538,7 @@
       edgeSelection = edgeGroup.selectAll('line')
         .data(edges)
         .join('line')
-        .attr('stroke', '#6b82a0')
+        .attr('stroke', 'var(--oc-border-strong)')
         .attr('stroke-width', 1.4)
         .style('opacity', 0.72);
 
@@ -595,7 +567,7 @@
         .data(labelNodes, d => d.id)
         .join('text')
         .attr('font-size', 7)
-        .attr('fill', '#6b7280')
+        .attr('fill', 'var(--oc-text-muted)')
         .attr('text-anchor', 'middle')
         .attr('pointer-events', 'none')
         .attr('dy', d => -(nodeRadius(d) + 3))
@@ -673,5 +645,6 @@
     /* ── Boot ── */
     loadGraph();
   </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

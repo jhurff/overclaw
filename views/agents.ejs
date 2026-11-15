@@ -1,96 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <%- include('partials/document-head') %>
+
   <style>
     /* ── Zone badges ─────────────────────────────────────────────────────── */
     .zbadge { display:inline-block; padding:2px 8px; border-radius:8px; font-size:10px;
               font-weight:700; letter-spacing:.03em; vertical-align:middle; white-space:nowrap; }
-    .zbadge-localhost   { background:rgba(99,102,241,.15);  color:#a5b4fc; border:1px solid rgba(99,102,241,.25); }
-    .zbadge-localnet    { background:rgba(16,185,129,.12);  color:#6ee7b7; border:1px solid rgba(16,185,129,.2); }
-    .zbadge-private_wan { background:rgba(245,158,11,.12);  color:#fcd34d; border:1px solid rgba(245,158,11,.2); }
-    .zbadge-public_wan  { background:rgba(239,68,68,.12);   color:#fca5a5; border:1px solid rgba(239,68,68,.2); }
-    .zbadge-unknown     { background:rgba(75,85,99,.15);    color:#9ca3af; border:1px solid rgba(75,85,99,.2); }
+    .zbadge-localhost   { background:var(--oc-accent-soft);  color:var(--oc-info-text); border:1px solid var(--oc-accent-soft); }
+    .zbadge-localnet    { background:rgba(16,185,129,.12);  color:var(--oc-success-text); border:1px solid rgba(16,185,129,.2); }
+    .zbadge-private_wan { background:rgba(245,158,11,.12);  color:var(--oc-danger-text); border:1px solid rgba(245,158,11,.2); }
+    .zbadge-public_wan  { background:rgba(239,68,68,.12);   color:var(--oc-danger-text); border:1px solid rgba(239,68,68,.2); }
+    .zbadge-unknown     { background:rgba(75,85,99,.15);    color:var(--oc-text-muted); border:1px solid rgba(75,85,99,.2); }
 
     /* ── Zone toggle pill group ───────────────────────────────────────────── */
     .zone-pills { display:inline-flex; border-radius:7px; overflow:hidden;
-                  border:1px solid rgba(255,255,255,.08); flex-shrink:0; }
+                  border:1px solid var(--oc-bg-hover); flex-shrink:0; }
     .zone-pill  { padding:3px 9px; font-size:10.5px; font-weight:700; cursor:pointer;
-                  border:none; background:transparent; color:#4b5563;
-                  border-right:1px solid rgba(255,255,255,.06); transition:all .12s; white-space:nowrap; }
+                  border:none; background:transparent; color:var(--oc-text-faint);
+                  border-right:1px solid var(--oc-bg-hover); transition:all .12s; white-space:nowrap; }
     .zone-pill:last-child { border-right:none; }
-    .zone-pill:hover      { background:rgba(255,255,255,.06); color:#9ca3af; }
-    .zone-pill.active-localhost   { background:rgba(99,102,241,.25); color:#a5b4fc; }
-    .zone-pill.active-localnet    { background:rgba(16,185,129,.2);  color:#6ee7b7; }
-    .zone-pill.active-private_wan { background:rgba(245,158,11,.2);  color:#fcd34d; }
-    .zone-pill.active-public_wan  { background:rgba(239,68,68,.2);   color:#fca5a5; }
+    .zone-pill:hover      { background:var(--oc-bg-hover); color:var(--oc-text-muted); }
+    .zone-pill.active-localhost   { background:var(--oc-accent-soft); color:var(--oc-info-text); }
+    .zone-pill.active-localnet    { background:rgba(16,185,129,.2);  color:var(--oc-success-text); }
+    .zone-pill.active-private_wan { background:rgba(245,158,11,.2);  color:var(--oc-danger-text); }
+    .zone-pill.active-public_wan  { background:rgba(239,68,68,.2);   color:var(--oc-danger-text); }
 
     /* ── MCP url cell ────────────────────────────────────────────────────── */
-    .mcp-url-cell { font-size:10.5px; font-family:monospace; color:#818cf8;
+    .mcp-url-cell { font-size:10.5px; font-family:monospace; color:var(--oc-info-text);
                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
                     max-width:220px; display:block; }
-    .mcp-url-unset { color:#374151; font-style:italic; font-family:inherit; }
+    .mcp-url-unset { color:var(--oc-text-faint); font-style:italic; font-family:inherit; }
 
     /* ── Onboard modal ───────────────────────────────────────────────────── */
-    .ob-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.72);
+    .ob-modal-bg { display:none; position:fixed; inset:0; background:var(--oc-overlay);
                    z-index:500; align-items:center; justify-content:center; }
     .ob-modal-bg.open { display:flex; }
-    .ob-modal { background:#12122a; border:1px solid #2a2a4a; border-radius:12px;
+    .ob-modal { background:var(--oc-bg-card); border:1px solid var(--oc-border); border-radius:12px;
                 width:min(740px,94vw); max-height:88vh; display:flex; flex-direction:column;
-                overflow:hidden; box-shadow:0 16px 48px rgba(0,0,0,.6); }
-    .ob-head { padding:13px 18px; border-bottom:1px solid #2a2a4a;
+                overflow:hidden; box-shadow:0 16px 48px var(--oc-overlay); }
+    .ob-head { padding:13px 18px; border-bottom:1px solid var(--oc-border);
                display:flex; align-items:center; gap:10px; }
-    .ob-title { font-weight:700; color:#e2e8f0; font-size:1rem; flex:1; }
-    .ob-close { background:#1f1f3a; border:1px solid #374151; border-radius:6px;
-                color:#aaa; padding:4px 10px; cursor:pointer; font-size:12px; }
-    .ob-meta  { padding:10px 18px; border-bottom:1px solid #1e1e38;
+    .ob-title { font-weight:700; color:var(--oc-text); font-size:1rem; flex:1; }
+    .ob-close { background:var(--oc-bg-card); border:1px solid var(--oc-border-strong); border-radius:6px;
+                color:var(--oc-text-muted); padding:4px 10px; cursor:pointer; font-size:12px; }
+    .ob-meta  { padding:10px 18px; border-bottom:1px solid var(--oc-border);
                 display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .ob-meta-text { font-size:12px; color:#9098b8; flex:1; }
-    .ob-zone-label { font-size:11px; color:#9098b8; }
-    .ob-copy-btn  { background:#6366f1; border:none; border-radius:6px; color:#fff;
+    .ob-meta-text { font-size:12px; color:var(--oc-text-muted); flex:1; }
+    .ob-zone-label { font-size:11px; color:var(--oc-text-muted); }
+    .ob-copy-btn  { background:var(--oc-accent); border:none; border-radius:6px; color:var(--oc-text-on-accent);
                     padding:5px 14px; cursor:pointer; font-size:12px; font-weight:600; margin-left:auto; }
     .ob-body  { flex:1; overflow-y:auto; padding:16px 18px; }
-    .ob-loading { text-align:center; padding:24px; color:#555; }
+    .ob-loading { text-align:center; padding:24px; color:var(--oc-text-faint); }
     .ob-snippet { display:none; white-space:pre-wrap; word-break:break-word;
-                  background:#0c0c1a; border:1px solid #2a2a4a; border-radius:8px;
+                  background:var(--oc-bg); border:1px solid var(--oc-border); border-radius:8px;
                   padding:16px; font-family:'DM Mono','Fira Code',monospace;
-                  font-size:12.5px; color:#c8d4e8; line-height:1.7; margin:0; }
-    .ob-foot { padding:10px 18px; border-top:1px solid #2a2a4a;
+                  font-size:12.5px; color:var(--oc-text); line-height:1.7; margin:0; }
+    .ob-foot { padding:10px 18px; border-top:1px solid var(--oc-border);
                display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .ob-foot a { font-size:11px; color:#818cf8; text-decoration:none; }
-    .ob-foot-sep { color:#374151; font-size:11px; }
+    .ob-foot a { font-size:11px; color:var(--oc-info-text); text-decoration:none; }
+    .ob-foot-sep { color:var(--oc-text-faint); font-size:11px; }
 
     /* ── Unsaved-changes banner ───────────────────────────────────────────── */
     .zone-changed-bar { display:none; background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.2);
                         border-radius:8px; padding:9px 16px; margin-bottom:14px;
-                        font-size:12.5px; color:#fcd34d; align-items:center; gap:10px; flex-wrap:wrap; }
+                        font-size:12.5px; color:var(--oc-danger-text); align-items:center; gap:10px; flex-wrap:wrap; }
     .zone-changed-bar.show { display:flex; }
-    .zone-save-btn { background:#6366f1; border:none; border-radius:6px; color:#fff;
+    .zone-save-btn { background:var(--oc-accent); border:none; border-radius:6px; color:var(--oc-text-on-accent);
                      padding:5px 14px; font-size:12px; font-weight:700; cursor:pointer; }
     .zone-toast { display:inline-flex; align-items:center; padding:3px 10px; border-radius:5px;
                   font-size:11.5px; font-weight:600; opacity:0; transition:opacity .3s; pointer-events:none; }
     .zone-toast.show { opacity:1; }
-    .zone-toast-ok  { background:rgba(52,211,153,.12); color:#34d399; border:1px solid rgba(52,211,153,.2); }
-    .zone-toast-err { background:rgba(248,113,113,.12); color:#f87171; border:1px solid rgba(248,113,113,.2); }
+    .zone-toast-ok  { background:rgba(52,211,153,.12); color:var(--oc-success-text); border:1px solid rgba(52,211,153,.2); }
+    .zone-toast-err { background:rgba(248,113,113,.12); color:var(--oc-danger-text); border:1px solid rgba(248,113,113,.2); }
   </style>
 </head>
 <body>
-  <header class="oc-header">
-    <div class="logo">
-      <a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer">
-        <h1 class="main-title">OVERCLAW</h1>
-        <span class="tagline">AGENT DASHBOARD</span>
-      </a>
-    </div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">&#9776;</button>
-      <button id="theme-toggle" class="control-button">&#9728;&#65039;</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
 
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/agents' }) %>
@@ -140,7 +126,7 @@
               </tr>
             </thead>
             <tbody id="agents-tbody">
-              <tr><td colspan="8" style="text-align:center;color:#4b5563;padding:1.5rem">Loading&hellip;</td></tr>
+              <tr><td colspan="8" style="text-align:center;color:var(--oc-text-faint);padding:1.5rem">Loading&hellip;</td></tr>
             </tbody>
           </table>
         </div>
@@ -176,30 +162,7 @@
   </div>
 
   <script>
-    /* ── Sidebar / theme ─────────────────────────────────────────────────── */
-    (function(){
-      const sb  = document.getElementById('oc-sidebar');
-      const btn = document.getElementById('sidebar-toggle');
-      let col = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-      if (col) sb.classList.add('collapsed');
-      btn.addEventListener('click', () => {
-        col = !col;
-        sb.classList.toggle('collapsed', col);
-        localStorage.setItem('overclaw-sidebar-collapsed', col);
-      });
-      const th = document.getElementById('theme-toggle');
-      let tm = localStorage.getItem('overclaw-theme') ||
-               (window.matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light');
-      document.body.classList.add(tm + '-mode');
-      th.textContent = tm === 'dark' ? '\uD83C\uDF19' : '\u2600\uFE0F';
-      th.addEventListener('click', () => {
-        tm = tm === 'light' ? 'dark' : 'light';
-        document.body.classList.toggle('light-mode', tm === 'light');
-        document.body.classList.toggle('dark-mode',  tm === 'dark');
-        localStorage.setItem('overclaw-theme', tm);
-        th.textContent = tm === 'dark' ? '\uD83C\uDF19' : '\u2600\uFE0F';
-      });
-    })();
+
 
     /* ── Constants ───────────────────────────────────────────────────────── */
     let AGENT_META = {};
@@ -301,11 +264,11 @@
             </div>
           </td>
           <td class="${r.type ? '' : 'dim'}">${r.type || '&mdash;'}</td>
-          <td style="font-size:.75rem;color:#9ca3af">${r.machine || '&mdash;'}</td>
-          <td style="max-width:180px;font-size:.75rem;color:#9ca3af">${r.role || '&mdash;'}</td>
+          <td style="font-size:.75rem;color:var(--oc-text-muted)">${r.machine || '&mdash;'}</td>
+          <td style="max-width:180px;font-size:.75rem;color:var(--oc-text-muted)">${r.role || '&mdash;'}</td>
           <td style="white-space:nowrap;font-size:.78rem">
             <span class="oc-hb-dot ${r.hbDot}"></span>
-            ${r.hbAgo || '<span style="color:#374151;font-style:italic">never</span>'}
+            ${r.hbAgo || '<span style="color:var(--oc-text-faint);font-style:italic">never</span>'}
           </td>
           <td><span class="oc-badge ${r.statusCls}">${r.statusLabel}</span></td>
           <td>
@@ -431,7 +394,7 @@
 
         rows = agents.map(a => {
           const name  = a.nickname || a.agent || 'Agent';
-          const meta  = AGENT_META[name] || { emoji: '\uD83E\uDD16', color: '#6b7280' };
+          const meta  = AGENT_META[name] || { emoji: '\uD83E\uDD16', color: 'var(--oc-text-muted)' };
           const hb    = hbMap[HB_KEY[name]];
           const hbDate = hb ? hb.date || null : null;
           const statusRaw   = a.status || '';
@@ -450,7 +413,7 @@
         applyAndRender();
       } catch(e) {
         document.getElementById('agents-tbody').innerHTML =
-          `<tr><td colspan="8" style="color:#f87171;padding:1rem">\u26A0\uFE0F Failed to load: ${e.message}</td></tr>`;
+          `<tr><td colspan="8" style="color:var(--oc-danger-text);padding:1rem">\u26A0\uFE0F Failed to load: ${e.message}</td></tr>`;
       }
     }
     load();
@@ -507,5 +470,6 @@
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOb(); });
   </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>
