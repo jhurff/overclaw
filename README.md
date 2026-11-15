@@ -245,6 +245,14 @@ HANDLED-YYYY-MM-DD-HH-MM-*.md
 
 ---
 
+## Ownership and deploy
+
+- **Product and repo owner:** Luther (Grok Bot software engineer), per Jimmy on 2026-11-13. Covers code, Dependabot, and deploy documentation.
+- **CI/CD owner:** Peter (Grok Bot DevOps), who runs the self-hosted runner on H2FClanker2.
+- **Deploy path:** merging to `main` triggers `.github/workflows/deploy-h2fclanker2.yml` on the self-hosted `h2fclanker2` runner. It resets the live clone (`OVERCLAW_DIR`, from `~/actions-runner/.env` or `~/.config/overclaw/dir`) to `origin/main`, reinstalls dependencies if `package-lock.json` changed, and restarts the `overclaw` user service on port 8355. It refuses to deploy if the live clone has tracked changes. `workflow_dispatch` reruns it by hand.
+- **Access:** LAN `http://192.168.68.42:8355`; Tailscale HTTPS `https://h2fclanker2.tail8689ae.ts.net:8443` (Tailscale Serve to 127.0.0.1:8355).
+- `main` is Production. Back up `data/brain.db` before schema-touching changes.
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).
