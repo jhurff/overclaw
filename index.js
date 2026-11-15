@@ -11,6 +11,8 @@ const BrainStore = require('./lib/BrainStore');  // Document DB
 const instanceConfig = require('./lib/instanceConfig');
 const { ThemeStore } = require('./lib/themePacks');
 const registerThemeRoutes = require('./lib/themeRoutes');
+const AgentWebhooks = require('./lib/agentWebhooks');
+const agentWebhooks = new AgentWebhooks();
 
 const app = express();
 
@@ -1474,10 +1476,27 @@ app.post('/api/vault/task', async (req, res) => {
   if (!relPath) return res.status(400).json({ error: 'path required' });
   const updates = req.body || {};
   try {
+    let prevAgent = '';
+    if (updates.assigned_to !== undefined) {
+      try {
+        const prevText = await vaultReader._readVaultFile(relPath);
+        const m = String(prevText || '').match(/^assigned_to:\s*["']?([^"'\n]*)/m);
+        prevAgent = m ? m[1].trim().toLowerCase() : '';
+      } catch { prevAgent = ''; }
+    }
     await vaultReader.updateTaskFile(relPath, updates);
     const taskBase = require('path').basename(relPath, '.md');
     const synced   = await vaultSync(`task: update ${taskBase.slice(0, 80)}`);
-    res.json({ ok: true, synced: synced.ok, syncWarning: synced.ok ? null : synced.stderr });
+    let ping = null;
+    const newAgent = String(updates.assigned_to || '').trim().toLowerCase();
+    const opKey = (instanceConfig.readInstanceConfig().operatorFilterKey || 'operator').toLowerCase();
+    if (newAgent && newAgent !== prevAgent && newAgent !== opKey) {
+      ping = await agentWebhooks.notify(newAgent, {
+        taskId: taskBase, title: String(updates.title || taskBase).slice(0, 120),
+        fromSection: 'edit', taskPath: relPath, assignedAt: new Date().toISOString(),
+      });
+    }
+    res.json({ ok: true, synced: synced.ok, syncWarning: synced.ok ? null : synced.stderr, ping });
   } catch (err) {
     const code = err.message.includes('scope') ? 403 : 500;
     res.status(code).json({ error: err.message });
@@ -1885,7 +1904,16 @@ app.post('/api/vault/task-board/assign', async (req, res) => {
         wake = 'sent';
       } catch (we) { console.warn('Tier-1 wake (non-fatal):', we.message); wake = 'failed: ' + we.message; }
     }
-    res.json({ ok: true, synced: true, via: written.via, taskId, agentKey, fromSection, notified, wake, assignedAt: new Date().toISOString() });
+    // Tier 0 — instant ping to the agent's webhook routine (Grok Bot), non-fatal
+    let ping = null;
+    if (agentKey.toLowerCase() !== (instanceConfig.readInstanceConfig().operatorFilterKey || 'operator').toLowerCase()) {
+      ping = await agentWebhooks.notify(agentKey, {
+        taskId, title: taskTitle, fromSection,
+        taskPath: '03 - Agents/Coordination/Tasks/' + taskId + '.md',
+        assignedAt: new Date().toISOString(),
+      });
+    }
+    res.json({ ok: true, synced: true, via: written.via, taskId, agentKey, fromSection, notified, wake, ping, assignedAt: new Date().toISOString() });
   } catch (err) {
     console.error('Assign failed for ' + taskId + ': ' + err.message);
     res.status(500).json({ error: 'Assign failed', details: err.message });
@@ -2762,6 +2790,34 @@ app.get('/auth/me', brainAuth, (req, res) => {
 // ---------------------------------------------------------------------------
 // Brain REST API — /api/brain/*
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Agent assignment pings — /settings/agent-pings, /api/agent-webhooks
+// ---------------------------------------------------------------------------
+app.get('/settings/agent-pings', brainAuth, (req, res) => {
+  res.render('agent-pings', { title: 'Agent Pings', currentPath: '/settings/agent-pings' });
+});
+app.get('/api/agent-webhooks', brainAuth, async (req, res) => {
+  await refreshAgentRoster(false);
+  res.json({ agents: instanceConfig.getAgentsList(), webhooks: agentWebhooks.list() });
+});
+app.post('/api/agent-webhooks/:agent', brainAuth, (req, res) => {
+  try {
+    const b = req.body || {};
+    res.json({ ok: true, webhook: agentWebhooks.set(req.params.agent, { url: b.url, secret: b.secret, header: b.header }) });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+app.delete('/api/agent-webhooks/:agent', brainAuth, (req, res) => {
+  agentWebhooks.remove(req.params.agent);
+  res.json({ ok: true });
+});
+app.post('/api/agent-webhooks/:agent/test', brainAuth, async (req, res) => {
+  const r = await agentWebhooks.notify(req.params.agent, {
+    event: 'test', taskId: null, title: 'OverClaw test ping (no task, do nothing)',
+    assignedAt: new Date().toISOString(),
+  });
+  res.json(r);
+});
 
 function requireBrain(req, res) {
   if (!brainStore) { res.status(503).json({ error: 'BrainStore unavailable' }); return false; }
