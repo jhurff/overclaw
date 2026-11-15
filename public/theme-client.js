@@ -10,6 +10,7 @@
   function setOpen(open) {
     if (!sidebar) return;
     sidebar.classList.toggle('is-open', open);
+    document.body.classList.toggle('oc-menu-open', open && !desktopQuery.matches);
     if (backdrop) backdrop.hidden = !open || desktopQuery.matches;
     if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
@@ -119,6 +120,17 @@
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
+  function setRainLabel(btn, text, state) {
+    if (!btn) return;
+    btn.setAttribute('data-rain', state || '');
+    var label = btn.querySelector('.ctrl-label');
+    if (label) label.textContent = text;
+    else btn.textContent = text;
+    if (text === 'Pause') btn.setAttribute('aria-label', 'Pause digital rain');
+    else if (text === 'Rain') btn.setAttribute('aria-label', 'Play digital rain');
+    else btn.setAttribute('aria-label', text);
+  }
+
   function stopRain() {
     rainState.stopped = true;
     if (rainState.raf) cancelAnimationFrame(rainState.raf);
@@ -141,13 +153,13 @@
     }
     if (btn) btn.hidden = false;
     if (reducedMotion()) {
-      btn.textContent = 'Rain off';
+      setRainLabel(btn, 'Rain off', 'off');
       btn.disabled = true;
       return;
     }
     btn.disabled = false;
     var paused = localStorage.getItem('overclaw-rain-paused') === '1';
-    btn.textContent = paused ? 'Rain' : 'Pause';
+    setRainLabel(btn, paused ? 'Rain' : 'Pause', paused ? 'paused' : 'playing');
     if (paused) return;
 
     var ctx = canvas.getContext('2d');
@@ -224,7 +236,7 @@
           var btn = document.getElementById('rain-toggle');
           if (btn) {
             btn.hidden = false;
-            btn.textContent = 'Rain off';
+            setRainLabel(btn, 'Rain off', 'off');
           }
         } else if (rainState.batteryHold) {
           rainState.batteryHold = false;
@@ -241,6 +253,36 @@
     if (document.hidden) stopRain();
     else startRain();
   });
+
+  function tagTable(table) {
+    var heads = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) {
+      return (th.textContent || '').replace(/\s+/g, ' ').trim();
+    });
+    if (!heads.length) return;
+    Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (tr) {
+      Array.prototype.forEach.call(tr.children, function (td, i) {
+        if (!td || td.tagName !== 'TD' || td.hasAttribute('colspan')) return;
+        if (!td.getAttribute('data-label') && heads[i]) td.setAttribute('data-label', heads[i]);
+      });
+    });
+  }
+
+  function labelDataTables() {
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    document.querySelectorAll('table').forEach(tagTable);
+  }
+
+  var labelTimer = 0;
+  function scheduleLabel() {
+    clearTimeout(labelTimer);
+    labelTimer = setTimeout(labelDataTables, 40);
+  }
+
+  labelDataTables();
+  if (typeof MutationObserver === 'function' && document.body) {
+    new MutationObserver(scheduleLabel).observe(document.body, { childList: true, subtree: true });
+  }
+  window.addEventListener('resize', scheduleLabel);
 
   startRain();
   considerBattery();

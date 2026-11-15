@@ -12,7 +12,11 @@
     .bl-label { display:block; font-size:12px; font-weight:600; color:var(--oc-text-muted); margin-bottom:6px; }
     .bl-input { width:100%; background:var(--oc-bg-input); border:1px solid var(--oc-border); border-radius:8px; color:var(--oc-text); padding:10px 14px; font-size:16px; box-sizing:border-box; margin-bottom:16px; }
     .bl-input:focus { outline:none; border-color:var(--oc-accent); }
-    .bl-btn { width:100%; background:var(--oc-accent); color:var(--oc-text-on-accent); border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px; }
+    .bl-btn { width:100%; background:var(--oc-accent); color:var(--oc-text-on-accent); border:none; border-radius:8px; padding:11px; font-size:16px; font-weight:700; cursor:pointer; margin-top:4px; min-height:48px; }
+    @media (max-width: 767px) {
+      .bl-page { min-height:100dvh; padding:12px; box-sizing:border-box; }
+      .bl-card { padding:24px 16px; }
+    }
     .bl-btn:hover { background:var(--oc-accent-hover); }
     .bl-err { color:var(--oc-danger-text); font-size:13px; margin-top:10px; display:none; }
   </style>

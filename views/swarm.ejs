@@ -36,6 +36,14 @@
       border-radius:4px; border:1px solid var(--oc-border-strong);
       background:transparent; color:var(--oc-text-muted); cursor:pointer;
     }
+    @media (max-width: 767px) {
+      .sw-sync-btn, .ac-link { min-height:44px; font-size:0.875rem; display:inline-flex; align-items:center; }
+      .ac-links { flex-wrap:wrap; }
+      .stats-grid, .agent-grid, .health-grid { grid-template-columns:1fr 1fr; }
+      .sc-label, .sc-preview, .ac-type, .ac-role, .ac-hb, .badge { font-size:0.8rem; }
+      .heatmap-grid { grid-template-columns:4.5rem repeat(7, minmax(0, 1fr)); }
+      .sw-meta { flex-wrap:wrap; }
+    }
     .sw-sync-btn:hover { border-color:var(--oc-border-strong); color:var(--oc-text); }
     .sw-sync-btn:disabled { opacity:.5; cursor:default; }
 
@@ -686,7 +694,10 @@
 
       // day-of-week labels
       const dayLabels = days.map(function(d) {
-        try { return new Date(d + 'T12:00:00').toLocaleDateString([], { weekday: 'narrow' }); }
+        if (!d) return '\u00b7';
+        const dt = new Date(d + 'T12:00:00');
+        if (Number.isNaN(dt.getTime())) return '\u00b7';
+        try { return dt.toLocaleDateString([], { weekday: 'narrow' }); }
         catch  { return '\u00b7'; }
       });
       const lblRow = dayLabels.map(function(l, i) {

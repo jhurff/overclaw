@@ -177,11 +177,12 @@ body > * { position: relative; z-index: 1; }
   color: var(--oc-text-header);
   opacity: 0.75;
 }
-.oc-header .header-controls { display: flex; align-items: center; gap: 0.25rem; }
+.oc-header .header-controls { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
 .oc-header .control-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.3rem;
   min-width: 44px;
   min-height: 44px;
   padding: 0.4rem 0.55rem;
@@ -198,6 +199,10 @@ body > * { position: relative; z-index: 1; }
   text-decoration: none;
 }
 .oc-header .control-button[hidden] { display: none; }
+.oc-header .control-button .ctrl-icon { display: none; }
+.oc-header {
+  min-height: calc(var(--oc-header-height) + env(safe-area-inset-top, 0px));
+}
 
 .oc-main-content {
   display: flex;
