@@ -24,3 +24,16 @@ test('stores webhook, masks secret, posts with bearer header', async () => {
   assert.equal(w.get('luther').secret, 's3cret');
   assert.deepEqual(await w.notify('peter', {}), { sent: false, skipped: 'no webhook configured' });
 });
+
+test('forgives key pasted into header box or with Bearer prefix', () => {
+  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'oc-wh-')), 'hooks.json');
+  const w = new AgentWebhooks(f);
+  w.set('gunny', { url: 'https://h.example/x', header: 'Bearer crsr_abc123' });
+  assert.deepEqual([w.get('gunny').header, w.get('gunny').secret], ['Authorization', 'crsr_abc123']);
+  w.set('gunny', { url: 'https://h.example/x', header: 'crsr_zzz' });
+  assert.equal(w.get('gunny').secret, 'crsr_zzz');
+  w.set('gunny', { url: 'https://h.example/x', header: 'Authorization: Bearer crsr_q' });
+  assert.equal(w.get('gunny').secret, 'crsr_q');
+  w.set('gunny', { url: 'https://h.example/x', secret: 'Bearer crsr_s', header: 'Authorization' });
+  assert.equal(w.get('gunny').secret, 'crsr_s');
+});
