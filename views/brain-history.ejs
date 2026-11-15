@@ -62,9 +62,35 @@
 
     .bh-current-badge { font-size:10px; background:var(--oc-accent-soft); color:var(--oc-info-text); padding:2px 6px; border-radius:4px; margin-left:6px; }
     .bh-empty-list { color:var(--oc-text-faint); font-size:13px; padding:24px; text-align:center; }
+    .bh-versions-back { display:none; }
+    .bh-preview, .bh-raw { overflow-wrap:anywhere; word-break:break-word; }
+    .bh-preview pre, .bh-code-scroll { display:block; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .bh-preview pre code { white-space:pre; }
+    .bh-table-scroll { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .bh-preview img { max-width:100%; height:auto; }
+
+    @media (max-width: 767px) {
+      .bh-topbar { flex-wrap:wrap; padding:8px 12px; gap:8px; }
+      .bh-back, .bh-versions-back {
+        display:inline-flex; align-items:center; min-height:44px; padding:0 12px;
+        font-size:16px; font-weight:700;
+      }
+      .bh-path { max-width:100%; white-space:normal; word-break:break-word; font-size:13px; }
+      .bh-body { flex-direction:column; }
+      .bh-list { width:100%; min-width:0; flex:1; border-right:0; }
+      body:not(.bh-ver-open) .bh-panel { display:none; }
+      body.bh-ver-open .bh-list { display:none; }
+      body.bh-ver-open .bh-panel { display:flex; width:100%; flex:1; min-width:0; }
+      .bh-ver { min-height:44px; }
+      .bh-ver-note { white-space:normal; }
+      .bh-ptoolbar { flex-wrap:wrap; gap:8px; padding:8px; }
+      .bh-tab, .bh-btn { min-height:44px; display:inline-flex; align-items:center; justify-content:center; font-size:15px; padding:8px 12px; }
+      .bh-content { padding:12px; }
+      .bh-preview, .bh-raw { font-size:16px; line-height:1.55; }
+    }
   </style>
 </head>
-<body class="oc-body">
+<body class="oc-body bh-page">
   <%- include('partials/app-header') %>
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
@@ -90,6 +116,7 @@
           <!-- Content panel -->
           <div class="bh-panel">
             <div class="bh-ptoolbar" id="ptoolbar" style="display:none">
+              <button type="button" class="bh-btn bh-btn-secondary bh-versions-back" id="verBack" onclick="closeVersion()">Back</button>
               <span id="ptitle" style="font-size:13px;font-weight:700;color:var(--oc-text)"></span>
               <div style="display:flex;gap:4px;margin-left:8px">
                 <span class="bh-tab active" id="tabDiff"    onclick="setPanelTab('diff')">Diff</span>
@@ -127,6 +154,20 @@ async function boot() {
   if (!docRes || !histRes) return;
   currentContent = docRes.content || '';
   renderList(histRes.history || []);
+  const params = new URLSearchParams(location.search);
+  const initial = params.get('v');
+  history.replaceState({ ocHist: initial ? 'ver' : 'list', v: initial, pushed: false }, '', location.href);
+  if (initial) {
+    const el = document.getElementById('ver-' + initial);
+    if (el) selectVersion(Number(initial), el, { fromPop: true });
+  }
+  window.addEventListener('popstate', () => {
+    const v = new URLSearchParams(location.search).get('v');
+    if (v) {
+      const row = document.getElementById('ver-' + v);
+      if (row) selectVersion(Number(v), row, { fromPop: true });
+    } else showVersionList();
+  });
 }
 
 function renderList(history) {
@@ -149,15 +190,37 @@ function renderList(history) {
   `).join('');
 }
 
-async function selectVersion(v, el) {
-  // Mark active
+function phoneHist() { return window.matchMedia('(max-width: 767px)').matches; }
+
+function showVersionList() {
+  document.body.classList.remove('bh-ver-open');
+}
+
+function closeVersion() {
+  if (phoneHist() && history.state && history.state.ocHist === 'ver' && history.state.pushed) {
+    history.back();
+    return;
+  }
+  showVersionList();
+  if (phoneHist()) history.pushState({ ocHist: 'list' }, '', '/brain/history?path=' + enc(docPath));
+}
+
+async function selectVersion(v, el, opts) {
+  opts = opts || {};
   document.querySelectorAll('.bh-ver.active').forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
+  if (el) el.classList.add('active');
 
   const data = await apiFetch('/api/brain/version?path=' + enc(docPath) + '&v=' + v);
   if (!data) return;
   selectedVersion = v;
   selectedContent = data.content || '';
+
+  if (phoneHist()) {
+    document.body.classList.add('bh-ver-open');
+    if (!opts.fromPop) {
+      history.pushState({ ocHist: 'ver', v: v, pushed: true }, '', '/brain/history?path=' + enc(docPath) + '&v=' + v);
+    }
+  }
 
   document.getElementById('ptitle').innerHTML = 'Version ' + v +
     ' <span class="bh-current-badge">snapshot before this save</span>';
@@ -175,14 +238,27 @@ function setPanelTab(tab) {
   renderPanel();
 }
 
+function wrapRich(root) {
+  root.querySelectorAll('pre').forEach(pre => pre.classList.add('bh-code-scroll'));
+  root.querySelectorAll('table').forEach(table => {
+    if (table.parentElement && table.parentElement.classList.contains('bh-table-scroll')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'bh-table-scroll';
+    table.parentNode.insertBefore(wrap, table);
+    wrap.appendChild(table);
+  });
+}
+
 function renderPanel() {
   const el = document.getElementById('panelContent');
   if (panelTab === 'diff') {
     el.innerHTML = '<div class="bh-raw">' + renderDiff(selectedContent, currentContent) + '</div>';
   } else if (panelTab === 'preview') {
-    el.innerHTML = '<div class="bh-preview">' + marked.parse(selectedContent) + '</div>';
+    el.innerHTML = '<div class="bh-preview">' + (window.marked ? marked.parse(selectedContent) : esc(selectedContent)) + '</div>';
+    const preview = el.querySelector('.bh-preview');
+    if (preview) wrapRich(preview);
   } else {
-    el.innerHTML = '<pre class="bh-raw">' + esc(selectedContent) + '</pre>';
+    el.innerHTML = '<pre class="bh-raw bh-code-scroll">' + esc(selectedContent) + '</pre>';
   }
 }
 

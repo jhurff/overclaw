@@ -271,6 +271,8 @@
       .kb-tabs {
         display:flex !important;
         flex-shrink:0;
+        max-width:100%;
+        overflow-x:auto;
         border-bottom:1px solid var(--oc-border);
         background:var(--oc-bg-card);
       }
@@ -294,6 +296,9 @@
       .kb-tab.active.tab-inprogress { color:var(--oc-info-text); border-bottom-color:var(--oc-info); }
       .kb-tab.active.tab-blocked    { color:var(--oc-danger-text); border-bottom-color:var(--oc-danger); }
       .kb-tab.active.tab-done       { color:var(--oc-success-text); border-bottom-color:var(--oc-success); }
+      .kb-tab.active.tab-scheduled { color:var(--oc-warning-text); border-bottom-color:var(--oc-warning); }
+      .kb-tab.active.tab-active    { color:var(--oc-success-text); border-bottom-color:var(--oc-success); }
+      .kb-tab.active.tab-inactive  { color:var(--oc-text-muted); border-bottom-color:var(--oc-border-strong); }
       .kb-tab-count {
         display:inline-block;
         background:var(--oc-bg-sunken);
@@ -329,7 +334,17 @@
         padding-bottom:0.4rem;
         gap:0.5rem;
       }
-      .tb-title { font-size:0.95rem; }
+      .tb-title { font-size:1rem; }
+      .tb-sync-btn, .filter-pill, .show-more-btn, .assign-btn, .reassign-btn, .escalate-btn, .kb-tab {
+        min-height:44px;
+        font-size:0.875rem;
+      }
+      .assign-select, .tm-field input, .tm-field select, .tm-field textarea { font-size:16px; min-height:44px; }
+      .jq-card { min-width:0; max-width:100%; width:100%; }
+      .tm-close { min-width:44px; min-height:44px; }
+      .jimmy-queue-header { min-height:44px; }
+      .kb-card { font-size:0.95rem; }
+      .kb-card .task-title, .kb-card a.task-title { font-size:1rem; }
     }
 
     /* ── Stuck tasks (stale / overdue in-progress) ── */
@@ -746,6 +761,11 @@
       <div class="tb-error" id="vault-error"></div>
 
       <% if (boardKind === 'standing') { %>
+      <div class="kb-tabs">
+        <button type="button" class="kb-tab tab-scheduled active" id="ktab-scheduled">Scheduled</button>
+        <button type="button" class="kb-tab tab-active" id="ktab-active">Active</button>
+        <button type="button" class="kb-tab tab-inactive" id="ktab-inactive">Inactive</button>
+      </div>
       <div class="kb-board" id="standing-board">
         <div class="kb-col col-scheduled">
           <div class="kb-col-header">
@@ -772,10 +792,10 @@
       <% } else { %>
       <!-- Mobile column tabs -->
       <div class="kb-tabs">
-        <button class="kb-tab tab-inbox active" id="ktab-inbox">📥 <span class="kb-tab-count" id="tab-count-inbox"> - </span></button>
-        <button class="kb-tab tab-inprogress" id="ktab-inprogress">🔄 <span class="kb-tab-count" id="tab-count-inprogress"> - </span></button>
-        <button class="kb-tab tab-blocked" id="ktab-blocked">🚫 <span class="kb-tab-count" id="tab-count-blocked"> - </span></button>
-        <button class="kb-tab tab-done" id="ktab-done">✅ <span class="kb-tab-count" id="tab-count-done"> - </span></button>
+        <button type="button" class="kb-tab tab-inbox active" id="ktab-inbox">Inbox <span class="kb-tab-count" id="tab-count-inbox">-</span></button>
+        <button type="button" class="kb-tab tab-inprogress" id="ktab-inprogress">Progress <span class="kb-tab-count" id="tab-count-inprogress">-</span></button>
+        <button type="button" class="kb-tab tab-blocked" id="ktab-blocked">Blocked <span class="kb-tab-count" id="tab-count-blocked">-</span></button>
+        <button type="button" class="kb-tab tab-done" id="ktab-done">Done <span class="kb-tab-count" id="tab-count-done">-</span></button>
       </div>
 
       <!-- Board -->
@@ -1360,9 +1380,12 @@
     /* ── Mobile column tabs ── */
     (function () {
       if (window.innerWidth > 820) return;
-      var board = document.getElementById('kanban-board');
+      var board = document.getElementById('kanban-board') || document.getElementById('standing-board');
       if (!board) return;
-      var tabs  = ['inbox','inprogress','blocked','done'].map(function(k) {
+      var keys = board.id === 'standing-board'
+        ? ['scheduled','active','inactive']
+        : ['inbox','inprogress','blocked','done'];
+      var tabs  = keys.map(function(k) {
         return document.getElementById('ktab-' + k);
       });
 

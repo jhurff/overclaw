@@ -6,8 +6,8 @@
   <style>
     /* ── Settings layout ─────────────────────────────────────────────────── */
     .cfg-wrap   { max-width:860px; margin:0 auto; padding:0 4px; }
-    .cfg-tabs   { display:flex; gap:4px; border-bottom:1px solid var(--oc-border); margin-bottom:20px; }
-    .cfg-tab    { padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer;
+    .cfg-tabs   { display:flex; gap:4px; border-bottom:1px solid var(--oc-border); margin-bottom:20px; flex-wrap:wrap; }
+    .cfg-tab    { padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; min-height:44px; }
                   border:none; background:none; color:var(--oc-text-muted); border-bottom:2px solid transparent;
                   margin-bottom:-1px; transition:color .15s, border-color .15s; }
     .cfg-tab.active { color:var(--oc-accent-text); border-bottom-color:var(--oc-accent); }
@@ -108,7 +108,7 @@
           <div class="cfg-section">🧠 AI Brain</div>
           <div class="cfg-field">
             <div style="background:var(--oc-accent-soft);border:1px solid var(--oc-accent-soft);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--oc-text-muted);line-height:1.6">
-              <strong>DB:</strong> <code style="color:var(--oc-info-text)">data/brain.db</code> &mdash;
+              <strong>DB:</strong> <code style="color:var(--oc-info-text)">data/brain.db</code> -
               <%= brainStats ? brainStats.documents.toLocaleString() + ' docs, ' + (brainStats.db_file_bytes/1024/1024).toFixed(1) + ' MB' : 'unavailable' %>
               &nbsp;&middot;&nbsp;
               <a href="/brain" style="color:var(--oc-info-text)">Browse &amp; Edit</a>

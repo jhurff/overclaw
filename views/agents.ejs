@@ -263,9 +263,9 @@
               <span style="font-weight:700;color:${r.color}">${r.name}</span>
             </div>
           </td>
-          <td class="${r.type ? '' : 'dim'}">${r.type || '&mdash;'}</td>
-          <td style="font-size:.75rem;color:var(--oc-text-muted)">${r.machine || '&mdash;'}</td>
-          <td style="max-width:180px;font-size:.75rem;color:var(--oc-text-muted)">${r.role || '&mdash;'}</td>
+          <td class="${r.type ? '' : 'dim'}">${r.type || '-'}</td>
+          <td style="font-size:.75rem;color:var(--oc-text-muted)">${r.machine || '-'}</td>
+          <td style="max-width:180px;font-size:.75rem;color:var(--oc-text-muted)">${r.role || '-'}</td>
           <td style="white-space:nowrap;font-size:.78rem">
             <span class="oc-hb-dot ${r.hbDot}"></span>
             ${r.hbAgo || '<span style="color:var(--oc-text-faint);font-style:italic">never</span>'}
