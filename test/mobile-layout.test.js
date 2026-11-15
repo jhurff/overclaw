@@ -138,7 +138,7 @@ function overflowScript() {
   return { vw, scrollWidth: document.documentElement.scrollWidth, offenders };
 }
 
-test('phone widths do not overflow and Brain stacks', { timeout: 180000, skip: !CHROME && 'Chrome is not installed' }, async () => {
+test('phone widths do not overflow and Brain stacks', { timeout: 300000, skip: !CHROME && 'Chrome is not installed' }, async () => {
   const puppeteer = require('puppeteer-core');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'oc-mobile-'));
   const dbPath = path.join(dir, 'brain.db');
@@ -195,6 +195,13 @@ test('phone widths do not overflow and Brain stacks', { timeout: 180000, skip: !
     await file.evaluate(el => el.scrollIntoView({ block: 'center' }));
     await file.click();
     await page.waitForSelector('#bb-md-input');
+    await settle(page);
+    const editorShare = await contentShare(page, '#docArea');
+    assert.ok(editorShare.ratio >= 0.8, 'editor content ' + editorShare.ratio);
+    assert.ok(editorShare.chrome <= 100, 'editor chrome ' + editorShare.chrome);
+    assert.equal(editorShare.header, 'none');
+    assert.equal(editorShare.nav, 'none');
+    await page.click('#docMore');
     const opened = await page.evaluate(() => ({
       open: document.body.classList.contains('bb-doc-open'),
       editing: document.body.classList.contains('bb-editing'),
@@ -207,6 +214,7 @@ test('phone widths do not overflow and Brain stacks', { timeout: 180000, skip: !
         overflow: el.scrollWidth > el.clientWidth + 1,
       })),
       nav: getComputedStyle(document.querySelector('.oc-bottom-nav')).display,
+      bar: document.getElementById('docToolbar').getBoundingClientRect().height,
     }));
     assert.equal(opened.open, true);
     assert.equal(opened.editing, true);
@@ -214,7 +222,8 @@ test('phone widths do not overflow and Brain stacks', { timeout: 180000, skip: !
     assert.ok(opened.back >= 44, 'Back is ' + opened.back);
     assert.ok(opened.font >= 16, 'editor font ' + opened.font);
     assert.equal(opened.nav, 'none');
-    assert.deepEqual(opened.buttons.map(b => b.text), ['Preview', 'Save', 'History', 'Delete']);
+    assert.ok(opened.bar <= 56, 'top bar ' + opened.bar);
+    assert.deepEqual(opened.buttons.map(b => b.text), ['Preview', 'Save', 'History', 'Delete', 'Focus']);
     for (const button of opened.buttons) {
       assert.ok(button.h >= 44, button.text + ' height ' + button.h);
       assert.equal(button.overflow, false, button.text + ' is truncated');
@@ -227,36 +236,142 @@ test('phone widths do not overflow and Brain stacks', { timeout: 180000, skip: !
     await page.goto(base + '/brain?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#bb-md-input');
     assert.equal(await page.evaluate(() => document.body.classList.contains('bb-doc-open')), true);
+    await page.click('#docMore');
     await page.click('#modeBtn');
     await page.waitForSelector('#bb-preview:not([hidden])');
+    await settle(page);
+    const previewShare = await contentShare(page, '#docArea');
+    assert.ok(previewShare.ratio >= 0.8, 'doc view content ' + previewShare.ratio);
     const preview = await page.evaluate(() => {
       const box = document.getElementById('bb-preview');
       const pre = box.querySelector('pre');
       const table = box.querySelector('table');
       const scroll = table && table.parentElement;
+      const cell = table && table.querySelector('th, td');
       return {
         editing: document.body.classList.contains('bb-editing'),
         label: document.getElementById('modeBtn').textContent.trim(),
         pre: pre ? getComputedStyle(pre).overflowX : '',
+        preWhite: pre ? getComputedStyle(pre).whiteSpace : '',
         tableScroll: !!(scroll && scroll.classList.contains('bb-table-scroll')),
+        tableOverflow: scroll ? getComputedStyle(scroll).overflowX : '',
+        cellMin: cell ? parseFloat(getComputedStyle(cell).minWidth) : 0,
+        cellBreak: cell ? getComputedStyle(cell).wordBreak : '',
+        wider: !!(scroll && scroll.scrollWidth > scroll.clientWidth + 1),
         wraps: getComputedStyle(box).overflowWrap,
       };
     });
     assert.equal(preview.editing, false);
-    assert.equal(preview.label, 'Markdown');
+    assert.equal(preview.label, 'Edit');
     assert.ok(preview.pre === 'auto' || preview.pre === 'scroll', preview.pre);
     assert.equal(preview.tableScroll, true);
+    assert.ok(preview.tableOverflow === 'auto' || preview.tableOverflow === 'scroll', preview.tableOverflow);
+    assert.ok(preview.cellMin >= 128, 'column min ' + preview.cellMin);
+    assert.equal(preview.cellBreak, 'normal');
+    assert.equal(preview.wider, true);
     assert.ok(preview.wraps === 'anywhere' || preview.wraps === 'break-word');
 
     await page.goto(base + '/brain/history?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.bh-ver');
+    await settle(page);
     assert.equal(await page.evaluate(() => document.body.classList.contains('bh-ver-open')), false);
+    const listShare = await contentShare(page, '#verList');
+    assert.ok(listShare.ratio >= 0.8, 'history list content ' + listShare.ratio);
+    assert.equal(listShare.header, 'none');
+    assert.equal(listShare.nav, 'none');
+    assert.ok(listShare.chrome <= 100, 'history chrome ' + listShare.chrome);
     await page.click('.bh-ver');
     await page.waitForFunction(() => document.body.classList.contains('bh-ver-open'));
+    await page.waitForSelector('#histMore', { visible: true });
+    await settle(page);
+    const verShare = await contentShare(page, '#panelContent');
+    assert.ok(verShare.ratio >= 0.8, 'history version content ' + verShare.ratio);
+    assert.ok(verShare.chrome <= 100, 'version chrome ' + verShare.chrome);
+    await page.click('#histMore');
+    await page.click('#tabPreview');
+    await page.waitForSelector('#panelContent table');
+    const histTable = await page.evaluate(() => {
+      const table = document.querySelector('#panelContent table');
+      const scroll = table.parentElement;
+      const cell = table.querySelector('th, td');
+      return {
+        scroll: !!(scroll && scroll.classList.contains('bh-table-scroll')),
+        overflow: scroll ? getComputedStyle(scroll).overflowX : '',
+        cellMin: cell ? parseFloat(getComputedStyle(cell).minWidth) : 0,
+        wider: !!(scroll && scroll.scrollWidth > scroll.clientWidth + 1),
+      };
+    });
+    assert.equal(histTable.scroll, true);
+    assert.ok(histTable.overflow === 'auto' || histTable.overflow === 'scroll');
+    assert.ok(histTable.cellMin >= 128, 'history column ' + histTable.cellMin);
+    assert.equal(histTable.wider, true);
     const hist = await page.evaluate(overflowScript);
     assert.deepEqual(hist.offenders, [], JSON.stringify(hist.offenders));
     await page.click('#verBack');
     await page.waitForFunction(() => !document.body.classList.contains('bh-ver-open'));
+
+    const shotDir = '/opt/cursor/artifacts/brain-focus';
+    fs.mkdirSync(shotDir, { recursive: true });
+    for (const theme of ['matrix', 'usa', 'neutral']) {
+      await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      await switchTheme(page, theme);
+      await page.goto(base + '/brain?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#bb-md-input');
+      await settle(page);
+      const themeEditor = await contentShare(page, '#docArea');
+      assert.ok(themeEditor.ratio >= 0.8, theme + ' editor ' + themeEditor.ratio);
+      assert.equal(themeEditor.header, 'none');
+      await page.screenshot({ path: path.join(shotDir, theme + '-editor.png') });
+      await page.click('#docMore');
+      await page.click('#modeBtn');
+      await page.waitForSelector('#bb-preview:not([hidden])');
+      await settle(page);
+      const themeDoc = await contentShare(page, '#docArea');
+      assert.ok(themeDoc.ratio >= 0.8, theme + ' doc ' + themeDoc.ratio);
+      await page.screenshot({ path: path.join(shotDir, theme + '-doc.png') });
+      await page.click('#docMore');
+      await page.click('#modeBtn');
+      await page.waitForSelector('#bb-md-input');
+      await page.setViewport({ width: 390, height: 500, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      await page.focus('#bb-md-input');
+      await page.keyboard.type('Line above the keyboard. ');
+      await settle(page);
+      const keyboard = await page.evaluate(() => {
+        const save = document.getElementById('docSavebar');
+        const input = document.getElementById('bb-md-input');
+        const saveRect = save.getBoundingClientRect();
+        const inputRect = input.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const visible = Math.min(inputRect.bottom, vh) - Math.max(inputRect.top, 0);
+        return {
+          vh,
+          saveTop: saveRect.top,
+          saveBottom: saveRect.bottom,
+          saveDisplay: getComputedStyle(save).display,
+          visible,
+          vv: window.visualViewport ? window.visualViewport.height : vh,
+        };
+      });
+      assert.equal(keyboard.saveDisplay, 'flex');
+      assert.ok(keyboard.saveBottom <= keyboard.vh + 2, 'save below viewport ' + keyboard.saveBottom);
+      assert.ok(keyboard.saveTop >= keyboard.vh - 80, 'save not pinned ' + keyboard.saveTop);
+      assert.ok(keyboard.visible >= 300, 'editor visible ' + keyboard.visible);
+      await page.screenshot({ path: path.join(shotDir, theme + '-editor-keyboard.png') });
+      await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      await page.goto(base + '/brain/history?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('.bh-ver');
+      await page.click('.bh-ver');
+      await page.waitForFunction(() => document.body.classList.contains('bh-ver-open'));
+      await page.waitForSelector('#histMore', { visible: true });
+      await page.click('#histMore');
+      await page.click('#tabPreview');
+      await page.waitForSelector('#panelContent table');
+      await settle(page);
+      const themeHist = await contentShare(page, '#panelContent');
+      assert.ok(themeHist.ratio >= 0.8, theme + ' history ' + themeHist.ratio);
+      assert.equal(themeHist.header, 'none');
+      await page.screenshot({ path: path.join(shotDir, theme + '-history.png') });
+    }
 
     for (const theme of ['usa', 'neutral', 'matrix']) {
       await page.evaluate(async (id) => {
@@ -274,6 +389,41 @@ test('phone widths do not overflow and Brain stacks', { timeout: 180000, skip: !
         assert.deepEqual(report.offenders, [], theme + ' ' + route + ' ' + JSON.stringify(report.offenders));
       }
     }
+
+    await page.setViewport({ width: 1280, height: 800, isMobile: false, hasTouch: false });
+    await switchTheme(page, 'matrix');
+    await page.goto(base + '/brain?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#saveBtn', { visible: true });
+    const desktop = await page.evaluate(() => ({
+      header: getComputedStyle(document.querySelector('.oc-header')).display,
+      more: getComputedStyle(document.getElementById('docMore')).display,
+      tree: getComputedStyle(document.querySelector('.bb-tree')).display,
+      main: getComputedStyle(document.querySelector('.bb-main')).display,
+      open: document.body.classList.contains('bb-doc-open'),
+      savebar: getComputedStyle(document.getElementById('docSavebar')).display,
+      labels: Array.from(document.querySelectorAll('.bb-actions .bb-btn'))
+        .filter(el => getComputedStyle(el).display !== 'none')
+        .map(el => el.textContent.trim()),
+    }));
+    assert.notEqual(desktop.header, 'none');
+    assert.equal(desktop.more, 'none');
+    assert.equal(desktop.open, false);
+    assert.notEqual(desktop.tree, 'none');
+    assert.notEqual(desktop.main, 'none');
+    assert.equal(desktop.savebar, 'none');
+    assert.ok(desktop.labels.includes('Save'));
+    assert.ok(desktop.labels.includes('History'));
+    assert.ok(desktop.labels.includes('Delete'));
+    assert.equal(desktop.labels.includes('Focus'), false);
+    await page.goto(base + '/brain/history?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.bh-ver');
+    const desktopHist = await page.evaluate(() => ({
+      more: getComputedStyle(document.getElementById('histListMore')).display,
+      header: getComputedStyle(document.querySelector('.oc-header')).display,
+      tabs: getComputedStyle(document.getElementById('tabDiff')).display,
+    }));
+    assert.equal(desktopHist.more, 'none');
+    assert.notEqual(desktopHist.header, 'none');
   } catch (err) {
     err.message += '\nserver log:\n' + child.log();
     throw err;
@@ -315,6 +465,46 @@ async function waitForLogin(page) {
     await new Promise(resolve => setTimeout(resolve, 250));
   }
   throw new Error('login was not accepted');
+}
+
+async function contentShare(page, selector) {
+  return page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const header = document.querySelector('.oc-header');
+    const nav = document.querySelector('.oc-bottom-nav');
+    const shown = (node) => {
+      if (!node) return false;
+      const style = getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
+      return node.getBoundingClientRect().height > 1;
+    };
+    const bars = [document.getElementById('docToolbar'), document.getElementById('docSavebar'), document.querySelector('.bh-topbar'), document.querySelector('.bh-ptoolbar')];
+    let chrome = 0;
+    for (const bar of bars) {
+      if (shown(bar)) chrome += bar.getBoundingClientRect().height;
+    }
+    return {
+      ratio: rect.height / vh,
+      height: Math.round(rect.height),
+      vh,
+      chrome: Math.round(chrome),
+      header: header ? getComputedStyle(header).display : '',
+      nav: nav ? getComputedStyle(nav).display : '',
+    };
+  }, selector);
+}
+
+async function switchTheme(page, id) {
+  await page.evaluate(async (themeId) => {
+    const r = await fetch('/api/themes/active', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: themeId }),
+    });
+    if (!r.ok) throw new Error('theme switch failed');
+  }, id);
 }
 
 async function settle(page) {

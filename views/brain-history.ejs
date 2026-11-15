@@ -4,7 +4,24 @@
   <%- include('partials/document-head') %>
 
   <style>
-    .bh-page   { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+    body.bh-page { height:100dvh; overflow:hidden; }
+    .bh-shell  { display:flex; flex-direction:column; flex:1; height:100%; overflow:hidden; min-height:0; }
+    .bh-more   { display:none; align-items:center; justify-content:center; width:44px; height:44px; min-width:44px; padding:0; border:0; background:transparent; color:var(--oc-text); cursor:pointer; flex-shrink:0; }
+    .oc-dots   { width:4px; height:4px; border-radius:50%; background:currentColor; box-shadow:0 -7px 0 currentColor, 0 7px 0 currentColor; }
+    .bh-menu   { display:contents; }
+    .bh-menu-extra, .bh-list-menu, .bh-menu-path, .bh-back-short { display:none; }
+    .bh-tabs   { display:flex; gap:4px; margin-left:8px; align-items:center; }
+    .bh-spacer { flex:1; }
+    .bh-ptitle { min-width:0; }
+    .oc-focus-exit {
+      display:none; position:fixed; z-index:120;
+      top:calc(8px + env(safe-area-inset-top, 0px)); right:8px;
+      min-height:36px; padding:6px 12px; border-radius:999px;
+      border:1px solid var(--oc-border-strong);
+      background:var(--oc-bg-card); color:var(--oc-text);
+      font-size:13px; font-weight:700; cursor:pointer;
+    }
+    .oc-focus-exit[hidden] { display:none !important; }
     .bh-topbar { padding:10px 18px; border-bottom:1px solid var(--oc-border); display:flex; align-items:center; gap:12px; flex-shrink:0; }
     .bh-back   { color:var(--oc-info-text); text-decoration:none; font-size:13px; display:inline-flex; align-items:center; gap:4px; }
     .bh-back:hover { text-decoration:underline; }
@@ -43,7 +60,7 @@
     .bh-preview h1,h2,h3,h4 { color:var(--oc-text); margin-top:1.2em; }
     .bh-preview p { color:var(--oc-info-text); line-height:1.7; }
     .bh-preview code { background:var(--oc-bg-hover); padding:2px 6px; border-radius:4px; font-size:12px; }
-    .bh-preview pre { background:var(--oc-overlay); padding:12px; border-radius:8px; overflow-x:auto; }
+    .bh-preview pre { background:var(--oc-overlay); padding:12px; border-radius:8px; overflow-x:auto; max-width:100vw; white-space:pre; word-break:normal; overflow-wrap:normal; }
 
     /* Raw text */
     .bh-raw    { white-space:pre-wrap; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--oc-info-text); line-height:1.6; }
@@ -51,7 +68,7 @@
     /* Diff */
     .diff-line      { display:flex; gap:8px; font-family:monospace; font-size:12px; line-height:1.6; padding:1px 8px; }
     .diff-line-num  { color:var(--oc-text-faint); min-width:36px; text-align:right; flex-shrink:0; user-select:none; }
-    .diff-line-text { flex:1; white-space:pre-wrap; word-break:break-all; }
+    .diff-line-text { flex:1; white-space:pre; word-break:normal; overflow-wrap:normal; }
     .diff-add  { background:rgba(34,197,94,.12); }
     .diff-add .diff-line-text { color:var(--oc-success-text); }
     .diff-del  { background:rgba(239,68,68,.12); }
@@ -63,29 +80,102 @@
     .bh-current-badge { font-size:10px; background:var(--oc-accent-soft); color:var(--oc-info-text); padding:2px 6px; border-radius:4px; margin-left:6px; }
     .bh-empty-list { color:var(--oc-text-faint); font-size:13px; padding:24px; text-align:center; }
     .bh-versions-back { display:none; }
-    .bh-preview, .bh-raw { overflow-wrap:anywhere; word-break:break-word; }
-    .bh-preview pre, .bh-code-scroll { display:block; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .bh-preview pre code { white-space:pre; }
-    .bh-table-scroll { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .bh-preview, .bh-raw { overflow-wrap:break-word; word-break:normal; }
+    .bh-preview pre, .bh-code-scroll, .bh-diff-scroll {
+      display:block; width:100%; max-width:100vw; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    }
+    .bh-preview pre code, .bh-code-scroll { white-space:pre; word-break:normal; overflow-wrap:normal; }
+    .bh-table-scroll { display:block; width:100%; max-width:100vw; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .bh-preview table { border-collapse:collapse; width:max-content; min-width:100%; }
+    .bh-preview th, .bh-preview td {
+      border:1px solid var(--oc-border); padding:6px 8px; text-align:left;
+      min-width:9rem; white-space:normal; word-break:normal; overflow-wrap:break-word; vertical-align:top;
+    }
+    .bh-diff { min-width:max-content; }
+    .diff-line { width:max-content; min-width:100%; }
     .bh-preview img { max-width:100%; height:auto; }
 
     @media (max-width: 767px) {
-      .bh-topbar { flex-wrap:wrap; padding:8px 12px; gap:8px; }
-      .bh-back, .bh-versions-back {
-        display:inline-flex; align-items:center; min-height:44px; padding:0 12px;
-        font-size:16px; font-weight:700;
+      body.bh-page { height:auto; max-height:none; overflow:visible; display:block; }
+      .bh-shell {
+        display:block; height:auto; overflow:visible;
+        padding-top:calc(48px + env(safe-area-inset-top, 0px));
       }
-      .bh-path { max-width:100%; white-space:normal; word-break:break-word; font-size:13px; }
-      .bh-body { flex-direction:column; }
-      .bh-list { width:100%; min-width:0; flex:1; border-right:0; }
+      body.bh-focus .bh-shell { padding-top:0; }
+      .bh-topbar, body.bh-ver-open .bh-ptoolbar {
+        position:fixed; top:var(--oc-vv-top, 0px); left:0; right:0; z-index:80;
+        box-sizing:border-box;
+        height:calc(48px + env(safe-area-inset-top, 0px));
+        min-height:0; margin:0;
+        padding:env(safe-area-inset-top, 0px) 4px 0;
+        flex-wrap:nowrap; gap:4px; align-items:center;
+        background:var(--oc-bg-header); border-bottom:1px solid var(--oc-border);
+      }
+      body.bh-ver-open .bh-topbar,
+      body.bh-focus .bh-topbar,
+      body.bh-focus .bh-ptoolbar { display:none !important; }
+      .bh-back, .bh-versions-back {
+        display:inline-flex; align-items:center; justify-content:center;
+        height:44px; min-height:44px; min-width:44px; padding:0 12px;
+        font-size:16px; font-weight:700; text-decoration:none;
+        border-radius:6px; border:1px solid var(--oc-border-strong);
+        background:var(--oc-bg-input); color:var(--oc-text);
+      }
+      .bh-back-long { display:none; }
+      .bh-back-short { display:inline; }
+      .bh-topbar .bh-sep, .bh-topbar .bh-path, .bh-topbar #verCount { display:none; }
+      .bh-title, .bh-ptitle {
+        flex:1; min-width:0; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        color:var(--oc-text-header);
+      }
+      .bh-topbar .bh-more, .bh-ptoolbar .bh-more { color:var(--oc-text-header); }
+      .bh-current-badge { display:none; }
+      .bh-more { display:inline-flex; }
+      .bh-body { display:block; overflow:visible; height:auto; }
+      .bh-list {
+        width:100%; min-width:0; overflow:visible; height:auto; border-right:0;
+        min-height:calc(var(--oc-vv-h, 100dvh) - 48px - env(safe-area-inset-top, 0px));
+      }
       body:not(.bh-ver-open) .bh-panel { display:none; }
-      body.bh-ver-open .bh-list { display:none; }
-      body.bh-ver-open .bh-panel { display:flex; width:100%; flex:1; min-width:0; }
+      body.bh-ver-open .bh-list { display:none; min-height:0; }
+      body.bh-ver-open .bh-panel { display:block; width:100%; overflow:visible; height:auto; }
       .bh-ver { min-height:44px; }
       .bh-ver-note { white-space:normal; }
-      .bh-ptoolbar { flex-wrap:wrap; gap:8px; padding:8px; }
-      .bh-tab, .bh-btn { min-height:44px; display:inline-flex; align-items:center; justify-content:center; font-size:15px; padding:8px 12px; }
-      .bh-content { padding:12px; }
+      .bh-menu {
+        display:none; position:absolute; top:100%; right:6px;
+        width:min(18rem, calc(100vw - 12px));
+        flex-direction:column; align-items:stretch; gap:0;
+        background:var(--oc-bg-card); border:1px solid var(--oc-border);
+        box-shadow:var(--oc-shadow-lg); z-index:90; padding:4px;
+      }
+      body.bh-menu-open .bh-menu,
+      body.bh-list-menu-open .bh-list-menu {
+        display:flex; position:absolute; top:100%; right:6px;
+        width:min(18rem, calc(100vw - 12px));
+        flex-direction:column; background:var(--oc-bg-card);
+        border:1px solid var(--oc-border); box-shadow:var(--oc-shadow-lg); z-index:90; padding:4px;
+      }
+      .bh-menu .bh-spacer { display:none; }
+      .bh-menu .bh-tabs { display:flex; flex-direction:column; margin:0; gap:0; align-items:stretch; }
+      .bh-menu .bh-tab, .bh-menu .bh-btn, .bh-menu .bh-menu-extra,
+      .bh-list-menu button {
+        display:flex; align-items:center; justify-content:flex-start;
+        min-height:44px; width:100%; padding:8px 12px; margin:0;
+        font-size:16px; font-weight:700; text-align:left; text-decoration:none;
+        background:transparent; border:0; border-radius:4px; color:var(--oc-text); box-sizing:border-box;
+      }
+      .bh-menu .bh-tab.active { background:var(--oc-accent-soft); color:var(--oc-accent-text); }
+      .bh-menu-path, .bh-menu-meta {
+        display:block; padding:8px 12px 10px; font-size:12px; line-height:1.4;
+        color:var(--oc-text-faint); white-space:normal; word-break:break-word;
+      }
+      .bh-content {
+        overflow:visible; height:auto; padding:12px 12px 28px;
+        min-height:calc(var(--oc-vv-h, 100dvh) - 48px - env(safe-area-inset-top, 0px));
+      }
+      body.bh-focus .bh-list,
+      body.bh-focus .bh-content { min-height:var(--oc-vv-h, 100dvh); }
+      body.bh-focus .oc-focus-exit:not([hidden]) { display:inline-flex; }
       .bh-preview, .bh-raw { font-size:16px; line-height:1.55; }
     }
   </style>
@@ -94,16 +184,27 @@
   <%- include('partials/app-header') %>
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
-    <main class="oc-dashboard-area" style="padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important">
+    <main class="oc-dashboard-area" style="padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0">
 
-      <div class="bh-page">
+      <div class="bh-shell">
         <!-- Top bar -->
         <div class="bh-topbar">
-          <a class="bh-back" href="/brain?path=<%= encodeURIComponent(docPath) %>">← Back to doc</a>
-          <span style="color:var(--oc-text-faint)">|</span>
-          <span class="bh-title">⏱ Version History</span>
+          <a class="bh-back" href="/brain?path=<%= encodeURIComponent(docPath) %>">
+            <span class="bh-back-long">&#8592; Back to doc</span>
+            <span class="bh-back-short">Back</span>
+          </a>
+          <span class="bh-sep" style="color:var(--oc-text-faint)">|</span>
+          <span class="bh-title">Version History</span>
           <span class="bh-path" title="<%= docPath %>"><%= docPath %></span>
           <span id="verCount" style="font-size:11px;color:var(--oc-text-faint);margin-left:auto"></span>
+          <button type="button" class="bh-more" id="histListMore" aria-label="More actions" aria-expanded="false" onclick="toggleHistListMenu(event)">
+            <span class="oc-dots" aria-hidden="true"></span>
+          </button>
+          <div class="bh-list-menu" id="histListMenu">
+            <button type="button" id="histListFocus" onclick="toggleHistFocus()">Focus</button>
+            <div class="bh-menu-path"><%= docPath %></div>
+            <div class="bh-menu-meta" id="verCountMenu"></div>
+          </div>
         </div>
 
         <!-- Two-pane body -->
@@ -117,14 +218,22 @@
           <div class="bh-panel">
             <div class="bh-ptoolbar" id="ptoolbar" style="display:none">
               <button type="button" class="bh-btn bh-btn-secondary bh-versions-back" id="verBack" onclick="closeVersion()">Back</button>
-              <span id="ptitle" style="font-size:13px;font-weight:700;color:var(--oc-text)"></span>
-              <div style="display:flex;gap:4px;margin-left:8px">
-                <span class="bh-tab active" id="tabDiff"    onclick="setPanelTab('diff')">Diff</span>
-                <span class="bh-tab"        id="tabPreview" onclick="setPanelTab('preview')">Preview</span>
-                <span class="bh-tab"        id="tabRaw"     onclick="setPanelTab('raw')">Raw</span>
+              <span id="ptitle" class="bh-ptitle" style="font-size:13px;font-weight:700"></span>
+              <button type="button" class="bh-more" id="histMore" aria-label="More actions" aria-expanded="false" onclick="toggleHistMenu(event)">
+                <span class="oc-dots" aria-hidden="true"></span>
+              </button>
+              <div class="bh-menu" id="histMenu">
+                <div class="bh-tabs">
+                  <span class="bh-tab active" id="tabDiff"    onclick="setPanelTab('diff')">Diff</span>
+                  <span class="bh-tab"        id="tabPreview" onclick="setPanelTab('preview')">Preview</span>
+                  <span class="bh-tab"        id="tabRaw"     onclick="setPanelTab('raw')">Raw</span>
+                </div>
+                <div class="bh-spacer"></div>
+                <button class="bh-btn bh-btn-primary" id="restoreBtn" onclick="doRestore()">&#8617; Restore</button>
+                <a class="bh-menu-extra" href="/brain?path=<%= encodeURIComponent(docPath) %>">Back to doc</a>
+                <button type="button" class="bh-menu-extra" id="histFocus" onclick="toggleHistFocus()">Focus</button>
+                <div class="bh-menu-path"><%= docPath %></div>
               </div>
-              <div style="flex:1"></div>
-              <button class="bh-btn bh-btn-primary"    id="restoreBtn" onclick="doRestore()">↩ Restore</button>
             </div>
             <div class="bh-content" id="panelContent">
               <div class="bh-empty">Select a version from the list</div>
@@ -132,6 +241,7 @@
           </div>
         </div>
       </div>
+      <button type="button" class="oc-focus-exit" id="histFocusExit" hidden onclick="toggleHistFocus(false)">Exit focus</button>
 
     </main>
   </div>
@@ -161,6 +271,12 @@ async function boot() {
     const el = document.getElementById('ver-' + initial);
     if (el) selectVersion(Number(initial), el, { fromPop: true });
   }
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', syncHistViewport);
+    visualViewport.addEventListener('scroll', syncHistViewport);
+  }
+  window.addEventListener('resize', syncHistViewport);
+  syncHistViewport();
   window.addEventListener('popstate', () => {
     const v = new URLSearchParams(location.search).get('v');
     if (v) {
@@ -172,7 +288,10 @@ async function boot() {
 
 function renderList(history) {
   const list = document.getElementById('verList');
-  document.getElementById('verCount').textContent = history.length + ' version' + (history.length !== 1 ? 's' : '');
+  const label = history.length + ' version' + (history.length !== 1 ? 's' : '');
+  document.getElementById('verCount').textContent = label;
+  const menuCount = document.getElementById('verCountMenu');
+  if (menuCount) menuCount.textContent = label;
   if (!history.length) {
     list.innerHTML = '<div class="bh-empty-list">No saved versions yet.<br>Versions are created each time you save a document.</div>';
     return;
@@ -191,6 +310,67 @@ function renderList(history) {
 }
 
 function phoneHist() { return window.matchMedia('(max-width: 767px)').matches; }
+
+function syncHistViewport() {
+  if (!phoneHist()) return;
+  const vv = window.visualViewport;
+  const top = vv ? vv.offsetTop : 0;
+  const height = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--oc-vv-top', top + 'px');
+  document.documentElement.style.setProperty('--oc-vv-h', height + 'px');
+}
+
+function toggleHistMenu(event) {
+  if (event) event.stopPropagation();
+  if (!phoneHist()) return;
+  const open = !document.body.classList.contains('bh-menu-open');
+  document.body.classList.toggle('bh-menu-open', open);
+  document.body.classList.remove('bh-list-menu-open');
+  const btn = document.getElementById('histMore');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function toggleHistListMenu(event) {
+  if (event) event.stopPropagation();
+  if (!phoneHist()) return;
+  const open = !document.body.classList.contains('bh-list-menu-open');
+  document.body.classList.toggle('bh-list-menu-open', open);
+  document.body.classList.remove('bh-menu-open');
+  const btn = document.getElementById('histListMore');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeHistMenus() {
+  document.body.classList.remove('bh-menu-open', 'bh-list-menu-open');
+  const a = document.getElementById('histMore');
+  const b = document.getElementById('histListMore');
+  if (a) a.setAttribute('aria-expanded', 'false');
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+
+function toggleHistFocus(force) {
+  const on = typeof force === 'boolean' ? force : !document.body.classList.contains('bh-focus');
+  document.body.classList.toggle('bh-focus', on);
+  const exit = document.getElementById('histFocusExit');
+  if (exit) exit.hidden = !on;
+  const label = on ? 'Exit focus' : 'Focus';
+  const a = document.getElementById('histFocus');
+  const b = document.getElementById('histListFocus');
+  if (a) a.textContent = label;
+  if (b) b.textContent = label;
+  closeHistMenus();
+}
+
+document.addEventListener('click', (event) => {
+  if (!document.body.classList.contains('bh-menu-open') && !document.body.classList.contains('bh-list-menu-open')) return;
+  if (event.target.closest && (event.target.closest('.bh-topbar') || event.target.closest('.bh-ptoolbar'))) return;
+  closeHistMenus();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  if (document.body.classList.contains('bh-focus')) toggleHistFocus(false);
+  else closeHistMenus();
+});
 
 function showVersionList() {
   document.body.classList.remove('bh-ver-open');
@@ -235,6 +415,7 @@ function setPanelTab(tab) {
     document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1))
       .classList.toggle('active', t === tab);
   });
+  closeHistMenus();
   renderPanel();
 }
 
@@ -252,7 +433,7 @@ function wrapRich(root) {
 function renderPanel() {
   const el = document.getElementById('panelContent');
   if (panelTab === 'diff') {
-    el.innerHTML = '<div class="bh-raw">' + renderDiff(selectedContent, currentContent) + '</div>';
+    el.innerHTML = '<div class="bh-diff-scroll"><div class="bh-raw bh-diff">' + renderDiff(selectedContent, currentContent) + '</div></div>';
   } else if (panelTab === 'preview') {
     el.innerHTML = '<div class="bh-preview">' + (window.marked ? marked.parse(selectedContent) : esc(selectedContent)) + '</div>';
     const preview = el.querySelector('.bh-preview');
