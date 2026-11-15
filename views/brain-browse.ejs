@@ -1166,7 +1166,15 @@
       return safe.replace(new RegExp('(' + pattern + ')', 'ig'), '<mark>$1</mark>');
     }
     function safeSnippet(html) {
-      return String(html || '').replace(/<(?!\/?mark\b)[^>]*>/gi, '');
+      // Server snippets are already HTML-escaped with <mark> highlights. Keep
+      // only exact <mark>/</mark> tags and escape every other angle bracket in
+      // a single pass, so no tag can survive or be reassembled.
+      return String(html || '').split(/(<\/?mark>)/i).map(function (part, i) {
+        if (i % 2 === 1) return part.charAt(1) === '/' ? '</mark>' : '<mark>';
+        return part.replace(/[<>"']|&(?![a-zA-Z]{2,8};|#[0-9]{1,6};|#x[0-9a-fA-F]{1,6};)/g, function (c) {
+          return c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : c === "'" ? '&#39;' : '&amp;';
+        });
+      }).join('');
     }
     function updateClear() {
       const input = document.getElementById('treeFilter');
