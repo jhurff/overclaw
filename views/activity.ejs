@@ -1,95 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <%- include('partials/document-head') %>
+
   <style>
     /* ── Feed layout ──────────────────────────────────────────────────── */
     .feed-wrap   { display:flex; flex-direction:column; gap:0; }
 
     /* ── Toolbar ──────────────────────────────────────────────────────── */
     .feed-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-                    padding-bottom:14px; border-bottom:1px solid var(--border,#2a2a4a);
+                    padding-bottom:14px; border-bottom:1px solid var(--oc-border);
                     margin-bottom:14px; }
-    .feed-count  { margin-left:auto; font-size:11px; color:#4b5563; white-space:nowrap; }
-    .feed-refresh { background:#6366f1; color:#fff; border:none; border-radius:6px;
+    .feed-count  { margin-left:auto; font-size:11px; color:var(--oc-text-faint); white-space:nowrap; }
+    .feed-refresh { background:var(--oc-accent); color:var(--oc-text-on-accent); border:none; border-radius:6px;
                     padding:5px 13px; font-size:12px; font-weight:600; cursor:pointer; }
     .feed-refresh:hover { opacity:.85; }
-    .feed-filter { background:var(--surface-3,#111122); border:1px solid var(--border,#2a2a4a);
-                   border-radius:6px; color:#ccc; padding:5px 9px; font-size:12px; }
-    .feed-search { background:var(--surface-3,#111122); border:1px solid var(--border,#2a2a4a);
-                   border-radius:6px; color:#ccc; padding:5px 11px; font-size:12px; width:190px; }
+    .feed-filter { background:var(--oc-bg-input); border:1px solid var(--oc-border);
+                   border-radius:6px; color:var(--oc-text); padding:5px 9px; font-size:12px; }
+    .feed-search { background:var(--oc-bg-input); border:1px solid var(--oc-border);
+                   border-radius:6px; color:var(--oc-text); padding:5px 11px; font-size:12px; width:190px; }
 
     /* ── Live indicator ───────────────────────────────────────────────── */
-    .feed-live   { display:flex; align-items:center; gap:5px; font-size:11px; color:#34d399; }
-    .feed-pulse  { width:7px; height:7px; border-radius:50%; background:#34d399;
+    .feed-live   { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--oc-success-text); }
+    .feed-pulse  { width:7px; height:7px; border-radius:50%; background:var(--oc-bg-hover);
                    animation:pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
-    .feed-live.stale { color:#6b7280; }
-    .feed-live.stale .feed-pulse { background:#6b7280; animation:none; }
+    .feed-live.stale { color:var(--oc-text-muted); }
+    .feed-live.stale .feed-pulse { background:var(--oc-accent-soft); animation:none; }
 
     /* ── Event rows ───────────────────────────────────────────────────── */
     .feed-table  { width:100%; border-collapse:collapse; font-size:13px; }
     .feed-table th { text-align:left; padding:7px 10px; font-size:10.5px; font-weight:700;
-                     text-transform:uppercase; letter-spacing:.06em; color:#4b5563;
-                     border-bottom:1px solid var(--border,#2a2a4a); white-space:nowrap; }
-    .feed-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.03);
+                     text-transform:uppercase; letter-spacing:.06em; color:var(--oc-text-faint);
+                     border-bottom:1px solid var(--oc-border); white-space:nowrap; }
+    .feed-table td { padding:8px 10px; border-bottom:1px solid var(--oc-bg-hover);
                      vertical-align:middle; }
-    .feed-table tr:hover td { background:rgba(255,255,255,.02); }
+    .feed-table tr:hover td { background:var(--oc-bg-hover); }
     .feed-table tr.new-row td { animation:flashIn .6s ease-out; }
-    @keyframes flashIn { from{background:rgba(99,102,241,.18)} to{background:transparent} }
+    @keyframes flashIn { from{background:var(--oc-accent-soft)} to{background:transparent} }
 
     /* ── Type pills ───────────────────────────────────────────────────── */
     .ev-pill { display:inline-block; padding:2px 8px; border-radius:8px; font-size:10.5px;
                font-weight:700; white-space:nowrap; }
-    .ev-brain_write  { background:rgba(99,102,241,.2);  color:#a5b4fc; }
-    .ev-brain_read   { background:rgba(99,102,241,.08); color:#818cf8; }
-    .ev-brain_search { background:rgba(16,185,129,.1);  color:#6ee7b7; }
-    .ev-brain_list   { background:rgba(75,85,99,.15);   color:#9ca3af; }
-    .ev-doc_version  { background:rgba(245,158,11,.15); color:#fcd34d; }
-    .ev-heartbeat    { background:rgba(52,211,153,.1);  color:#34d399; }
-    .ev-alert        { background:rgba(239,68,68,.15);  color:#fca5a5; }
-    .ev-mcp_connect  { background:rgba(59,130,246,.15); color:#93c5fd; }
-    .ev-default      { background:rgba(75,85,99,.12);   color:#9ca3af; }
+    .ev-brain_write  { background:var(--oc-accent-soft);  color:var(--oc-info-text); }
+    .ev-brain_read   { background:var(--oc-accent-soft); color:var(--oc-info-text); }
+    .ev-brain_search { background:rgba(16,185,129,.1);  color:var(--oc-success-text); }
+    .ev-brain_list   { background:rgba(75,85,99,.15);   color:var(--oc-text-muted); }
+    .ev-doc_version  { background:rgba(245,158,11,.15); color:var(--oc-danger-text); }
+    .ev-heartbeat    { background:rgba(52,211,153,.1);  color:var(--oc-success-text); }
+    .ev-alert        { background:rgba(239,68,68,.15);  color:var(--oc-danger-text); }
+    .ev-mcp_connect  { background:rgba(59,130,246,.15); color:var(--oc-info-text); }
+    .ev-default      { background:rgba(75,85,99,.12);   color:var(--oc-text-muted); }
 
     /* ── Agent chip ───────────────────────────────────────────────────── */
     .ag-chip { display:inline-flex; align-items:center; gap:4px; font-size:11.5px;
                font-weight:600; white-space:nowrap; }
 
     /* ── Path/detail ──────────────────────────────────────────────────── */
-    .ev-detail { font-size:11px; color:#6b7280; font-family:monospace;
+    .ev-detail { font-size:11px; color:var(--oc-text-muted); font-family:monospace;
                  max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .ev-summary { color:#d1d5db; max-width:360px; overflow:hidden;
+    .ev-summary { color:var(--oc-text); max-width:360px; overflow:hidden;
                   text-overflow:ellipsis; white-space:nowrap; }
-    .ev-err { color:#f87171; }
+    .ev-err { color:var(--oc-danger-text); }
 
     /* ── Time ─────────────────────────────────────────────────────────── */
-    .ev-time { font-size:11px; color:#4b5563; white-space:nowrap; }
+    .ev-time { font-size:11px; color:var(--oc-text-faint); white-space:nowrap; }
 
     /* ── Empty / loading ──────────────────────────────────────────────── */
-    .feed-empty { text-align:center; padding:40px; color:#4b5563; font-size:14px; }
+    .feed-empty { text-align:center; padding:40px; color:var(--oc-text-faint); font-size:14px; }
 
     /* ── Light mode ───────────────────────────────────────────────────── */
-    body.light-mode .ev-summary { color:#1f2937; }
-    body.light-mode .feed-table tr:hover td { background:rgba(0,0,0,.02); }
+    .ev-summary { color:var(--oc-text-faint); }
+    .feed-table tr:hover td { background:var(--oc-overlay); }
   </style>
 </head>
 <body class="oc-body">
-  <header class="oc-header">
-    <div class="logo">
-      <a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer">
-        <h1 class="main-title">OVERCLAW</h1>
-        <span class="tagline">ACTIVITY FEED</span>
-      </a>
-    </div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">&#9776;</button>
-      <button id="theme-toggle"   class="control-button">&#9728;&#65039;</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
 
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/activity' }) %>
@@ -150,27 +136,11 @@
   </div>
 
   <script>
-    /* ── Sidebar / theme ─────────────────────────────────────────────── */
-    (function(){
-      const sb=document.getElementById('oc-sidebar'), btn=document.getElementById('sidebar-toggle');
-      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-      if(col)sb.classList.add('collapsed');
-      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-      const th=document.getElementById('theme-toggle');
-      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'\uD83C\uDF19':'\u2600\uFE0F';
-      th.addEventListener('click',()=>{
-        tm=tm==='light'?'dark':'light';
-        document.body.classList.toggle('light-mode',tm==='light');
-        document.body.classList.toggle('dark-mode',tm==='dark');
-        localStorage.setItem('overclaw-theme',tm);
-        th.textContent=tm==='dark'?'\uD83C\uDF19':'\u2600\uFE0F';
-      });
-    })();
+
 
     /* ── Agent meta ──────────────────────────────────────────────────── */
     let AGENT_META = {
-      agent:  { emoji:'\uD83E\uDD16', color:'#6b7280', label:'Agent'  },
+      agent:  { emoji:'\uD83E\uDD16', color:'var(--oc-text-muted)', label:'Agent'  },
     };
     fetch('/api/instance').then(r=>r.json()).then(inst=>{
       if (inst.activityActors && typeof inst.activityActors === 'object') {
@@ -217,7 +187,7 @@
         lastTs = Date.now();
       } catch(e) {
         document.getElementById('feedBody').innerHTML =
-          `<tr><td colspan="5" class="feed-empty" style="color:#f87171">\u26A0\uFE0F Failed to load: ${e.message}</td></tr>`;
+          `<tr><td colspan="5" class="feed-empty" style="color:var(--oc-danger-text)">\u26A0\uFE0F Failed to load: ${e.message}</td></tr>`;
         setLive(false);
       }
     }
@@ -262,7 +232,7 @@
       // Render rows
       const prevTopTs = allEvents.length ? (allEvents[0]?.ts || 0) : 0;
       tbody.innerHTML = vis.map((e, i) => {
-        const m       = AGENT_META[e.agent] || { emoji:'\uD83E\uDD16', color:'#6b7280', label: e.agent };
+        const m       = AGENT_META[e.agent] || { emoji:'\uD83E\uDD16', color:'var(--oc-text-muted)', label: e.agent };
         const typeKey = e.type.replace(/^brain_/, 'brain_');
         const pillCls = 'ev-pill ev-' + (typeKey in TYPE_LABELS ? typeKey : 'default');
         const label   = TYPE_LABELS[e.type] || e.type.replace(/_/g,' ');
@@ -277,11 +247,11 @@
               ${m.emoji} ${m.label || e.agent}
             </span>
           </td>
-          <td><span class="ev-summary${errCls}" title="${esc(e.summary||'')}">${esc(e.summary||'—')}</span></td>
+          <td><span class="ev-summary${errCls}" title="${esc(e.summary||'')}">${esc(e.summary||' - ')}</span></td>
           <td>
             ${e.detail
               ? `<span class="ev-detail" title="${esc(e.detail)}">${esc(shortPath(e.detail))}</span>`
-              : '<span style="color:#374151">—</span>'}
+              : '<span style="color:var(--oc-text-faint)"> - </span>'}
           </td>
         </tr>`;
       }).join('');
@@ -289,7 +259,7 @@
 
     /* ── Helpers ─────────────────────────────────────────────────────── */
     function fmtTime(ts) {
-      if (!ts) return '—';
+      if (!ts) return ' - ';
       const d   = new Date(ts);
       const now = Date.now();
       const ms  = now - ts;
@@ -340,5 +310,6 @@
     loadFeed(false);
     startAutoRefresh();
   </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

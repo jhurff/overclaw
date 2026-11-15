@@ -1,0 +1,12 @@
+:root { color-scheme: dark; }
+.oc-header .main-title,
+.tb-title,
+.sw-title {
+  text-shadow: var(--oc-glow);
+}
+.oc-card,
+.kb-col,
+.stat-card,
+.oc-data-wrap {
+  box-shadow: var(--oc-glow);
+}

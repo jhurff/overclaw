@@ -1,98 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <%- include('partials/document-head') %>
+
   <style>
     /* ── Settings layout ─────────────────────────────────────────────────── */
-    .cfg-wrap   { max-width: 860px; margin: 0 auto; padding: 0 4px; }
-    .cfg-tabs   { display: flex; gap: 4px; border-bottom: 1px solid var(--border,#2a2a4a); margin-bottom: 20px; }
-    .cfg-tab    { padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
-                  border: none; background: none; color: #6b7280; border-bottom: 2px solid transparent;
-                  margin-bottom: -1px; transition: color .15s, border-color .15s; }
-    .cfg-tab.active { color: #9fa8f8; border-bottom-color: #6366f1; }
-    .cfg-pane   { display: none; }
-    .cfg-pane.active { display: block; }
+    .cfg-wrap   { max-width:860px; margin:0 auto; padding:0 4px; }
+    .cfg-tabs   { display:flex; gap:4px; border-bottom:1px solid var(--oc-border); margin-bottom:20px; }
+    .cfg-tab    { padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer;
+                  border:none; background:none; color:var(--oc-text-muted); border-bottom:2px solid transparent;
+                  margin-bottom:-1px; transition:color .15s, border-color .15s; }
+    .cfg-tab.active { color:var(--oc-accent-text); border-bottom-color:var(--oc-accent); }
+    .cfg-pane   { display:none; }
+    .cfg-pane.active { display:block; }
 
     /* ── Sections + fields ───────────────────────────────────────────────── */
-    .cfg-section { font-size: 11px; font-weight: 700; text-transform: uppercase;
-                   letter-spacing: .08em; color: #4b5563; margin: 20px 0 10px; padding-bottom: 4px;
-                   border-bottom: 1px solid var(--border,#2a2a4a); }
-    .cfg-field  { margin-bottom: 16px; }
-    .cfg-label  { display: block; font-size: 12.5px; font-weight: 600; color: #9ca3af; margin-bottom: 5px; }
-    .cfg-hint   { font-size: 11px; color: #4b5563; margin-top: 3px; }
-    .cfg-input  { width: 100%; max-width: 440px; background: var(--surface-3,#111122);
-                  border: 1px solid var(--border,#2a2a4a); border-radius: 6px;
-                  color: #e2e8f0; padding: 7px 11px; font-size: 13px; box-sizing: border-box; }
-    .cfg-input:focus { outline: none; border-color: #6366f1; }
-    .cfg-input[readonly] { opacity: .5; cursor: not-allowed; }
-    .cfg-select { background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
-                  border-radius: 6px; color: #e2e8f0; padding: 7px 11px; font-size: 13px; }
-    .cfg-row    { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .cfg-badge  { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-    .badge-localhost   { background: rgba(99,102,241,.15); color: #a5b4fc; }
-    .badge-localnet    { background: rgba(16,185,129,.12); color: #6ee7b7; }
-    .badge-private_wan { background: rgba(245,158,11,.12); color: #fcd34d; }
-    .badge-public_wan  { background: rgba(239,68,68,.12);  color: #fca5a5; }
-    .badge-unknown     { background: rgba(75,85,99,.15);   color: #9ca3af; }
+    .cfg-section { font-size:11px; font-weight:700; text-transform:uppercase;
+                   letter-spacing:.08em; color:var(--oc-text-faint); margin:20px 0 10px; padding-bottom:4px;
+                   border-bottom:1px solid var(--oc-border); }
+    .cfg-field  { margin-bottom:16px; }
+    .cfg-label  { display:block; font-size:12.5px; font-weight:600; color:var(--oc-text-muted); margin-bottom:5px; }
+    .cfg-hint   { font-size:11px; color:var(--oc-text-faint); margin-top:3px; }
+    .cfg-input  { width:100%; max-width:440px; background:var(--oc-bg-input);
+                  border:1px solid var(--oc-border); border-radius:6px;
+                  color:var(--oc-text); padding:7px 11px; font-size:13px; box-sizing:border-box; }
+    .cfg-input:focus { outline:none; border-color:var(--oc-accent); }
+    .cfg-input[readonly] { opacity:.5; cursor:not-allowed; }
+    .cfg-select { background:var(--oc-bg-input); border:1px solid var(--oc-border);
+                  border-radius:6px; color:var(--oc-text); padding:7px 11px; font-size:13px; }
+    .cfg-row    { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .cfg-badge  { display:inline-block; padding:2px 9px; border-radius:10px; font-size:11px; font-weight:700; }
+    .badge-localhost   { background:var(--oc-accent-soft); color:var(--oc-info-text); }
+    .badge-localnet    { background:rgba(16,185,129,.12); color:var(--oc-success-text); }
+    .badge-private_wan { background:rgba(245,158,11,.12); color:var(--oc-danger-text); }
+    .badge-public_wan  { background:rgba(239,68,68,.12);  color:var(--oc-danger-text); }
+    .badge-unknown     { background:rgba(75,85,99,.15);   color:var(--oc-text-muted); }
 
     /* ── IP card grid ────────────────────────────────────────────────────── */
-    .net-grid   { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
-    .net-card   { background: var(--surface-2,#1a1a2e); border: 1px solid var(--border,#2a2a4a);
-                  border-radius: 10px; padding: 14px 16px; }
-    .net-card-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase;
-                      letter-spacing: .07em; color: #4b5563; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-    .net-card-ip    { font-size: 15px; font-weight: 700; font-family: monospace; color: #e2e8f0;
-                      margin-bottom: 4px; min-height: 1.4em; }
-    .net-card-desc  { font-size: 11px; color: #4b5563; line-height: 1.4; }
-    .net-card-edit  { margin-top: 8px; display: flex; gap: 6px; align-items: center; }
-    .net-card-edit input { flex: 1; background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
-                           border-radius: 5px; color: #e2e8f0; padding: 5px 8px; font-size: 12px; font-family: monospace; }
-    .net-edit-btn   { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; }
-    .net-detect-btn { background: #374151; color: #d1d5db; }
-    .net-save-btn   { background: #6366f1; color: #fff; }
-    .net-card-status { font-size: 10.5px; margin-top: 4px; min-height: 14px; }
-    .net-ok  { color: #34d399; }
-    .net-err { color: #f87171; }
+    .net-grid   { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px; margin-bottom:20px; }
+    .net-card   { background:var(--oc-bg-card); border:1px solid var(--oc-border);
+                  border-radius:10px; padding:14px 16px; }
+    .net-card-label { font-size:10.5px; font-weight:700; text-transform:uppercase;
+                      letter-spacing:.07em; color:var(--oc-text-faint); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+    .net-card-ip    { font-size:15px; font-weight:700; font-family:monospace; color:var(--oc-text);
+                      margin-bottom:4px; min-height:1.4em; }
+    .net-card-desc  { font-size:11px; color:var(--oc-text-faint); line-height:1.4; }
+    .net-card-edit  { margin-top:8px; display:flex; gap:6px; align-items:center; }
+    .net-card-edit input { flex:1; background:var(--oc-bg-input); border:1px solid var(--oc-border);
+                           border-radius:5px; color:var(--oc-text); padding:5px 8px; font-size:12px; font-family:monospace; }
+    .net-edit-btn   { padding:4px 10px; border-radius:5px; font-size:11px; font-weight:600; cursor:pointer; border:none; }
+    .net-detect-btn { background:var(--oc-bg-sunken); color:var(--oc-text); }
+    .net-save-btn   { background:var(--oc-accent); color:var(--oc-text-on-accent); }
+    .net-card-status { font-size:10.5px; margin-top:4px; min-height:14px; }
+    .net-ok  { color:var(--oc-success-text); }
+    .net-err { color:var(--oc-danger-text); }
 
     /* ── Agent zone table ────────────────────────────────────────────────── */
-    .zone-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .zone-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 700;
-                     text-transform: uppercase; letter-spacing: .06em; color: #4b5563;
-                     border-bottom: 1px solid var(--border,#2a2a4a); }
-    .zone-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
-    .zone-table tr:last-child td { border-bottom: none; }
-    .zone-select { background: var(--surface-3,#111122); border: 1px solid var(--border,#2a2a4a);
-                   border-radius: 5px; color: #e2e8f0; padding: 4px 8px; font-size: 12px; }
-    .zone-mcp   { font-size: 11px; font-family: monospace; color: #818cf8; }
-    .zone-save-row { padding: 14px 0 2px; display: flex; align-items: center; gap: 10px; }
+    .zone-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .zone-table th { text-align:left; padding:8px 10px; font-size:11px; font-weight:700;
+                     text-transform:uppercase; letter-spacing:.06em; color:var(--oc-text-faint);
+                     border-bottom:1px solid var(--oc-border); }
+    .zone-table td { padding:9px 10px; border-bottom:1px solid var(--oc-bg-hover); vertical-align:middle; }
+    .zone-table tr:last-child td { border-bottom:none; }
+    .zone-select { background:var(--oc-bg-input); border:1px solid var(--oc-border);
+                   border-radius:5px; color:var(--oc-text); padding:4px 8px; font-size:12px; }
+    .zone-mcp   { font-size:11px; font-family:monospace; color:var(--oc-info-text); }
+    .zone-save-row { padding:14px 0 2px; display:flex; align-items:center; gap:10px; }
 
     /* ── Save buttons ────────────────────────────────────────────────────── */
-    .cfg-save-btn { background: #6366f1; color: #fff; border: none; border-radius: 7px;
-                    padding: 8px 20px; font-size: 13px; font-weight: 700; cursor: pointer; }
-    .cfg-save-btn:hover { opacity: .85; }
-    .cfg-toast  { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
-                  border-radius: 6px; font-size: 12px; font-weight: 600; opacity: 0;
-                  transition: opacity .3s; pointer-events: none; }
-    .cfg-toast.show { opacity: 1; }
-    .cfg-toast-ok   { background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.2); }
-    .cfg-toast-err  { background: rgba(248,113,113,.12); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
-    .cfg-restart-warn { background: rgba(245,158,11,.1); color: #fcd34d; border: 1px solid rgba(245,158,11,.2);
-                        padding: 7px 14px; border-radius: 6px; font-size: 12px; display: none; margin-top: 10px; }
-    .cfg-restart-warn.show { display: flex; align-items: center; gap: 8px; }
+    .cfg-save-btn { background:var(--oc-accent); color:var(--oc-text-on-accent); border:none; border-radius:7px;
+                    padding:8px 20px; font-size:13px; font-weight:700; cursor:pointer; }
+    .cfg-save-btn:hover { opacity:.85; }
+    .cfg-toast  { display:inline-flex; align-items:center; gap:6px; padding:5px 12px;
+                  border-radius:6px; font-size:12px; font-weight:600; opacity:0;
+                  transition:opacity .3s; pointer-events:none; }
+    .cfg-toast.show { opacity:1; }
+    .cfg-toast-ok   { background:rgba(52,211,153,.12); color:var(--oc-success-text); border:1px solid rgba(52,211,153,.2); }
+    .cfg-toast-err  { background:rgba(248,113,113,.12); color:var(--oc-danger-text); border:1px solid rgba(248,113,113,.2); }
+    .cfg-restart-warn { background:rgba(245,158,11,.1); color:var(--oc-danger-text); border:1px solid rgba(245,158,11,.2);
+                        padding:7px 14px; border-radius:6px; font-size:12px; display:none; margin-top:10px; }
+    .cfg-restart-warn.show { display:flex; align-items:center; gap:8px; }
   </style>
 </head>
 <body class="oc-body">
-  <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">SETTINGS</span></a></div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
 
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/config' }) %>
@@ -109,20 +100,20 @@
 
         <!-- ═══ General ═══ -->
         <div class="cfg-pane active" id="tab-general">
-          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
-            Saved to <code style="color:#818cf8">config/overclaw.json</code>.
+          <p style="font-size:.78rem;color:var(--oc-text-faint);margin-bottom:1.2rem">
+            Saved to <code style="color:var(--oc-info-text)">config/overclaw.json</code>.
             Fields marked ⚠️ require a service restart.
           </p>
 
           <div class="cfg-section">🧠 AI Brain</div>
           <div class="cfg-field">
-            <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:#a0a8c0;line-height:1.6">
-              <strong>DB:</strong> <code style="color:#818cf8">data/brain.db</code> &mdash;
+            <div style="background:var(--oc-accent-soft);border:1px solid var(--oc-accent-soft);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--oc-text-muted);line-height:1.6">
+              <strong>DB:</strong> <code style="color:var(--oc-info-text)">data/brain.db</code> &mdash;
               <%= brainStats ? brainStats.documents.toLocaleString() + ' docs, ' + (brainStats.db_file_bytes/1024/1024).toFixed(1) + ' MB' : 'unavailable' %>
               &nbsp;&middot;&nbsp;
-              <a href="/brain" style="color:#818cf8">Browse &amp; Edit</a>
+              <a href="/brain" style="color:var(--oc-info-text)">Browse &amp; Edit</a>
               &nbsp;&middot;&nbsp;
-              <code style="color:#818cf8;font-size:11px">/api/brain/*</code>
+              <code style="color:var(--oc-info-text);font-size:11px">/api/brain/*</code>
             </div>
           </div>
 
@@ -159,9 +150,9 @@
 
         <!-- ═══ Network ═══ -->
         <div class="cfg-pane" id="tab-network">
-          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
+          <p style="font-size:.78rem;color:var(--oc-text-faint);margin-bottom:1.2rem">
             Define how agents reach this OverClaw server. Each zone maps to an IP address.
-            Agents are assigned a zone in the <strong>Agent Zones</strong> tab — their onboarding snippet uses the corresponding IP.
+            Agents are assigned a zone in the <strong>Agent Zones</strong> tab  -  their onboarding snippet uses the corresponding IP.
           </p>
 
           <div class="cfg-section">Zone IP Addresses</div>
@@ -181,7 +172,7 @@
             <div class="net-card">
               <div class="net-card-label"><span class="cfg-badge badge-localnet">localnet</span></div>
               <div class="net-card-ip" id="net-ip-localnet"><%= ocConfig.network.localnetIp || '' %></div>
-              <div class="net-card-desc">LAN IP — agents on same local network (home/office).</div>
+              <div class="net-card-desc">LAN IP  -  agents on same local network (home/office).</div>
               <div class="net-card-edit">
                 <input id="net-input-localnet" value="<%= ocConfig.network.localnetIp || '' %>" placeholder="192.168.x.x">
                 <button class="net-edit-btn net-save-btn" onclick="saveNetIp('localnet')">Save</button>
@@ -193,7 +184,7 @@
             <div class="net-card">
               <div class="net-card-label"><span class="cfg-badge badge-private_wan">private WAN</span></div>
               <div class="net-card-ip" id="net-ip-private_wan"><%= ocConfig.network.privateWanIp || '' %></div>
-              <div class="net-card-desc">Tailscale / VPN IP — agents in cloud or remote machines on your tailnet.</div>
+              <div class="net-card-desc">Tailscale / VPN IP  -  agents in cloud or remote machines on your tailnet.</div>
               <div class="net-card-edit">
                 <input id="net-input-private_wan" value="<%= ocConfig.network.privateWanIp || '' %>" placeholder="100.x.x.x">
                 <button class="net-edit-btn net-save-btn" onclick="saveNetIp('private_wan')">Save</button>
@@ -205,7 +196,7 @@
             <div class="net-card">
               <div class="net-card-label"><span class="cfg-badge badge-public_wan">public WAN</span></div>
               <div class="net-card-ip" id="net-ip-public_wan"><%= ocConfig.network.publicWanIp || '' %></div>
-              <div class="net-card-desc">Public internet IP — agents outside your LAN and tailnet. Requires port-forward or reverse proxy.</div>
+              <div class="net-card-desc">Public internet IP  -  agents outside your LAN and tailnet. Requires port-forward or reverse proxy.</div>
               <div class="net-card-edit">
                 <input id="net-input-public_wan" value="<%= ocConfig.network.publicWanIp || '' %>" placeholder="x.x.x.x">
                 <button class="net-edit-btn net-save-btn" onclick="saveNetIp('public_wan')">Save</button>
@@ -216,8 +207,8 @@
           </div>
 
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <button class="cfg-save-btn" style="background:#374151" onclick="autoDetect()">🔍 Auto-detect IPs</button>
-            <span id="detect-status" style="font-size:12px;color:#9ca3af"></span>
+            <button class="cfg-save-btn" style="background:var(--oc-bg-sunken)" onclick="autoDetect()">🔍 Auto-detect IPs</button>
+            <span id="detect-status" style="font-size:12px;color:var(--oc-text-muted)"></span>
           </div>
 
           <div class="cfg-section" style="margin-top:24px">MCP Endpoint Preview</div>
@@ -227,11 +218,11 @@
 
         <!-- ═══ Agent Zones ═══ -->
         <div class="cfg-pane" id="tab-agent-zones">
-          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
+          <p style="font-size:.78rem;color:var(--oc-text-faint);margin-bottom:1.2rem">
             Assign each agent a network zone. This determines which OverClaw IP address they use to connect.
             Changes are saved to the Brain DB agent registry document.
           </p>
-          <div id="zone-loading" style="color:#555;padding:20px 0">Loading agents…</div>
+          <div id="zone-loading" style="color:var(--oc-text-faint);padding:20px 0">Loading agents…</div>
           <table class="zone-table" id="zone-table" style="display:none">
             <thead>
               <tr>
@@ -253,10 +244,10 @@
 
         <!-- ═══ Agent Config Viewer ═══ -->
         <div class="cfg-pane" id="tab-agent-viewer">
-          <p style="font-size:.78rem;color:#4b5563;margin-bottom:1.2rem">
+          <p style="font-size:.78rem;color:var(--oc-text-faint);margin-bottom:1.2rem">
             Per-agent configuration, registry info, and links to their Brain documents.
           </p>
-          <div id="avc-loading" style="color:#555;padding:16px 0">Loading&hellip;</div>
+          <div id="avc-loading" style="color:var(--oc-text-faint);padding:16px 0">Loading&hellip;</div>
           <div id="avc-grid" style="display:none;gap:12px"></div>
         </div>
 
@@ -265,22 +256,7 @@
   </div>
 
   <script>
-    // ── Sidebar / theme ──────────────────────────────────────────────────
-    (function(){
-      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-      if(col)sb.classList.add('collapsed');
-      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-      const th=document.getElementById('theme-toggle');
-      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-      th.addEventListener('click',()=>{
-        tm=tm==='light'?'dark':'light';
-        document.body.classList.toggle('light-mode',tm==='light');
-        document.body.classList.toggle('dark-mode',tm==='dark');
-        localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';
-      });
-    })();
+
 
     // ── Tab switching ────────────────────────────────────────────────────
     document.querySelectorAll('.cfg-tab').forEach(btn => {
@@ -306,7 +282,7 @@
 
     function zoneBadge(z) {
       const labels = { localhost:'localhost', localnet:'localnet', private_wan:'private WAN', public_wan:'public WAN' };
-      return `<span class="cfg-badge badge-${z||'unknown'}">${labels[z]||z||'—'}</span>`;
+      return `<span class="cfg-badge badge-${z||'unknown'}">${labels[z]||z||' - '}</span>`;
     }
 
     function mcpUrlForZone(zone) {
@@ -319,10 +295,10 @@
       const zones = ['localhost','localnet','private_wan','public_wan'];
       el.innerHTML = zones.map(z => {
         const ip  = document.getElementById('net-input-' + z)?.value || '';
-        const url = ip ? `http://${ip}:${PORT}/mcp` : '<em style="color:#374151">IP not set</em>';
-        return `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surface-2,#1a1a2e);border-radius:6px;border:1px solid var(--border,#2a2a4a)">
+        const url = ip ? `http://${ip}:${PORT}/mcp` : '<em style="color:var(--oc-text-faint)">IP not set</em>';
+        return `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--oc-bg-card);border-radius:6px;border:1px solid var(--oc-border)">
           ${zoneBadge(z)}
-          <span style="color:#818cf8">${url}</span>
+          <span style="color:var(--oc-info-text)">${url}</span>
         </div>`;
       }).join('');
     }
@@ -394,7 +370,7 @@
             NET[zone] = ips[key];
           }
         }
-        statusEl.textContent = '✓ Detected — review and click Save on each card';
+        statusEl.textContent = '✓ Detected  -  review and click Save on each card';
         renderMcpPreview();
       } catch(e) { statusEl.textContent = '❌ ' + e.message; }
     }
@@ -416,7 +392,7 @@
 
         const tbody = document.getElementById('zone-tbody');
         tbody.innerHTML = agents.map(a => {
-          const name  = a.nickname || a.agent || '—';
+          const name  = a.nickname || a.agent || ' - ';
           const key   = name.toLowerCase();
           const zone  = zones[key] || agentZones[key] || 'localnet';
           agentZones[key] = zone;
@@ -432,9 +408,9 @@
           const mcpUrl  = mcpHost ? `http://${mcpHost}:${PORT}/mcp` : '(IP not set)';
 
           return `<tr>
-            <td><strong style="color:#e2e8f0">${name}</strong></td>
-            <td style="font-size:11px;color:#6b7280">${a.type || '—'}</td>
-            <td style="font-size:11px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(a.machine||'—').replace(/\s*\(.*?\)\s*/g,'').trim()}</td>
+            <td><strong style="color:var(--oc-text)">${name}</strong></td>
+            <td style="font-size:11px;color:var(--oc-text-muted)">${a.type || ' - '}</td>
+            <td style="font-size:11px;color:var(--oc-text-muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(a.machine||'—').replace(/\s*\(.*?\)\s*/g,'').trim()}</td>
             <td>
               <select class="zone-select" data-agent="${name}" onchange="onZoneChange(this)">
                 <option value="localhost"   ${zone==='localhost'   ?'selected':''}>localhost</option>
@@ -519,33 +495,33 @@
           const zone  = zones[key] || 'localnet';
           const ip    = ZONE_IP[zone] || '';
           const mcp   = ip ? `http://${ip}:${port}/mcp` : '(IP not configured)';
-          const color = COLOR[name] || '#6b7280';
+          const color = COLOR[name] || 'var(--oc-text-muted)';
           const emoji = EMOJI[name] || '🤖';
           const role  = (a.primary_role || a.role || '').split(' — ')[0] || '—';
           const machine = (a.machine || '—').replace(/\s*\(.*?\)\s*/g, '').trim();
-          const type  = a.type || '—';
-          const since = a.registered || '—';
+          const type  = a.type || ' - ';
+          const since = a.registered || ' - ';
           const brainPath = encodeURIComponent('03 - Agents/Agent Registry.md');
 
-          return `<div style="background:var(--surface-2,#1a1a2e);border:1px solid var(--border,#2a2a4a);border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:0 14px;align-items:start">
+          return `<div style="background:var(--oc-bg-card);border:1px solid var(--oc-border);border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr;gap:0 14px;align-items:start">
             <div style="font-size:1.6rem;line-height:1;padding-top:2px">${emoji}</div>
             <div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
                 <span style="font-weight:700;font-size:.95rem;color:${color}">${name}</span>
                 <span class="cfg-badge badge-${zone}">${ZONE_LABELS[zone] || zone}</span>
-                <span style="font-size:11px;color:#4b5563">${type}</span>
+                <span style="font-size:11px;color:var(--oc-text-faint)">${type}</span>
               </div>
-              <div style="font-size:11.5px;color:#6b7280;margin-bottom:8px;line-height:1.5">
-                <strong style="color:#9ca3af">Role:</strong> ${role}<br>
-                <strong style="color:#9ca3af">Machine:</strong> ${machine}
-                &nbsp;&middot;&nbsp;<strong style="color:#9ca3af">Since:</strong> ${since}
+              <div style="font-size:11.5px;color:var(--oc-text-muted);margin-bottom:8px;line-height:1.5">
+                <strong style="color:var(--oc-text-muted)">Role:</strong> ${role}<br>
+                <strong style="color:var(--oc-text-muted)">Machine:</strong> ${machine}
+                &nbsp;&middot;&nbsp;<strong style="color:var(--oc-text-muted)">Since:</strong> ${since}
               </div>
-              <div style="font-family:monospace;font-size:11px;color:#818cf8;background:#0c0c1a;border:1px solid var(--border,#2a2a4a);border-radius:5px;padding:5px 9px;margin-bottom:10px;word-break:break-all">${mcp}</div>
+              <div style="font-family:monospace;font-size:11px;color:var(--oc-info-text);background:var(--oc-bg);border:1px solid var(--oc-border);border-radius:5px;padding:5px 9px;margin-bottom:10px;word-break:break-all">${mcp}</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap">
-                <a href="/agents" class="cfg-badge" style="background:rgba(99,102,241,.12);color:#a5b4fc;text-decoration:none;cursor:pointer">🚀 Onboard</a>
-                <a href="/brain?path=${brainPath}" class="cfg-badge" style="background:rgba(99,102,241,.12);color:#a5b4fc;text-decoration:none">📋 Registry</a>
-                <a href="/activity?agent=${encodeURIComponent(name)}" class="cfg-badge" style="background:rgba(99,102,241,.12);color:#a5b4fc;text-decoration:none">📡 Activity</a>
-                <a href="/config#agent-zones" class="cfg-badge" style="background:rgba(245,158,11,.1);color:#fcd34d;text-decoration:none">⚙️ Change Zone</a>
+                <a href="/agents" class="cfg-badge" style="background:var(--oc-accent-soft);color:var(--oc-info-text);text-decoration:none;cursor:pointer">🚀 Onboard</a>
+                <a href="/brain?path=${brainPath}" class="cfg-badge" style="background:var(--oc-accent-soft);color:var(--oc-info-text);text-decoration:none">📋 Registry</a>
+                <a href="/activity?agent=${encodeURIComponent(name)}" class="cfg-badge" style="background:var(--oc-accent-soft);color:var(--oc-info-text);text-decoration:none">📡 Activity</a>
+                <a href="/config#agent-zones" class="cfg-badge" style="background:rgba(245,158,11,.1);color:var(--oc-danger-text);text-decoration:none">⚙️ Change Zone</a>
               </div>
             </div>
           </div>`;
@@ -554,7 +530,7 @@
         loadEl.style.display = 'none';
       } catch(e) {
         loadEl.textContent = '❌ Failed to load: ' + e.message;
-        loadEl.style.color = '#f87171';
+        loadEl.style.color = 'var(--oc-danger-text)';
       }
     }
 
@@ -575,6 +551,6 @@
   
     fetch('/api/instance').then(r=>r.json()).then(inst=>{ window.__OC_INSTANCE__=inst||{}; }).catch(()=>{});
 </script>
-  <%- include('partials/theme-sidebar') %>
+  <%- include('partials/chrome-end') %>
 </body>
 </html>

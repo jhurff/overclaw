@@ -1,129 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <%- include('partials/document-head') %>
+
   <style>
-    .oc-main-content { overflow: hidden !important; height: calc(100vh - 60px); }
+    .oc-main-content { overflow:hidden !important; height:calc(100vh - var(--oc-header-height)); }
     .oc-dashboard-area {
-      display: flex !important; flex-direction: column !important;
-      grid-template-columns: unset !important;
-      overflow-y: auto !important; overflow-x: hidden !important;
-      padding: 1rem 1.25rem !important; gap: 0 !important;
+      display:flex !important; flex-direction:column !important;
+      grid-template-columns:unset !important;
+      overflow-y:auto !important; overflow-x:hidden !important;
+      padding:1rem 1.25rem !important; gap:0 !important;
     }
     /* Top bar */
-    .sec-topbar { display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap; }
-    .sec-title   { font-size: 1.1rem; font-weight: 700; color: var(--oc-text-dark, #e2e8f0); margin: 0; }
-    .sec-meta    { font-size: 0.73rem; color: #6b7280; display: flex; align-items: center; gap: 0.75rem; }
-    .sec-btn     { font-size: 0.72rem; padding: 0.18rem 0.6rem; border-radius: 4px; border: 1px solid #374151; background: transparent; color: #9ca3af; cursor: pointer; transition: border-color .15s, color .15s; }
-    .sec-btn:hover     { border-color: #6b7280; color: #e2e8f0; }
-    .sec-btn:disabled  { opacity: .45; cursor: default; }
+    .sec-topbar { display:flex; align-items:baseline; justify-content:space-between; flex-shrink:0; margin-bottom:1rem; gap:1rem; flex-wrap:wrap; }
+    .sec-title   { font-size:1.1rem; font-weight:700; color:var(--oc-text); margin:0; }
+    .sec-meta    { font-size:0.73rem; color:var(--oc-text-muted); display:flex; align-items:center; gap:0.75rem; }
+    .sec-btn     { font-size:0.72rem; padding:0.18rem 0.6rem; border-radius:4px; border:1px solid var(--oc-border-strong); background:transparent; color:var(--oc-text-muted); cursor:pointer; transition:border-color .15s, color .15s; }
+    .sec-btn:hover     { border-color:var(--oc-border-strong); color:var(--oc-text); }
+    .sec-btn:disabled  { opacity:.45; cursor:default; }
 
     /* Section labels */
-    .sw-section { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin: 1.1rem 0 0.55rem; display: flex; align-items: center; gap: 0.5rem; }
-    .sw-section:first-of-type { margin-top: 0; }
+    .sw-section { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--oc-text-muted); margin:1.1rem 0 0.55rem; display:flex; align-items:center; gap:0.5rem; }
+    .sw-section:first-of-type { margin-top:0; }
 
     /* Error / progress banners */
-    .sec-error    { display: none; background: #1c1917; border: 1px solid #78350f; border-radius: 6px; padding: 0.6rem 1rem; color: #fde68a; font-size: 0.82rem; margin-bottom: 1rem; }
-    .sec-progress { display: none; background: rgba(99,102,241,0.1); border: 1px solid #4f46e5; border-radius: 6px; padding: 0.55rem 0.9rem; color: #a5b4fc; font-size: 0.78rem; margin-bottom: 0.75rem; }
-    .sec-progress.active { display: block; }
+    .sec-error    { display:none; background:var(--oc-warning-soft); border:1px solid var(--oc-warning); border-radius:6px; padding:0.6rem 1rem; color:var(--oc-warning-text); font-size:0.82rem; margin-bottom:1rem; }
+    .sec-progress { display:none; background:var(--oc-accent-soft); border:1px solid var(--oc-accent); border-radius:6px; padding:0.55rem 0.9rem; color:var(--oc-info-text); font-size:0.78rem; margin-bottom:0.75rem; }
+    .sec-progress.active { display:block; }
 
     /* Stat cards */
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .stat-card  { background: var(--oc-card-bg, #111827); border: 1px solid var(--oc-border-color, #1f2937); border-radius: 8px; padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.15rem; }
-    .sc-top     { display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem; }
-    .sc-num     { font-size: 1.75rem; font-weight: 800; line-height: 1; }
-    .sc-label   { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; text-align: right; line-height: 1.2; }
-    .sc-sub     { font-size: 0.66rem; color: #6b7280; margin-top: 2px; }
-    .sc-scan    { border-top: 2px solid #7c3aed; }
-    .sc-scan    .sc-num { color: #c4b5fd; } .sc-scan    .sc-label { color: #a78bfa; }
-    .sc-total   { border-top: 2px solid #475569; }
-    .sc-total   .sc-num { color: #94a3b8; } .sc-total   .sc-label { color: #64748b; }
-    .sc-real    { border-top: 2px solid #dc2626; }
-    .sc-real    .sc-num { color: #fca5a5; } .sc-real    .sc-label { color: #f87171; }
-    .sc-fp      { border-top: 2px solid #059669; }
-    .sc-fp      .sc-num { color: #a7f3d0; } .sc-fp      .sc-label { color: #6ee7b7; }
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+    .stat-card  { background:var(--oc-bg-card); border:1px solid var(--oc-border); border-radius:8px; padding:0.65rem 0.85rem; display:flex; flex-direction:column; gap:0.15rem; }
+    .sc-top     { display:flex; align-items:baseline; justify-content:space-between; gap:0.4rem; }
+    .sc-num     { font-size:1.75rem; font-weight:800; line-height:1; }
+    .sc-label   { font-size:0.64rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; text-align:right; line-height:1.2; }
+    .sc-sub     { font-size:0.66rem; color:var(--oc-text-muted); margin-top:2px; }
+    .sc-scan    { border-top:2px solid var(--oc-status-inbox); }
+    .sc-scan    .sc-num { color:var(--oc-status-inbox-text); } .sc-scan    .sc-label { color:var(--oc-status-inbox-text); }
+    .sc-total   { border-top:2px solid var(--oc-border); }
+    .sc-total   .sc-num { color:var(--oc-text-muted); } .sc-total   .sc-label { color:var(--oc-text-muted); }
+    .sc-real    { border-top:2px solid var(--oc-danger); }
+    .sc-real    .sc-num { color:var(--oc-danger-text); } .sc-real    .sc-label { color:var(--oc-danger-text); }
+    .sc-fp      { border-top:2px solid var(--oc-success); }
+    .sc-fp      .sc-num { color:var(--oc-success-text); } .sc-fp      .sc-label { color:var(--oc-success-text); }
 
     /* Findings */
-    .finding-card { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 0.8rem 0.95rem; margin-bottom: 0.55rem; transition: border-color .15s; }
-    .finding-card:hover { border-color: #374151; }
-    .finding-header { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.45rem; flex-wrap: wrap; }
-    .finding-name   { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; }
-    .finding-count  { font-size: 0.7rem; color: #6b7280; background: #1f2937; border-radius: 9999px; padding: 1px 8px; }
-    .finding-date   { font-size: 0.67rem; color: #4b5563; }
-    .finding-files  { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.35rem; }
-    .finding-file   { font-size: 0.65rem; color: #6b7280; background: #0f172a; border: 1px solid #1f2937; border-radius: 4px; padding: 1px 7px; font-family: monospace; }
-    .finding-fix    { margin-top: 0.45rem; font-size: 0.72rem; color: #fbbf24; background: rgba(251,191,36,0.07); border-left: 2px solid #d97706; padding: 0.3rem 0.6rem; border-radius: 0 4px 4px 0; line-height: 1.45; }
+    .finding-card { background:var(--oc-bg-card); border:1px solid var(--oc-border); border-radius:8px; padding:0.8rem 0.95rem; margin-bottom:0.55rem; transition:border-color .15s; }
+    .finding-card:hover { border-color:var(--oc-border-strong); }
+    .finding-header { display:flex; align-items:center; gap:0.55rem; margin-bottom:0.45rem; flex-wrap:wrap; }
+    .finding-name   { font-size:0.88rem; font-weight:700; color:var(--oc-text); }
+    .finding-count  { font-size:0.7rem; color:var(--oc-text-muted); background:var(--oc-bg-hover); border-radius:9999px; padding:1px 8px; }
+    .finding-date   { font-size:0.67rem; color:var(--oc-text-faint); }
+    .finding-files  { display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.35rem; }
+    .finding-file   { font-size:0.65rem; color:var(--oc-text-muted); background:var(--oc-bg-sunken); border:1px solid var(--oc-border); border-radius:4px; padding:1px 7px; font-family:monospace; }
+    .finding-fix    { margin-top:0.45rem; font-size:0.72rem; color:var(--oc-warning-text); background:rgba(251,191,36,0.07); border-left:2px solid var(--oc-warning); padding:0.3rem 0.6rem; border-radius:0 4px 4px 0; line-height:1.45; }
 
     /* Severity badges */
-    .sev        { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.67rem; font-weight: 700; white-space: nowrap; }
-    .sev-high   { background: #7f1d1d; color: #fca5a5; }
-    .sev-medium { background: #78350f; color: #fde68a; }
-    .sev-low    { background: #1e3a5f; color: #93c5fd; }
+    .sev        { display:inline-block; padding:2px 8px; border-radius:9999px; font-size:0.67rem; font-weight:700; white-space:nowrap; }
+    .sev-high   { background:var(--oc-danger-soft); color:var(--oc-danger-text); }
+    .sev-medium { background:var(--oc-warning-soft); color:var(--oc-warning-text); }
+    .sev-low    { background:var(--oc-info-soft); color:var(--oc-info-text); }
 
     /* Recommendations */
-    .rec-item  { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.6rem 0.8rem; border-radius: 7px; margin-bottom: 0.4rem; background: #111827; border: 1px solid #1f2937; font-size: 0.78rem; }
-    .rec-icon  { flex-shrink: 0; margin-top: 1px; }
-    .rec-title { font-weight: 600; color: #e2e8f0; }
-    .rec-desc  { color: #6b7280; font-size: 0.71rem; margin-top: 3px; line-height: 1.45; }
+    .rec-item  { display:flex; align-items:flex-start; gap:0.65rem; padding:0.6rem 0.8rem; border-radius:7px; margin-bottom:0.4rem; background:var(--oc-bg-card); border:1px solid var(--oc-border); font-size:0.78rem; }
+    .rec-icon  { flex-shrink:0; margin-top:1px; }
+    .rec-title { font-weight:600; color:var(--oc-text); }
+    .rec-desc  { color:var(--oc-text-muted); font-size:0.71rem; margin-top:3px; line-height:1.45; }
 
     /* History */
-    .history-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 7px; background: #111827; border: 1px solid #1f2937; margin-bottom: 0.35rem; font-size: 0.75rem; flex-wrap: wrap; }
-    .hi-date    { font-weight: 700; color: #c4b5fd; min-width: 90px; }
-    .hi-stats   { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-    .hi-real    { color: #fca5a5; font-weight: 600; }
-    .hi-fp      { color: #6ee7b7; }
-    .hi-total   { color: #6b7280; }
-    .hi-label   { color: #4b5563; font-size: 0.67rem; margin-left: auto; }
+    .history-item { display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem; border-radius:7px; background:var(--oc-bg-card); border:1px solid var(--oc-border); margin-bottom:0.35rem; font-size:0.75rem; flex-wrap:wrap; }
+    .hi-date    { font-weight:700; color:var(--oc-status-inbox-text); min-width:90px; }
+    .hi-stats   { display:flex; gap:0.6rem; flex-wrap:wrap; }
+    .hi-real    { color:var(--oc-danger-text); font-weight:600; }
+    .hi-fp      { color:var(--oc-success-text); }
+    .hi-total   { color:var(--oc-text-muted); }
+    .hi-label   { color:var(--oc-text-faint); font-size:0.67rem; margin-left:auto; }
 
     /* GitHub features grid */
-    .gh-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .gh-feature { background: #111827; border: 1px solid #1f2937; border-radius: 7px; padding: 0.6rem 0.8rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; }
-    .gh-label   { color: #e2e8f0; font-weight: 600; flex: 1; }
-    .gh-on      { font-size: 0.68rem; font-weight: 700; color: #86efac; white-space: nowrap; }
-    .gh-off     { font-size: 0.68rem; font-weight: 700; color: #fca5a5; white-space: nowrap; }
+    .gh-grid    { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+    .gh-feature { background:var(--oc-bg-card); border:1px solid var(--oc-border); border-radius:7px; padding:0.6rem 0.8rem; display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; }
+    .gh-label   { color:var(--oc-text); font-weight:600; flex:1; }
+    .gh-on      { font-size:0.68rem; font-weight:700; color:var(--oc-success-text); white-space:nowrap; }
+    .gh-off     { font-size:0.68rem; font-weight:700; color:var(--oc-danger-text); white-space:nowrap; }
 
     /* Next scan pill */
-    .next-scan-bar { margin-top: 0.6rem; font-size: 0.72rem; color: #6b7280; background: #111827; border: 1px solid #1f2937; border-radius: 7px; padding: 0.5rem 0.85rem; display: none; }
-    .next-scan-bar span { color: #a78bfa; font-weight: 600; }
+    .next-scan-bar { margin-top:0.6rem; font-size:0.72rem; color:var(--oc-text-muted); background:var(--oc-bg-card); border:1px solid var(--oc-border); border-radius:7px; padding:0.5rem 0.85rem; display:none; }
+    .next-scan-bar span { color:var(--oc-status-inbox-text); font-weight:600; }
 
     /* Policy viewer */
-    .policy-toggle { font-size: 0.7rem; color: #6b7280; background: none; border: 1px solid #1f2937; border-radius: 4px; padding: 2px 8px; cursor: pointer; margin-left: auto; }
-    .policy-toggle:hover { color: #e2e8f0; border-color: #374151; }
-    .policy-box    { background: #0a0e17; border: 1px solid #1f2937; border-radius: 8px; padding: 1rem 1.1rem; font-size: 0.75rem; color: #9ca3af; line-height: 1.65; white-space: pre-wrap; font-family: monospace; max-height: 420px; overflow-y: auto; margin-top: 0.5rem; }
+    .policy-toggle { font-size:0.7rem; color:var(--oc-text-muted); background:none; border:1px solid var(--oc-border); border-radius:4px; padding:2px 8px; cursor:pointer; margin-left:auto; }
+    .policy-toggle:hover { color:var(--oc-text); border-color:var(--oc-border-strong); }
+    .policy-box    { background:var(--oc-bg); border:1px solid var(--oc-border); border-radius:8px; padding:1rem 1.1rem; font-size:0.75rem; color:var(--oc-text-muted); line-height:1.65; white-space:pre-wrap; font-family:monospace; max-height:420px; overflow-y:auto; margin-top:0.5rem; }
 
     /* Swarm security posture */
-    .posture-card   { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 0.75rem 0.95rem; margin-bottom: 0.5rem; }
-    .posture-header { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.5rem; }
-    .posture-icon   { font-size: 1rem; flex-shrink: 0; }
-    .posture-name   { font-size: 0.84rem; font-weight: 700; color: #e2e8f0; flex: 1; }
-    .posture-badge  { font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px; white-space: nowrap; }
-    .pb-ok          { background: #052e16; color: #86efac; }
-    .pb-warn        { background: #2d1a00; color: #fde68a; }
-    .pb-bad         { background: #1c0a0a; color: #fca5a5; }
-    .pb-unknown     { background: #1f2937; color: #6b7280; border: 1px solid #374151; }
-    .posture-checks { display: flex; flex-direction: column; gap: 0.3rem; }
-    .pc-row         { display: flex; align-items: flex-start; gap: 0.4rem; font-size: 0.74rem; line-height: 1.4; }
-    .pc-status      { flex-shrink: 0; width: 1.1em; }
-    .pc-text        { color: #9ca3af; }
-    .pc-text.ok     { color: #86efac; }
-    .pc-text.warn   { color: #fde68a; }
-    .pc-text.bad    { color: #fca5a5; }
-    .pc-text.unknown{ color: #4b5563; }
+    .posture-card   { background:var(--oc-bg-card); border:1px solid var(--oc-border); border-radius:8px; padding:0.75rem 0.95rem; margin-bottom:0.5rem; }
+    .posture-header { display:flex; align-items:center; gap:0.55rem; margin-bottom:0.5rem; }
+    .posture-icon   { font-size:1rem; flex-shrink:0; }
+    .posture-name   { font-size:0.84rem; font-weight:700; color:var(--oc-text); flex:1; }
+    .posture-badge  { font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:9999px; white-space:nowrap; }
+    .pb-ok          { background:var(--oc-bg-card); color:var(--oc-success-text); }
+    .pb-warn        { background:var(--oc-bg-card); color:var(--oc-warning-text); }
+    .pb-bad         { background:var(--oc-bg); color:var(--oc-danger-text); }
+    .pb-unknown     { background:var(--oc-bg-hover); color:var(--oc-text-muted); border:1px solid var(--oc-border-strong); }
+    .posture-checks { display:flex; flex-direction:column; gap:0.3rem; }
+    .pc-row         { display:flex; align-items:flex-start; gap:0.4rem; font-size:0.74rem; line-height:1.4; }
+    .pc-status      { flex-shrink:0; width:1.1em; }
+    .pc-text        { color:var(--oc-text-muted); }
+    .pc-text.ok     { color:var(--oc-success-text); }
+    .pc-text.warn   { color:var(--oc-warning-text); }
+    .pc-text.bad    { color:var(--oc-danger-text); }
+    .pc-text.unknown{ color:var(--oc-text-faint); }
   </style>
 </head>
 <body>
-  <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">VAULT SECURITY</span></a></div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
 
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/security' }) %>
@@ -147,34 +137,34 @@
       <div class="sw-section">📊 Scan Summary</div>
       <div class="stats-grid">
         <div class="stat-card sc-scan">
-          <div class="sc-top"><span class="sc-num" id="s-date">—</span></div>
-          <div class="sc-label" style="text-align:left;color:#a78bfa;font-size:.62rem;">🗓 LAST SCAN</div>
-          <div class="sc-sub"  id="s-ver">—</div>
+          <div class="sc-top"><span class="sc-num" id="s-date"> - </span></div>
+          <div class="sc-label" style="text-align:left;color:var(--oc-status-inbox-text);font-size:.62rem;">🗓 LAST SCAN</div>
+          <div class="sc-sub"  id="s-ver"> - </div>
         </div>
         <div class="stat-card sc-total">
-          <div class="sc-top"><span class="sc-num" id="s-total">—</span><span class="sc-label">TOTAL<br>FOUND</span></div>
-          <div class="sc-sub" id="s-commits">—</div>
+          <div class="sc-top"><span class="sc-num" id="s-total"> - </span><span class="sc-label">TOTAL<br>FOUND</span></div>
+          <div class="sc-sub" id="s-commits"> - </div>
         </div>
         <div class="stat-card sc-real">
-          <div class="sc-top"><span class="sc-num" id="s-real">—</span><span class="sc-label">REAL<br>ISSUES</span></div>
-          <div class="sc-sub" id="s-real-sub">—</div>
+          <div class="sc-top"><span class="sc-num" id="s-real"> - </span><span class="sc-label">REAL<br>ISSUES</span></div>
+          <div class="sc-sub" id="s-real-sub"> - </div>
         </div>
         <div class="stat-card sc-fp">
-          <div class="sc-top"><span class="sc-num" id="s-fp">—</span><span class="sc-label">FALSE<br>POSITIVES</span></div>
+          <div class="sc-top"><span class="sc-num" id="s-fp"> - </span><span class="sc-label">FALSE<br>POSITIVES</span></div>
           <div class="sc-sub">Suppressed</div>
         </div>
       </div>
 
       <!-- Open Findings -->
       <div class="sw-section">
-        🚨 Open Findings — Prioritized
-        <span id="findings-count" style="font-size:.68rem;color:#6b7280;font-weight:400;text-transform:none;letter-spacing:0;"></span>
+        🚨 Open Findings  -  Prioritized
+        <span id="findings-count" style="font-size:.68rem;color:var(--oc-text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
       </div>
-      <div id="findings-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
+      <div id="findings-list"><div style="color:var(--oc-text-faint);font-size:.8rem;">Loading…</div></div>
 
       <!-- Recommendations -->
       <div class="sw-section">💡 Recommendations</div>
-      <div id="recs-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
+      <div id="recs-list"><div style="color:var(--oc-text-faint);font-size:.8rem;">Loading…</div></div>
 
       <!-- GitHub Security Features -->
       <div class="sw-section">🐙 GitHub Security Features</div>
@@ -189,7 +179,7 @@
 
       <!-- Swarm Security Posture -->
       <div class="sw-section">🛡️ Swarm Security Posture</div>
-      <div id="posture-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
+      <div id="posture-list"><div style="color:var(--oc-text-faint);font-size:.8rem;">Loading…</div></div>
 
       <!-- Next scheduled scan -->
       <div class="next-scan-bar" id="next-scan-bar">
@@ -200,9 +190,9 @@
       <div class="sw-section">
         📋 Scan History
         <a id="sec-history-link" href="#"
-           target="_blank" style="font-size:.7rem;color:#6b7280;text-decoration:none;font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto;display:none;">Full report →</a>
+           target="_blank" style="font-size:.7rem;color:var(--oc-text-muted);text-decoration:none;font-weight:400;text-transform:none;letter-spacing:0;margin-left:auto;display:none;">Full report →</a>
       </div>
-      <div id="history-list"><div style="color:#4b5563;font-size:.8rem;">Loading…</div></div>
+      <div id="history-list"><div style="color:var(--oc-text-faint);font-size:.8rem;">Loading…</div></div>
 
       <!-- Security Policy -->
       <div class="sw-section">
@@ -216,32 +206,7 @@
   </div>
 
   <script>
-    /* ── Sidebar / theme boilerplate ── */
-    (function () {
-      const toggle  = document.getElementById('sidebar-toggle');
-      const sidebar = document.getElementById('oc-sidebar');
-      if (toggle && sidebar) {
-        let col = localStorage.getItem('overclaw-sidebar-collapsed') === 'true';
-        if (col) sidebar.classList.add('collapsed');
-        toggle.addEventListener('click', () => {
-          col = !col;
-          sidebar.classList.toggle('collapsed', col);
-          localStorage.setItem('overclaw-sidebar-collapsed', col);
-        });
-      }
-      const themeBtn = document.getElementById('theme-toggle');
-      const prefer   = window.matchMedia('(prefers-color-scheme: dark)');
-      let theme = localStorage.getItem('overclaw-theme') || (prefer.matches ? 'dark' : 'light');
-      document.body.classList.add(theme + '-mode');
-      themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-      themeBtn.addEventListener('click', () => {
-        theme = theme === 'dark' ? 'light' : 'dark';
-        document.body.classList.toggle('dark-mode',  theme === 'dark');
-        document.body.classList.toggle('light-mode', theme === 'light');
-        themeBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-        localStorage.setItem('overclaw-theme', theme);
-      });
-    })();
+
 
     let policyOpen = false;
     function togglePolicy() {
@@ -271,13 +236,13 @@
         errEl.style.display = 'none';
 
         // Stats
-        document.getElementById('s-date').textContent    = d.lastScan || '—';
-        document.getElementById('s-ver').textContent     = d.gitleaksVersion ? 'gitleaks v'+d.gitleaksVersion : '—';
-        document.getElementById('s-total').textContent   = d.totalFindings ?? '—';
-        document.getElementById('s-commits').textContent = d.commitCount ? d.commitCount.toLocaleString()+' commits' : '—';
-        document.getElementById('s-real').textContent    = d.realFindings ?? '—';
+        document.getElementById('s-date').textContent    = d.lastScan || ' - ';
+        document.getElementById('s-ver').textContent     = d.gitleaksVersion ? 'gitleaks v'+d.gitleaksVersion : ' - ';
+        document.getElementById('s-total').textContent   = d.totalFindings ?? ' - ';
+        document.getElementById('s-commits').textContent = d.commitCount ? d.commitCount.toLocaleString()+' commits' : ' - ';
+        document.getElementById('s-real').textContent    = d.realFindings ?? ' - ';
         document.getElementById('s-real-sub').textContent= d.realFindings === 0 ? '✅ All clear' : d.realFindings+' need attention';
-        document.getElementById('s-fp').textContent      = d.falsePositives ?? '—';
+        document.getElementById('s-fp').textContent      = d.falsePositives ?? ' - ';
         document.getElementById('sec-last').textContent  = d.lastScan ? 'Last scan: '+d.lastScan : 'No scan data';
 
         // Findings
@@ -285,9 +250,9 @@
         const fc = document.getElementById('findings-count');
         if (!d.findings || !d.findings.length) {
           fc.textContent = '';
-          fl.innerHTML = '<div style="color:#374151;font-size:.82rem;padding:.4rem 0;">✅ No real findings detected</div>';
+          fl.innerHTML = '<div style="color:var(--oc-text-faint);font-size:.82rem;padding:.4rem 0;">✅ No real findings detected</div>';
         } else {
-          fc.textContent = '— '+d.findings.length+' rule type'+(d.findings.length>1?'s':'');
+          fc.textContent = ' -  '+d.findings.length+' rule type'+(d.findings.length>1?'s':'');
           fl.innerHTML = d.findings.map(f => `
             <div class="finding-card">
               <div class="finding-header">
@@ -296,7 +261,7 @@
                 <span class="finding-count">${f.count} occurrence${f.count!==1?'s':''}</span>
                 ${f.firstDate ? `<span class="finding-date">first seen ${esc(f.firstDate)}</span>` : ''}
               </div>
-              ${f.files && f.files.length ? `<div class="finding-files">${f.files.map(fp=>`<span class="finding-file">${esc(fp)}</span>`).join('')}${f.fileCount>f.files.length?`<span class="finding-file" style="color:#4b5563">+${f.fileCount-f.files.length} more</span>`:''}</div>` : ''}
+              ${f.files && f.files.length ? `<div class="finding-files">${f.files.map(fp=>`<span class="finding-file">${esc(fp)}</span>`).join('')}${f.fileCount>f.files.length?`<span class="finding-file" style="color:var(--oc-text-faint)">+${f.fileCount-f.files.length} more</span>`:''}</div>` : ''}
               ${f.remediation ? `<div class="finding-fix">💊 ${esc(f.remediation)}</div>` : ''}
             </div>`).join('');
         }
@@ -312,13 +277,13 @@
         // History
         const hl = document.getElementById('history-list');
         if (!d.auditHistory || !d.auditHistory.length) {
-          hl.innerHTML = '<div style="color:#374151;font-size:.78rem;">No history entries parsed yet</div>';
+          hl.innerHTML = '<div style="color:var(--oc-text-faint);font-size:.78rem;">No history entries parsed yet</div>';
         } else {
           hl.innerHTML = d.auditHistory.map(h => `
             <div class="history-item">
               <span class="hi-date">📅 ${h.date}</span>
               <div class="hi-stats">
-                ${h.commits?`<span style="color:#4b5563">${h.commits} commits</span>`:''}
+                ${h.commits?`<span style="color:var(--oc-text-faint)">${h.commits} commits</span>`:''}
                 ${h.total!=null?`<span class="hi-total">${h.total} total</span>`:''}
                 ${h.real!=null?`<span class="hi-real">${h.real} real</span>`:''}
                 ${h.fps!=null?`<span class="hi-fp">${h.fps} FP</span>`:''}
@@ -362,7 +327,7 @@
       pg.classList.add('active');
       try {
         const r = await fetch('/api/security/scan', { method:'POST' }).then(r => r.json());
-        if (r.ok) { pg.textContent = '✅ Scan complete — refreshing…'; await load(); }
+        if (r.ok) { pg.textContent = '✅ Scan complete  -  refreshing…'; await load(); }
         else       pg.textContent = '⚠️ Scan failed: ' + (r.error || 'unknown');
       } catch(e) {
         pg.textContent = '⚠️ ' + e.message;
@@ -392,19 +357,19 @@
             { status: p.credentials.bwKeyExists ? 'ok' : 'bad',
               text: p.credentials.bwKeyExists ? `Bitwarden master.key present (chmod ${p.credentials.bwKeyMode})` : 'Bitwarden master.key MISSING!' },
             { status: p.credentials.bwKeySecure ? 'ok' : 'warn',
-              text: p.credentials.bwKeySecure ? 'master.key permissions 600 ✓' : `master.key is chmod ${p.credentials.bwKeyMode||'?'} — should be 600` },
+              text: p.credentials.bwKeySecure ? 'master.key permissions 600 ✓' : `master.key is chmod ${p.credentials.bwKeyMode||'?'}  -  should be 600` },
             { status: p.credentials.rotationPolicyExists === null ? 'unknown' : p.credentials.rotationPolicyExists ? 'ok' : 'warn',
-              text: p.credentials.rotationPolicyExists ? 'Credential rotation policy in vault ✓' : 'No rotation policy doc — create 08-QA/Security/Credential-Rotation-Policy.md' },
-            { status: 'warn', text: 'Shared PAT (github-ai-agents-pat) covers all repos — replace with per-repo deploy keys (TASK-20260822-002)' },
+              text: p.credentials.rotationPolicyExists ? 'Credential rotation policy in vault ✓' : 'No rotation policy doc  -  create 08-QA/Security/Credential-Rotation-Policy.md' },
+            { status: 'warn', text: 'Shared PAT (github-ai-agents-pat) covers all repos  -  replace with per-repo deploy keys (TASK-20260822-002)' },
           ],
         },
         {
           icon: '🌐', name: 'Network Exposure',
           items: [
             { status: p.network.tailscaleActive ? 'ok' : 'warn',
-              text: p.network.tailscaleActive ? `Tailscale active${p.network.tailscaleIP ? ' ('+p.network.tailscaleIP+')' : ''}` : 'Tailscale not detected — verify VPN access to gateway' },
+              text: p.network.tailscaleActive ? `Tailscale active${p.network.tailscaleIP ? ' ('+p.network.tailscaleIP+')' : ''}` : 'Tailscale not detected  -  verify VPN access to gateway' },
             { status: p.network.gatewayExposed ? 'bad' : 'ok',
-              text: p.network.gatewayExposed ? 'Gateway/OverClaw exposed on 0.0.0.0 — restrict to Tailscale immediately!' : 'Gateway & OverClaw ports not exposed on public interface ✓' },
+              text: p.network.gatewayExposed ? 'Gateway/OverClaw exposed on 0.0.0.0  -  restrict to Tailscale immediately!' : 'Gateway & OverClaw ports not exposed on public interface ✓' },
           ],
         },
         {
@@ -415,9 +380,9 @@
             { status: p.hostHardening.sshRootLogin === 'no' || p.hostHardening.sshRootLogin === 'prohibit-password' ? 'ok' : p.hostHardening.sshRootLogin === 'yes' ? 'bad' : 'unknown',
               text: `SSH root login: ${p.hostHardening.sshRootLogin}` },
             { status: p.hostHardening.ufwActive === null ? 'unknown' : p.hostHardening.ufwActive ? 'ok' : 'warn',
-              text: `UFW firewall: ${p.hostHardening.ufwActive === null ? 'unknown — run healthcheck' : p.hostHardening.ufwActive ? 'active ✓' : 'not active'}` },
+              text: `UFW firewall: ${p.hostHardening.ufwActive === null ? 'unknown  -  run healthcheck' : p.hostHardening.ufwActive ? 'active ✓' : 'not active'}` },
             { status: p.hostHardening.pendingUpdates === null ? 'unknown' : p.hostHardening.pendingUpdates === 0 ? 'ok' : p.hostHardening.pendingUpdates > 20 ? 'bad' : 'warn',
-              text: p.hostHardening.pendingUpdates !== null ? `${p.hostHardening.pendingUpdates} pending apt update(s)` : 'Pending apt updates: unknown — run healthcheck' },
+              text: p.hostHardening.pendingUpdates !== null ? `${p.hostHardening.pendingUpdates} pending apt update(s)` : 'Pending apt updates: unknown  -  run healthcheck' },
           ],
         },
         {
@@ -444,8 +409,8 @@
           icon: '🤖', name: 'Agent Over-Privilege',
           items: [
             { status: p.agentPrivilege.accessPolicyExists === null ? 'unknown' : p.agentPrivilege.accessPolicyExists ? 'ok' : 'warn',
-              text: p.agentPrivilege.accessPolicyExists ? 'Per-agent access policy in vault ✓' : ((((window.__OC_INSTANCE__||{}).securityPostureNotes||{}).accessPolicyMissing) || 'No per-agent access policy — decide whether to add one.') },
-            { status: 'warn', text: 'Shared PAT in use for vault sync — acceptable; per-agent scoping not yet documented' },
+              text: p.agentPrivilege.accessPolicyExists ? 'Per-agent access policy in vault ✓' : ((((window.__OC_INSTANCE__||{}).securityPostureNotes||{}).accessPolicyMissing) || 'No per-agent access policy  -  decide whether to add one.') },
+            { status: 'warn', text: 'Shared PAT in use for vault sync  -  acceptable; per-agent scoping not yet documented' },
             { status: p.agentPrivilege.deployKeysCount > 0 ? 'ok' : 'warn',
               text: p.agentPrivilege.deployKeysCount > 0 ? `${p.agentPrivilege.deployKeysCount} SSH deploy key(s) on host ✓` : 'No per-repo SSH deploy keys found on host yet' },
           ],
@@ -469,7 +434,7 @@
         const p = await fetch('/api/security/swarm-posture').then(r => r.json());
         document.getElementById('posture-list').innerHTML = renderPosture(p);
       } catch(e) {
-        document.getElementById('posture-list').innerHTML = `<div style="color:#fca5a5;font-size:.78rem;">⚠️ Failed to load posture: ${esc(e.message)}</div>`;
+        document.getElementById('posture-list').innerHTML = `<div style="color:var(--oc-danger-text);font-size:.78rem;">⚠️ Failed to load posture: ${esc(e.message)}</div>`;
       }
     }
 
@@ -487,5 +452,6 @@
       });
     }).catch(()=>{ window.__OC_INSTANCE__ = {}; });
 </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>

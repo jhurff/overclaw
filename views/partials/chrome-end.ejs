@@ -1,0 +1,11 @@
+<div id="oc-sidebar-backdrop" class="oc-sidebar-backdrop" hidden></div>
+<canvas id="oc-rain" hidden aria-hidden="true"></canvas>
+<nav class="oc-bottom-nav" aria-label="Primary">
+  <a href="/swarm" class="<%= typeof currentPath !== 'undefined' && currentPath === '/swarm' ? 'active' : '' %>">Home</a>
+  <a href="/task-board" class="<%= typeof currentPath !== 'undefined' && (currentPath === '/task-board' || currentPath === '/tasks/project') ? 'active' : '' %>">Projects</a>
+  <a href="/tasks/standing" class="<%= typeof currentPath !== 'undefined' && currentPath === '/tasks/standing' ? 'active' : '' %>">Standing</a>
+  <a href="/brain" class="<%= typeof currentPath !== 'undefined' && currentPath === '/brain' ? 'active' : '' %>">Brain</a>
+  <button type="button" id="bottom-more">More</button>
+</nav>
+<link rel="stylesheet" href="/mobile.css">
+<script src="/theme-client.js"></script>

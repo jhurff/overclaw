@@ -9,6 +9,8 @@ const VaultReader = require('./lib/VaultReader'); // Vault integration
 const McpServer  = require('./lib/McpServer');   // MCP protocol server
 const BrainStore = require('./lib/BrainStore');  // Document DB
 const instanceConfig = require('./lib/instanceConfig');
+const { ThemeStore } = require('./lib/themePacks');
+const registerThemeRoutes = require('./lib/themeRoutes');
 
 const app = express();
 
@@ -93,13 +95,52 @@ if (brainStore) {
   }
 }
 
+let themeStore;
+try {
+  themeStore = new ThemeStore({
+    builtinDir: path.join(__dirname, 'themes'),
+    userDir: path.join(OVERCLAW_DATA_DIR, 'themes'),
+    settingsPath: path.join(OVERCLAW_DATA_DIR, 'ui-settings.json'),
+    brainStore
+  });
+} catch (err) {
+  console.warn('Theme store init failed: ' + err.message);
+  themeStore = new ThemeStore({
+    builtinDir: path.join(__dirname, 'themes'),
+    userDir: path.join(OVERCLAW_DATA_DIR, 'themes'),
+    settingsPath: path.join(OVERCLAW_DATA_DIR, 'ui-settings.json'),
+    brainStore: null
+  });
+}
+
 // Set EJS as the templating engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
+
+app.use((req, res, next) => {
+  try {
+    if (!themeStore) throw new Error('theme store unavailable');
+    const active = themeStore.getActive();
+    res.locals.themeId = active.id;
+    res.locals.themeCss = active.css;
+    res.locals.themeColor = active.themeColor;
+    res.locals.themeFontStylesheet = (active.fonts && active.fonts.stylesheet) || '';
+    res.locals.themeEffects = active.effects || [];
+    res.locals.themeName = active.name;
+  } catch (err) {
+    res.locals.themeId = 'matrix';
+    res.locals.themeCss = '';
+    res.locals.themeColor = '#000000';
+    res.locals.themeFontStylesheet = '';
+    res.locals.themeEffects = ['digital-rain'];
+    res.locals.themeName = 'Matrix';
+  }
+  next();
+});
 
 
 // ---------------------------------------------------------------------------
@@ -2852,11 +2893,13 @@ app.get('/brain/doc', (req, res) => {
   res.redirect(302, target);
 });
 app.get('/brain/history', brainAuth, (req, res) => {
-  res.render('brain-history', { title: 'AI Brain — History', actor: req.brainActor, docPath: req.query.path || '' });
+  res.render('brain-history', { title: 'AI Brain History', actor: req.brainActor, docPath: req.query.path || '' });
 });
 app.get('/brain/login', (req, res) => {
-  res.render('brain-login', { title: 'OverClaw — Sign In' });
+  res.render('brain-login', { title: 'OverClaw Sign In' });
 });
+
+registerThemeRoutes(app, themeStore);
 
 // ---------------------------------------------------------------------------
 // Start the server

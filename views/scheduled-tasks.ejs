@@ -1,22 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-</head>
+  <%- include('partials/document-head') %>
+
+  </head>
 <body>
-  <header class="oc-header">
-    <div class="logo"><a href="/swarm" style="text-decoration:none;color:inherit;display:contents;cursor:pointer"><h1 class="main-title">OVERCLAW</h1><span class="tagline">AGENT DASHBOARD</span></a></div>
-    <div class="header-controls">
-      <button id="sidebar-toggle" class="control-button">☰</button>
-      <button id="theme-toggle" class="control-button">☀️</button>
-    </div>
-  </header>
+  <%- include('partials/app-header') %>
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/scheduled-tasks' }) %>
     <main class="oc-dashboard-area">
@@ -42,7 +31,7 @@
               <th data-sort="enabledSort">Status</th>
             </tr></thead>
             <tbody id="task-tbody">
-              <tr><td colspan="4" style="text-align:center;color:#4b5563;padding:1.5rem">Loading…</td></tr>
+              <tr><td colspan="4" style="text-align:center;color:var(--oc-text-faint);padding:1.5rem">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -51,17 +40,7 @@
   </div>
 
   <script>
-    /* ── sidebar/theme ── */
-    (function(){
-      const sb=document.getElementById('oc-sidebar'),btn=document.getElementById('sidebar-toggle');
-      let col=localStorage.getItem('overclaw-sidebar-collapsed')==='true';
-      if(col)sb.classList.add('collapsed');
-      btn.addEventListener('click',()=>{col=!col;sb.classList.toggle('collapsed',col);localStorage.setItem('overclaw-sidebar-collapsed',col);});
-      const th=document.getElementById('theme-toggle');
-      let tm=localStorage.getItem('overclaw-theme')||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-      document.body.classList.add(tm+'-mode');th.textContent=tm==='dark'?'🌙':'☀️';
-      th.addEventListener('click',()=>{tm=tm==='light'?'dark':'light';document.body.classList.toggle('light-mode',tm==='light');document.body.classList.toggle('dark-mode',tm==='dark');localStorage.setItem('overclaw-theme',tm);th.textContent=tm==='dark'?'🌙':'☀️';});
-    })();
+
 
     /* ── Fallback tasks for agents not covered by the live gateway cron API ── */
     let primaryCronAgent = 'North';
@@ -77,7 +56,7 @@
     let allTasks=[], sortKey='agent', sortDir=1;
 
     function schedFmt(j) {
-      if (!j) return '—';
+      if (!j) return ' - ';
       if (j.schedule) {
         const s = j.schedule;
         if (s.kind==='cron')  return `cron: ${s.expr||''}${s.tz?' '+s.tz:''}`;
@@ -89,12 +68,12 @@
         }
         if (s.kind==='at') return `once: ${s.at||''}`;
       }
-      return j.schedStr||j.scheduleLabel||'—';
+      return j.schedStr||j.scheduleLabel||' - ';
     }
 
     function agentBadge(name) {
-      const c = AGENT_COLORS[name]||'#9ca3af';
-      const bg = AGENT_BG[name]||'#1c1917';
+      const c = AGENT_COLORS[name]||'var(--oc-text-muted)';
+      const bg = AGENT_BG[name]||'var(--oc-bg-card)';
       const emoji = AGENT_EMOJI[name]||'';
       return `<span style="display:inline-block;padding:1px 9px;border-radius:9999px;font-size:.7rem;font-weight:700;background:${bg};color:${c}">${emoji} ${name}</span>`;
     }
@@ -126,12 +105,12 @@
       tbody.innerHTML = vis.length ? vis.map(t => `
         <tr>
           <td>
-            <div style="font-weight:600;color:#e2e8f0">${t.name||'(unnamed)'}</div>
-            ${t.desc ? `<div style="font-size:.7rem;color:#6b7280;margin-top:.1rem">${t.desc}</div>` : ''}
+            <div style="font-weight:600;color:var(--oc-text)">${t.name||'(unnamed)'}</div>
+            ${t.desc ? `<div style="font-size:.7rem;color:var(--oc-text-muted);margin-top:.1rem">${t.desc}</div>` : ''}
           </td>
-          <td style="font-family:monospace;font-size:.72rem;color:#94a3b8;white-space:nowrap">${t.schedStr}</td>
+          <td style="font-family:monospace;font-size:.72rem;color:var(--oc-text-muted);white-space:nowrap">${t.schedStr}</td>
           <td>${agentBadge(t.agent||primaryCronAgent||'Agent')}</td>
-          <td style="font-size:.72rem;font-weight:600;${t.enabled!==false?'color:#86efac':'color:#6b7280'}">${t.enabled!==false?'● On':'○ Off'}</td>
+          <td style="font-size:.72rem;font-weight:600;${t.enabled!==false?'color:var(--oc-success-text)':'color:var(--oc-text-muted)'}">${t.enabled!==false?'● On':'○ Off'}</td>
         </tr>`).join('')
         : `<tr class="oc-empty-row"><td colspan="4">No tasks match.</td></tr>`;
 
@@ -203,11 +182,12 @@
         applyAndRender();
       } catch(e) {
         document.getElementById('task-tbody').innerHTML =
-          `<tr><td colspan="4" style="color:#f87171;padding:1rem">⚠️ Failed: ${e.message}</td></tr>`;
+          `<tr><td colspan="4" style="color:var(--oc-danger-text);padding:1rem">⚠️ Failed: ${e.message}</td></tr>`;
       }
     }
 
     load();
   </script>
+<%- include('partials/chrome-end') %>
 </body>
 </html>
