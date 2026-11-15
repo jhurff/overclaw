@@ -767,8 +767,36 @@ app.get('/api/overclaw-config', async (req, res) => {
 });
 
 // Public-to-the-dashboard instance config (gitignored file). No secrets belong in this file.
-app.get('/api/instance', (req, res) => {
-  res.json(instanceConfig.readInstanceConfig());
+// Agent roster: refreshed from the Brain's Agent Registry so new swarm agents
+// become assignable without editing config/instance.json.
+let rosterRefreshedAt = 0;
+let rosterRefreshing = null;
+async function refreshAgentRoster(force) {
+  if (!vaultReader) return;
+  if (!force && Date.now() - rosterRefreshedAt < 60 * 1000) return;
+  if (rosterRefreshing) return rosterRefreshing;
+  rosterRefreshing = (async () => {
+    try {
+      const rows = await vaultReader.getAgentRegistry();
+      instanceConfig.setRegistryRoster(rows);
+    } catch (e) {
+      console.warn('Agent roster refresh failed (using config list):', e.message);
+    } finally {
+      rosterRefreshedAt = Date.now();
+      rosterRefreshing = null;
+    }
+  })();
+  return rosterRefreshing;
+}
+
+setTimeout(() => { refreshAgentRoster(true); }, 2000).unref();
+
+app.get('/api/instance', async (req, res) => {
+  await refreshAgentRoster(false);
+  const inst = Object.assign({}, instanceConfig.readInstanceConfig());
+  inst.agentsList = instanceConfig.getAgentsList();
+  inst.agentColors = instanceConfig.getAgentColors();
+  res.json(inst);
 });
 
 app.get('/api/instance-nodes', (req, res) => {
