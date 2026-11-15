@@ -430,21 +430,22 @@ function moveTaskToInProgress(content, taskId, newAgent) {
 }
 
 /** Update Agent cell on a Blocked row (keep status/reason). */
-function updateBlockedTaskAgent(content, taskId, newAgent) {
+function updateBlockedTaskAgent(content, taskId, newAgent, sectionKey) {
+  const key = sectionKey || 'blocked';
   const lines = content.split('\n');
   let sec = null;
   for (let i = 0; i < lines.length; i++) {
     const t  = lines[i].trim();
     const hm = t.match(/^##\s+(.*)/);
     if (hm) { sec = hm[1].toLowerCase(); continue; }
-    if (sec && sec.includes('blocked') && t.startsWith('|') && t.includes(taskId) && !/^\|[\s\-:]+\|/.test(t)) {
+    if (sec && sec.includes(key) && t.startsWith('|') && t.includes(taskId) && !/^\|[\s\-:]+\|/.test(t)) {
       const cells = lines[i].replace(/^\|/, '').replace(/\|$/, '').split('|');
       if (cells.length >= 3) cells[2] = ` ${newAgent} `;
       lines[i] = '|' + cells.join('|') + '|';
       return lines.join('\n');
     }
   }
-  throw new Error(`Task ${taskId} not found in Blocked section`);
+  throw new Error(`Task ${taskId} not found in ${key === 'progress' ? 'In Progress' : 'Blocked'} section`);
 }
 
 /** Move an In-Progress or Blocked row back to Inbox (unassign). */
@@ -1868,8 +1869,8 @@ app.post('/api/vault/task-board/assign', async (req, res) => {
   const { taskId, agentKey, fromSection } = req.body || {};
   if (!taskId   || typeof taskId   !== 'string') return res.status(400).json({ error: 'taskId required' });
   if (!agentKey || typeof agentKey !== 'string') return res.status(400).json({ error: 'agentKey required' });
-  if (!['inbox','blocked'].includes(fromSection))
-    return res.status(400).json({ error: 'fromSection must be inbox or blocked' });
+  if (!['inbox','blocked','inProgress'].includes(fromSection))
+    return res.status(400).json({ error: 'fromSection must be inbox, blocked or inProgress' });
   try {
     const status = await vaultReader.isAvailable();
     if (!status.available) return vaultUnavailable(res, status.error);
@@ -1888,7 +1889,7 @@ app.post('/api/vault/task-board/assign', async (req, res) => {
     }
     const newContent = fromSection === 'inbox'
       ? moveTaskToInProgress(raw, taskId, agentKey.toLowerCase())
-      : updateBlockedTaskAgent(raw, taskId, agentKey.toLowerCase());
+      : updateBlockedTaskAgent(raw, taskId, agentKey.toLowerCase(), fromSection === 'inProgress' ? 'progress' : 'blocked');
     const written = await writeCoordDoc(TASK_BOARD_DOC, newContent, 'assign ' + taskId + ' → ' + agentKey);
     // Tier 2 — vault notification file
     let notified = false;
