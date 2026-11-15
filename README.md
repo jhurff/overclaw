@@ -74,7 +74,7 @@ All of the following require the auth above.
 | `POST` | `/api/brain/move` | Rename or move. Body: `{"from": "<path>", "to": "<path>"}` |
 | `GET` | `/api/brain/list?dir=<path>&recursive=true` | List a directory |
 | `GET` | `/api/brain/tree?dir=<path>` | Directory tree |
-| `GET` | `/api/brain/search?q=<query>&dir=<optional>&limit=20` | Full-text search |
+| `GET` | `/api/brain/search?q=<query>&dir=<optional>&limit=20&offset=0` | Prefix search of titles, paths, and content. `limit` is capped at 50. Name matches rank above content-only matches. |
 | `GET` | `/api/brain/history?path=<path>&limit=50` | Version history |
 | `GET` | `/api/brain/version?path=<path>&v=<n>` | One historical version |
 | `POST` | `/api/brain/restore` | Restore a version. Body: `{"path": "<path>", "version": <n>}` |

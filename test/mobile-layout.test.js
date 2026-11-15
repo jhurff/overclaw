@@ -60,6 +60,16 @@ function seedBrain(dbPath) {
   store.putDoc(DOC, DOC_BODY, { updatedBy: 'test' });
   store.putDoc(DOC, DOC_BODY + '\nA second save so history has a version.\n', { updatedBy: 'test' });
   store.putDoc(NESTED, '# Nested\n\nFolder file.\n', { updatedBy: 'test' });
+  store.putDoc('05 - Research/Environment.md', '# Environment\n\nRuntime environment for the swarm.\n', { updatedBy: 'test' });
+  store.putDoc('02 - Projects/Enterprise Architecture.md', '# Enterprise Architecture\n\nHow the pieces fit together.\n', { updatedBy: 'test' });
+  store.putDoc('00 - Home/Scratch.md', '# Scratch\n\nRemember the environment variable before a deploy.\n', { updatedBy: 'test' });
+  for (let i = 0; i < 18; i++) {
+    store.putDoc(
+      '05 - Research/Environment/Note ' + String(i).padStart(2, '0') + '.md',
+      '# Environment note ' + i + '\n\nDetails about environment setup ' + i + '.\n',
+      { updatedBy: 'test' }
+    );
+  }
   const starter = path.join(ROOT, 'starter-brain');
   const docs = [];
   const walk = (dir) => {
@@ -233,6 +243,103 @@ test('phone widths do not overflow and Brain stacks', { timeout: 300000, skip: !
     await page.waitForFunction(() => !document.body.classList.contains('bb-doc-open'));
     assert.ok((await page.evaluate(() => history.length)) >= historyLen - 1);
 
+    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await page.goto(base + '/brain', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#treeFilter');
+    await page.click('#treeFilter');
+    await page.waitForFunction(() => document.body.classList.contains('bb-search-open'));
+    const searchChrome = await page.evaluate(() => ({
+      header: getComputedStyle(document.querySelector('.oc-header')).display,
+      stats: getComputedStyle(document.getElementById('statsBar')).display,
+      nav: getComputedStyle(document.querySelector('.oc-bottom-nav')).display,
+      cancel: document.getElementById('searchCancel').hidden === false,
+      font: parseFloat(getComputedStyle(document.getElementById('treeFilter')).fontSize),
+    }));
+    assert.equal(searchChrome.header, 'none');
+    assert.equal(searchChrome.stats, 'none');
+    assert.equal(searchChrome.nav, 'none');
+    assert.equal(searchChrome.cancel, true);
+    assert.ok(searchChrome.font >= 16, 'search font ' + searchChrome.font);
+    await page.evaluate(() => {
+      const input = document.getElementById('treeFilter');
+      input.value = 'Envi';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForSelector('.bb-hit');
+    const hitBox = await page.evaluate(() => {
+      const hit = document.querySelector('.bb-hit');
+      const title = hit.querySelector('.bb-hit-title');
+      const folder = hit.querySelector('.bb-hit-path');
+      const snip = hit.querySelector('.bb-hit-snip');
+      return {
+        h: hit.getBoundingClientRect().height,
+        mark: title.querySelector('mark') ? title.querySelector('mark').textContent : '',
+        path: folder ? folder.textContent : '',
+        pathW: folder ? folder.getBoundingClientRect().width : 0,
+        pathH: folder ? folder.getBoundingClientRect().height : 0,
+        snip: snip ? snip.textContent : '',
+        snipW: snip ? snip.getBoundingClientRect().width : 0,
+        snipH: snip ? snip.getBoundingClientRect().height : 0,
+      };
+    });
+    assert.ok(hitBox.h >= 44, 'hit height ' + hitBox.h);
+    assert.match(hitBox.mark, /envi/i);
+    assert.ok(hitBox.path.length > 2, JSON.stringify(hitBox));
+    assert.ok(hitBox.pathW > 80 && hitBox.pathH >= 12, JSON.stringify(hitBox));
+    assert.ok(hitBox.snip.length > 2, JSON.stringify(hitBox));
+    assert.ok(hitBox.snipW > 80 && hitBox.snipH >= 12, JSON.stringify(hitBox));
+    await page.evaluate(() => { document.getElementById('treeBody').scrollTop = 320; });
+    const beforeScroll = await page.evaluate(() => document.getElementById('treeBody').scrollTop);
+    assert.ok(beforeScroll > 200, 'scroll ' + beforeScroll);
+    await page.evaluate(() => document.querySelectorAll('.bb-hit')[3].click());
+    await page.waitForSelector('#bb-md-input');
+    await page.click('#docBack');
+    await page.waitForFunction((expected) => {
+      const body = document.getElementById('treeBody');
+      return document.body.classList.contains('bb-search-open')
+        && document.getElementById('treeFilter').value === 'Envi'
+        && body
+        && Math.abs(body.scrollTop - expected) < 40;
+    }, {}, beforeScroll);
+
+    await setVisualViewportHeight(page, 450);
+    await settle(page);
+    const area = await page.evaluate(() => {
+      const el = document.getElementById('treeBody');
+      const rect = el.getBoundingClientRect();
+      const vv = window.visualViewport.height;
+      return { h: rect.height, vv, ratio: rect.height / vv };
+    });
+    assert.ok(Math.abs(area.vv - 450) < 2, JSON.stringify(area));
+    assert.ok(area.ratio >= 0.6, JSON.stringify(area));
+    const searchOverflow = await page.evaluate(overflowScript);
+    assert.deepEqual(searchOverflow.offenders, [], JSON.stringify(searchOverflow.offenders));
+    await page.evaluate(() => {
+      const input = document.getElementById('treeFilter');
+      input.value = 'zzzz-no-such-doc';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForSelector('.bb-search-empty');
+    const empty = await page.evaluate(() => {
+      const el = document.querySelector('.bb-search-empty');
+      const rect = el.getBoundingClientRect();
+      const vv = window.visualViewport.height;
+      return { top: rect.top, bottom: rect.bottom, vv, text: el.textContent };
+    });
+    assert.match(empty.text, /No matches for zzzz-no-such-doc/);
+    assert.equal(empty.text.includes('\u2014') || empty.text.includes('\u2013'), false);
+    assert.ok(empty.top >= 0 && empty.top < empty.vv * 0.45, JSON.stringify(empty));
+    assert.ok(empty.bottom <= empty.vv + 1, JSON.stringify(empty));
+    await setVisualViewportHeight(page, null);
+    await page.click('#filterClear');
+    await page.waitForFunction(() => document.body.textContent.includes('Recent searches'));
+    const home = await page.evaluate(() => document.getElementById('treeBody').textContent);
+    assert.match(home, /Recently opened/);
+    assert.equal(home.includes('\u2014') || home.includes('\u2013'), false);
+    await page.click('#searchCancel');
+    await page.waitForFunction(() => !document.body.classList.contains('bb-search-open'));
+    assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector('.oc-header')).display), 'none');
+
     await page.goto(base + '/brain?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#bb-md-input');
     assert.equal(await page.evaluate(() => document.body.classList.contains('bb-doc-open')), true);
@@ -311,10 +418,63 @@ test('phone widths do not overflow and Brain stacks', { timeout: 300000, skip: !
     await page.waitForFunction(() => !document.body.classList.contains('bh-ver-open'));
 
     const shotDir = '/opt/cursor/artifacts/brain-focus';
+    const searchShotDir = '/opt/cursor/artifacts/brain-search';
     fs.mkdirSync(shotDir, { recursive: true });
+    fs.mkdirSync(searchShotDir, { recursive: true });
     for (const theme of ['matrix', 'usa', 'neutral']) {
       await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
       await switchTheme(page, theme);
+      if (theme === 'matrix' || theme === 'usa') {
+        await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+        await page.goto(base + '/brain', { waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('#treeFilter');
+        await page.evaluate(() => {
+          localStorage.setItem('oc-brain-recent-searches', JSON.stringify(['Envi', 'task']));
+          localStorage.setItem('oc-brain-recent-docs', JSON.stringify([{ path: 'Phone Check.md', title: 'Phone Check' }]));
+        });
+        await page.click('#treeFilter');
+        await page.waitForFunction(() => document.body.classList.contains('bb-search-open'));
+        await page.waitForFunction(() => /recent searches/i.test(document.body.textContent));
+        await settle(page);
+        await page.screenshot({ path: path.join(searchShotDir, theme + '-search-empty.png') });
+        await page.evaluate(() => {
+          const input = document.getElementById('treeFilter');
+          input.value = 'Envi';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await page.waitForSelector('.bb-hit');
+        await settle(page);
+        await page.screenshot({ path: path.join(searchShotDir, theme + '-search-results.png') });
+        await setVisualViewportHeight(page, 450);
+        await settle(page);
+        await page.evaluate(() => {
+          const band = document.createElement('div');
+          band.id = 'oc-kb-shot';
+          band.setAttribute('aria-hidden', 'true');
+          band.style.cssText = 'position:fixed;left:0;right:0;top:450px;bottom:0;z-index:200;background:#1c1c1e;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:12px 6px 28px;box-sizing:border-box;';
+          for (let row = 0; row < 3; row++) {
+            const line = document.createElement('div');
+            line.style.cssText = 'display:flex;gap:6px;justify-content:center;';
+            for (let key = 0; key < 10; key++) {
+              const k = document.createElement('div');
+              k.style.cssText = 'width:28px;height:36px;border-radius:6px;background:#3a3a3c;';
+              line.appendChild(k);
+            }
+            band.appendChild(line);
+          }
+          document.body.appendChild(band);
+        });
+        await settle(page);
+        await page.screenshot({ path: path.join(searchShotDir, theme + '-search-keyboard.png') });
+        await page.evaluate(() => {
+          const band = document.getElementById('oc-kb-shot');
+          if (band) band.remove();
+        });
+        await setVisualViewportHeight(page, null);
+        await page.click('#searchCancel');
+        await page.waitForFunction(() => !document.body.classList.contains('bb-search-open'));
+        await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+      }
       await page.goto(base + '/brain?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('#bb-md-input');
       await settle(page);
@@ -415,6 +575,30 @@ test('phone widths do not overflow and Brain stacks', { timeout: 300000, skip: !
     assert.ok(desktop.labels.includes('History'));
     assert.ok(desktop.labels.includes('Delete'));
     assert.equal(desktop.labels.includes('Focus'), false);
+    await page.goto(base + '/brain', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#treeFilter');
+    await page.focus('#treeFilter');
+    assert.equal(await page.evaluate(() => document.body.classList.contains('bb-search-open')), false);
+    await page.evaluate(() => {
+      const input = document.getElementById('treeFilter');
+      input.value = 'Envi';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.waitForSelector('.bb-hit');
+    const deskSearch = await page.evaluate(() => ({
+      search: document.body.classList.contains('bb-search-open'),
+      header: getComputedStyle(document.querySelector('.oc-header')).display,
+      cancel: document.getElementById('searchCancel').hidden,
+      title: document.querySelector('.bb-hit-title') ? document.querySelector('.bb-hit-title').textContent : '',
+      tree: document.querySelector('.bb-tree').getBoundingClientRect().width,
+      main: getComputedStyle(document.querySelector('.bb-main')).display,
+    }));
+    assert.equal(deskSearch.search, false);
+    assert.notEqual(deskSearch.header, 'none');
+    assert.equal(deskSearch.cancel, true);
+    assert.match(deskSearch.title, /envi/i);
+    assert.ok(deskSearch.tree < 500, 'tree width ' + deskSearch.tree);
+    assert.notEqual(deskSearch.main, 'none');
     await page.goto(base + '/brain/history?path=' + encodeURIComponent(DOC), { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.bh-ver');
     const desktopHist = await page.evaluate(() => ({
@@ -465,6 +649,34 @@ async function waitForLogin(page) {
     await new Promise(resolve => setTimeout(resolve, 250));
   }
   throw new Error('login was not accepted');
+}
+
+async function setVisualViewportHeight(page, height) {
+  const ok = await page.evaluate((next) => {
+    const vv = window.visualViewport;
+    if (!vv) return false;
+    if (!window.__ocVvGetters) {
+      const proto = Object.getPrototypeOf(vv);
+      const hDesc = Object.getOwnPropertyDescriptor(proto, 'height');
+      const tDesc = Object.getOwnPropertyDescriptor(proto, 'offsetTop');
+      if (!hDesc || typeof hDesc.get !== 'function') return false;
+      window.__ocVvGetters = {
+        height: hDesc.get.bind(vv),
+        offsetTop: tDesc && typeof tDesc.get === 'function' ? tDesc.get.bind(vv) : () => 0,
+      };
+    }
+    Object.defineProperty(vv, 'height', {
+      configurable: true,
+      get: () => (next == null ? window.__ocVvGetters.height() : next),
+    });
+    Object.defineProperty(vv, 'offsetTop', {
+      configurable: true,
+      get: () => (next == null ? window.__ocVvGetters.offsetTop() : 0),
+    });
+    vv.dispatchEvent(new Event('resize'));
+    return true;
+  }, height);
+  if (!ok) throw new Error('could not resize visualViewport');
 }
 
 async function contentShare(page, selector) {
