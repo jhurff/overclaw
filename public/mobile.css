@@ -72,26 +72,20 @@
     min-width: 0;
   }
 
-  /* Brain, history, and the graph fill the space between the header and the bottom nav. */
-  body.bb-page,
-  body.bh-page,
+  /* The Brain tree and the graph fill the space between the header and the bottom nav.
+     An open document, the editor, and version history drop that chrome and scroll as one page. */
+  body.bb-page:not(.bb-doc-open),
   body:has(#vg-svg) {
     height: 100dvh;
     max-height: 100dvh;
     overflow: hidden;
     padding-bottom: calc(var(--oc-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   }
-  body.bb-editing.bb-page {
-    height: auto;
-    max-height: none;
-    padding-bottom: 0;
-  }
   body.oc-menu-open .oc-bottom-nav { visibility: hidden; }
   body.oc-menu-open .oc-sidebar {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
   }
-  body.bb-page .oc-main-content,
-  body.bh-page .oc-main-content,
+  body.bb-page:not(.bb-doc-open) .oc-main-content,
   .oc-main-content:has(#vg-svg) {
     flex: 1 1 auto !important;
     min-height: 0 !important;
@@ -99,8 +93,7 @@
     max-height: none !important;
     overflow: hidden !important;
   }
-  body.bb-page .oc-dashboard-area,
-  body.bh-page .oc-dashboard-area,
+  body.bb-page:not(.bb-doc-open) .oc-dashboard-area,
   .oc-dashboard-area:has(#vg-svg) {
     display: flex !important;
     flex-direction: column !important;
@@ -111,23 +104,33 @@
   }
   #vg-svg { min-height: 220px; flex: 1 1 auto; }
 
-  body.bb-editing .oc-bottom-nav { display: none !important; }
-  body.bb-editing .oc-header {
-    position: fixed;
-    top: var(--oc-vv-top, 0px);
-    left: 0;
-    right: 0;
-    z-index: 60;
+  body.bb-doc-open,
+  body.bh-page {
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: clip;
+    overflow-y: visible !important;
+    padding-bottom: 0 !important;
   }
-  body.bb-editing.bb-page .oc-main-content {
-    position: fixed !important;
-    top: var(--oc-shell-top, var(--oc-header-height)) !important;
-    left: 0;
-    right: 0;
-    height: var(--oc-shell-h, 70dvh) !important;
-    max-height: var(--oc-shell-h, 70dvh) !important;
-    overflow: hidden !important;
-    z-index: 30;
+  body.bb-doc-open .oc-header,
+  body.bh-page .oc-header,
+  body.bb-doc-open .oc-bottom-nav,
+  body.bh-page .oc-bottom-nav {
+    display: none !important;
+  }
+  body.bb-doc-open .oc-main-content,
+  body.bh-page .oc-main-content,
+  body.bb-doc-open .oc-dashboard-area,
+  body.bh-page .oc-dashboard-area {
+    display: block !important;
+    position: static !important;
+    flex: none !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    top: auto !important;
   }
 
   .kb-board, .kanban-board {

@@ -127,8 +127,42 @@
     .bb-tree  { background:var(--oc-bg-card); }
     .bb-toolbar { background:var(--oc-bg-card); }
 
+    .bb-dash {
+      padding: 0 !important;
+      overflow: hidden;
+      display: flex !important;
+      flex-direction: column;
+      min-height: 0;
+    }
     .bb-back { display:none; }
     .bb-toolbar-row, .bb-actions { display:contents; }
+    .bb-more, .bb-savebar, .oc-focus-exit, .bb-phone-only { display:none; }
+    .bb-more {
+      align-items:center; justify-content:center;
+      width:44px; height:44px; min-width:44px; padding:0;
+      border:0; background:transparent; color:var(--oc-text); cursor:pointer; flex-shrink:0;
+    }
+    .oc-dots {
+      width:4px; height:4px; border-radius:50%; background:currentColor;
+      box-shadow:0 -7px 0 currentColor, 0 7px 0 currentColor;
+    }
+    .bb-savebar { align-items:center; padding:4px 8px; background:var(--oc-bg-header); border-top:1px solid var(--oc-border); }
+    .bb-savebar-btn {
+      flex:1; min-height:40px; border:0; border-radius:6px;
+      background:var(--oc-accent); color:var(--oc-text-on-accent);
+      font-size:16px; font-weight:700; cursor:pointer;
+    }
+    .bb-savebar-btn:disabled { opacity:.5; }
+    .oc-focus-exit {
+      position:fixed; z-index:120;
+      top:calc(8px + env(safe-area-inset-top, 0px)); right:8px;
+      min-height:36px; padding:6px 12px; border-radius:999px;
+      border:1px solid var(--oc-border-strong);
+      background:var(--oc-bg-card); color:var(--oc-text);
+      font-size:13px; font-weight:700; cursor:pointer;
+    }
+    .oc-focus-exit[hidden] { display:none !important; }
+    .bb-md-input[hidden], .bb-preview[hidden] { display:none !important; }
     .bb-md-input {
       flex:1; min-height:0; width:100%; box-sizing:border-box;
       border:0; resize:none; padding:16px;
@@ -153,9 +187,15 @@
     .bb-preview pre code, .bb-code-scroll code {
       background:transparent; padding:0; white-space:pre; word-break:normal; overflow-wrap:normal;
     }
-    .bb-table-scroll { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0.6rem 0; }
-    .bb-preview table { border-collapse:collapse; min-width:100%; }
-    .bb-preview th, .bb-preview td { border:1px solid var(--oc-border); padding:6px 8px; text-align:left; }
+    .bb-table-scroll {
+      display:block; width:100%; max-width:100vw; overflow-x:auto;
+      -webkit-overflow-scrolling:touch; margin:0.6rem 0;
+    }
+    .bb-preview table { border-collapse:collapse; width:max-content; min-width:100%; }
+    .bb-preview th, .bb-preview td {
+      border:1px solid var(--oc-border); padding:6px 8px; text-align:left;
+      min-width:9rem; white-space:normal; word-break:normal; overflow-wrap:break-word; vertical-align:top;
+    }
     .bb-preview img { max-width:100%; height:auto; }
     .bb-danger { color:var(--oc-danger-text); border-color:var(--oc-danger); }
 
@@ -170,7 +210,21 @@
       body.bb-doc-open .bb-tree,
       body.bb-doc-open .bb-stats,
       body.bb-doc-open .bb-new-bar { display:none !important; }
-      body.bb-doc-open .bb-main { display:flex !important; }
+      body.bb-doc-open .bb-dash {
+        display:block !important; overflow:visible !important; height:auto !important; max-height:none !important;
+      }
+      body.bb-doc-open .bb-wrap,
+      body.bb-doc-open .bb-main,
+      body.bb-doc-open .bb-doc {
+        display:block; overflow:visible; height:auto; max-height:none; min-height:0;
+      }
+      body.bb-doc-open .bb-wrap {
+        padding-top:calc(48px + env(safe-area-inset-top, 0px));
+      }
+      body.bb-editing:not(.bb-focus) .bb-wrap {
+        padding-bottom:calc(48px + env(safe-area-inset-bottom, 0px) + var(--oc-kb-inset, 0px));
+      }
+      body.bb-focus .bb-wrap { padding-top:0; padding-bottom:0; }
       .bb-tree-head { padding:10px 12px; }
       .bb-tree-title { font-size:15px; }
       .bb-tree-filter { font-size:16px; min-height:44px; padding:8px 12px; }
@@ -185,39 +239,84 @@
         text-overflow:unset;
         word-break:break-word;
       }
-      .bb-toolbar {
-        flex-direction:column; align-items:stretch; gap:8px; padding:8px;
+      body.bb-doc-open .bb-toolbar {
+        position:fixed; top:var(--oc-vv-top, 0px); left:0; right:0; z-index:80;
+        box-sizing:border-box;
+        height:calc(48px + env(safe-area-inset-top, 0px));
+        min-height:0; margin:0;
+        padding:env(safe-area-inset-top, 0px) 4px 0;
+        flex-direction:row; flex-wrap:nowrap; align-items:center; gap:0;
+        background:var(--oc-bg-header); border-bottom:1px solid var(--oc-border);
+        overflow:visible;
       }
-      .bb-toolbar-row { display:flex; align-items:center; gap:8px; min-width:0; }
+      body.bb-focus .bb-toolbar { display:none !important; }
+      body.bb-doc-open .bb-toolbar-row { display:flex; align-items:center; gap:4px; min-width:0; width:100%; height:48px; }
+      body.bb-doc-open .bb-more { display:inline-flex; }
       .bb-back {
         display:inline-flex; align-items:center; justify-content:center;
-        min-height:44px; min-width:44px; padding:0 14px;
+        height:44px; min-height:44px; min-width:44px; padding:0 12px;
         border-radius:6px; border:1px solid var(--oc-border-strong);
         background:var(--oc-bg-input); color:var(--oc-text);
         font-size:16px; font-weight:700; cursor:pointer; flex-shrink:0;
       }
-      .bb-path {
-        flex:1; font-size:14px; white-space:normal; overflow:visible;
-        text-overflow:unset; word-break:break-word;
+      body.bb-doc-open .bb-path {
+        flex:1; min-width:0; font-size:15px; font-weight:700; color:var(--oc-text-header);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
       }
-      .bb-actions {
-        display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%;
+      body.bb-doc-open .bb-more { color:var(--oc-text-header); }
+      body.bb-doc-open .bb-dirty {
+        flex:0 0 auto; width:8px; height:8px; padding:0; border-radius:50%;
+        background:var(--oc-warning); color:transparent; font-size:0; overflow:hidden;
       }
-      .bb-btn {
-        min-height:44px; min-width:0; width:100%;
-        padding:8px 10px; font-size:15px; font-weight:700;
-        white-space:nowrap; overflow:visible; text-overflow:unset; flex-shrink:0;
+      body.bb-doc-open .bb-actions {
+        display:none; position:absolute; top:100%; right:6px;
+        width:min(18rem, calc(100vw - 12px));
+        flex-direction:column; align-items:stretch; gap:0;
+        background:var(--oc-bg-card); border:1px solid var(--oc-border);
+        box-shadow:var(--oc-shadow-lg); z-index:90; padding:4px;
       }
+      body.bb-doc-open.bb-menu-open .bb-actions { display:flex; }
+      body.bb-doc-open .bb-actions .bb-btn,
+      body.bb-doc-open.bb-menu-open .bb-actions .bb-phone-only {
+        display:flex; align-items:center; justify-content:flex-start;
+        min-height:44px; width:100%; padding:8px 12px; font-size:16px; font-weight:700;
+        background:transparent; border:0; border-radius:4px; color:var(--oc-text); text-align:left;
+      }
+      body.bb-doc-open .bb-actions .bb-primary { color:var(--oc-accent-text); }
+      body.bb-doc-open .bb-actions .bb-danger { color:var(--oc-danger-text); }
+      body.bb-doc-open.bb-menu-open .bb-menu-path {
+        display:block; padding:8px 12px 10px; font-size:12px; line-height:1.4;
+        color:var(--oc-text-faint); white-space:normal; word-break:break-word;
+      }
+      body.bb-editing:not(.bb-focus) .bb-savebar {
+        display:flex; position:fixed; left:0; right:0; z-index:80;
+        bottom:var(--oc-kb-inset, 0px);
+        box-sizing:border-box;
+        height:calc(48px + env(safe-area-inset-bottom, 0px));
+        padding-bottom:env(safe-area-inset-bottom, 0px);
+      }
+      body.bb-focus .oc-focus-exit:not([hidden]) { display:inline-flex; }
+      .bb-md-input, .bb-preview {
+        display:block; width:100%; overflow:visible; flex:none;
+        min-height:calc(var(--oc-vv-h, 100dvh) - 48px - env(safe-area-inset-top, 0px));
+      }
+      body.bb-editing:not(.bb-focus) .bb-md-input {
+        min-height:calc(var(--oc-vv-h, 100dvh) - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+      }
+      body.bb-focus .bb-md-input,
+      body.bb-focus .bb-preview { min-height:var(--oc-vv-h, 100dvh); }
+      .bb-md-input { overflow:hidden; resize:none; }
       .bb-search {
-        left:8px; right:8px; width:auto; top:calc(var(--oc-header-height) + 8px);
+        left:8px; right:8px; width:auto; top:8px;
         max-height:70dvh;
       }
       .bb-new-bar.open { flex-wrap:wrap; }
       .bb-new-input { font-size:16px; min-height:44px; flex:1 1 100%; }
       .bb-stats { font-size:13px; padding:8px 12px; }
+      body.bb-editing .bb-toast { bottom:calc(56px + var(--oc-kb-inset, 0px)); }
       .bb-toast { left:12px; right:12px; bottom:calc(var(--oc-bottom-nav-height) + 12px); text-align:center; }
-      .toastui-editor-contents { overflow-wrap:anywhere; }
-      .toastui-editor-contents pre { overflow-x:auto; max-width:100%; }
+      .toastui-editor-contents { overflow-wrap:break-word; }
+      .toastui-editor-contents pre { overflow-x:auto; max-width:100vw; }
     }
   </style>
 </head>
@@ -226,7 +325,7 @@
 
   <div class="oc-main-content">
     <%- include('partials/sidebar', { currentPath: '/brain' }) %>
-    <main class="oc-dashboard-area" style="padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important">
+    <main class="oc-dashboard-area bb-dash">
 
       <!-- Search panel -->
       <div class="bb-search" id="searchPanel">
@@ -272,12 +371,17 @@
               <button type="button" class="bb-back" id="docBack" onclick="closeDoc()">Back</button>
               <span class="bb-path" id="docPath"></span>
               <span class="bb-dirty" id="dirtyDot">unsaved</span>
+              <button type="button" class="bb-more" id="docMore" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" onclick="toggleDocMenu()">
+                <span class="oc-dots" aria-hidden="true"></span>
+              </button>
             </div>
-            <div class="bb-actions">
+            <div class="bb-actions" id="docActions" role="menu">
               <button type="button" class="bb-btn bb-secondary" id="modeBtn" onclick="toggleMode()">Preview</button>
               <button type="button" class="bb-btn bb-primary" id="saveBtn" onclick="saveDoc()">Save</button>
               <button type="button" class="bb-btn bb-secondary" id="historyBtn" onclick="viewHistory()">History</button>
               <button type="button" class="bb-btn bb-secondary bb-danger" id="deleteBtn" onclick="deleteDoc()">Delete</button>
+              <button type="button" class="bb-btn bb-secondary bb-phone-only" id="focusBtn" onclick="toggleFocus()">Focus</button>
+              <div class="bb-menu-path bb-phone-only" id="docMenuPath"></div>
             </div>
           </div>
 
@@ -290,6 +394,11 @@
           </div>
         </div>
       </div>
+
+      <div class="bb-savebar" id="docSavebar">
+        <button type="button" class="bb-savebar-btn" id="saveBarBtn" onclick="saveDoc()">Save</button>
+      </div>
+      <button type="button" class="oc-focus-exit" id="focusExit" hidden onclick="toggleFocus(false)">Exit focus</button>
 
     </main>
   </div>
@@ -313,7 +422,51 @@
     function phone() { return phoneQuery.matches; }
 
     function showTree() {
-      document.body.classList.remove('bb-doc-open', 'bb-editing', 'bb-previewing');
+      document.body.classList.remove('bb-doc-open', 'bb-editing', 'bb-previewing', 'bb-focus', 'bb-menu-open');
+      const exit = document.getElementById('focusExit');
+      if (exit) exit.hidden = true;
+    }
+
+    function docTitle(p) {
+      const name = String(p || '').split('/').pop().replace(/\.md$/i, '');
+      return name || 'Document';
+    }
+
+    function setPathLabel(p) {
+      const el = document.getElementById('docPath');
+      const menu = document.getElementById('docMenuPath');
+      if (el) {
+        el.title = p || '';
+        el.textContent = phone() ? docTitle(p) : (p || '');
+      }
+      if (menu) menu.textContent = p || '';
+    }
+
+    function syncSaveLabel(text) {
+      const btn = document.getElementById('saveBtn');
+      const bar = document.getElementById('saveBarBtn');
+      if (btn) btn.textContent = text;
+      if (bar) bar.textContent = text === 'Saving...' ? 'Saving...' : 'Save';
+    }
+
+    function toggleDocMenu(force) {
+      if (!phone()) return;
+      const open = typeof force === 'boolean' ? force : !document.body.classList.contains('bb-menu-open');
+      document.body.classList.toggle('bb-menu-open', open);
+      const btn = document.getElementById('docMore');
+      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    function toggleFocus(force) {
+      const on = typeof force === 'boolean' ? force : !document.body.classList.contains('bb-focus');
+      document.body.classList.toggle('bb-focus', on);
+      const exit = document.getElementById('focusExit');
+      if (exit) exit.hidden = !on;
+      const fb = document.getElementById('focusBtn');
+      if (fb) fb.textContent = on ? 'Exit focus' : 'Focus';
+      toggleDocMenu(false);
+      autosizeEditor();
+      syncViewport();
     }
 
     function showDocPane() {
@@ -433,9 +586,9 @@
       highlightActive();
 
       document.getElementById('docToolbar').style.display = 'flex';
-      document.getElementById('docPath').textContent = docPath;
+      setPathLabel(docPath);
       document.getElementById('dirtyDot').style.display = 'none';
-      document.getElementById('saveBtn').textContent = 'Save';
+      syncSaveLabel('Save');
 
       const area = document.getElementById('docArea');
       area.innerHTML = '<div class="bb-empty"><span style="font-size:2em">\u23F3</span> Loading\u2026</div>';
@@ -471,6 +624,7 @@
     }
 
     function onPhoneChange() {
+      if (currentPath) setPathLabel(currentPath);
       if (!currentPath || document.getElementById('docToolbar').style.display === 'none') {
         showTree();
         return;
@@ -485,9 +639,8 @@
     function markDirty() {
       isDirty = true;
       const dot = document.getElementById('dirtyDot');
-      const btn = document.getElementById('saveBtn');
       if (dot) dot.style.display = '';
-      if (btn) btn.textContent = 'Save*';
+      syncSaveLabel('Save*');
     }
 
     function readContent() {
@@ -502,19 +655,66 @@
     function layoutMobileDoc() {
       const editing = phone() && mobileEditor && document.body.classList.contains('bb-doc-open') && !document.body.classList.contains('bb-previewing');
       document.body.classList.toggle('bb-editing', editing);
-      if (editing) requestAnimationFrame(syncViewport);
+      if (phone() && document.body.classList.contains('bb-doc-open')) {
+        requestAnimationFrame(() => { syncViewport(); autosizeEditor(); });
+      }
     }
 
     function syncViewport() {
-      if (!document.body.classList.contains('bb-editing')) return;
+      if (!phone() || !document.body.classList.contains('bb-doc-open')) return;
       const vv = window.visualViewport;
-      const header = document.querySelector('.oc-header');
       const top = vv ? vv.offsetTop : 0;
       const height = vv ? vv.height : window.innerHeight;
-      const headerH = header ? header.offsetHeight : 48;
+      const inset = Math.max(0, window.innerHeight - height - top);
       document.documentElement.style.setProperty('--oc-vv-top', top + 'px');
-      document.documentElement.style.setProperty('--oc-shell-top', (top + headerH) + 'px');
-      document.documentElement.style.setProperty('--oc-shell-h', Math.max(160, height - headerH) + 'px');
+      document.documentElement.style.setProperty('--oc-vv-h', height + 'px');
+      document.documentElement.style.setProperty('--oc-kb-inset', inset + 'px');
+      autosizeEditor();
+      revealCaret();
+    }
+
+    function autosizeEditor() {
+      const input = document.getElementById('bb-md-input');
+      if (!input || input.hidden) return;
+      const vv = window.visualViewport;
+      const vh = vv ? vv.height : window.innerHeight;
+      const focused = document.body.classList.contains('bb-focus');
+      const editing = document.body.classList.contains('bb-editing');
+      const chrome = (focused ? 0 : 48) + (!focused && editing ? 48 : 0);
+      const min = Math.max(160, Math.round(vh - chrome));
+      input.style.height = 'auto';
+      input.style.height = Math.max(input.scrollHeight, min) + 'px';
+    }
+
+    function revealCaret() {
+      const input = document.getElementById('bb-md-input');
+      if (!input || input.hidden || document.activeElement !== input) return;
+      const pos = input.selectionStart || 0;
+      const style = getComputedStyle(input);
+      const mirror = document.createElement('div');
+      mirror.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre-wrap;word-wrap:break-word;overflow:hidden;';
+      ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','borderTopWidth','boxSizing','width'].forEach(prop => {
+        mirror.style[prop] = style[prop];
+      });
+      mirror.textContent = input.value.slice(0, pos);
+      const mark = document.createElement('span');
+      mark.textContent = input.value.slice(pos, pos + 1) || ' ';
+      mirror.appendChild(mark);
+      document.body.appendChild(mirror);
+      const caretTop = mark.offsetTop;
+      const caretH = mark.offsetHeight || 24;
+      mirror.remove();
+      const rect = input.getBoundingClientRect();
+      const vv = window.visualViewport;
+      const viewH = vv ? vv.height : window.innerHeight;
+      const focused = document.body.classList.contains('bb-focus');
+      const topGap = focused ? 12 : 56;
+      const bottomGap = focused ? 12 : 56;
+      const caretY = window.scrollY + rect.top + caretTop;
+      const visibleTop = window.scrollY + topGap;
+      const visibleBottom = window.scrollY + viewH - bottomGap;
+      if (caretY < visibleTop) window.scrollTo(0, Math.max(0, caretY - topGap));
+      else if (caretY + caretH > visibleBottom) window.scrollTo(0, caretY + caretH - viewH + bottomGap);
     }
 
     function simpleMarkdown(src) {
@@ -597,7 +797,9 @@
     function mountEditor(container, content) {
       if (editorInst) { try { editorInst.destroy(); } catch(e){} editorInst = null; }
       mobileEditor = phone();
-      container.style.cssText = 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0';
+      container.style.cssText = mobileEditor
+        ? 'display:block;overflow:visible;height:auto;min-height:0'
+        : 'flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0';
       container.innerHTML = '';
 
       if (mobileEditor) {
@@ -609,8 +811,9 @@
         input.autocomplete = 'off';
         input.autocapitalize = 'off';
         input.setAttribute('aria-label', 'Markdown editor');
-        input.addEventListener('input', markDirty);
-        input.addEventListener('focus', () => { layoutMobileDoc(); syncViewport(); });
+        input.addEventListener('input', () => { markDirty(); autosizeEditor(); revealCaret(); });
+        input.addEventListener('keyup', revealCaret);
+        input.addEventListener('focus', () => { layoutMobileDoc(); syncViewport(); revealCaret(); });
         const preview = document.createElement('div');
         preview.id = 'bb-preview';
         preview.className = 'bb-preview';
@@ -623,6 +826,7 @@
         document.body.classList.remove('bb-previewing');
         layoutMobileDoc();
         updateModeBtn();
+        requestAnimationFrame(autosizeEditor);
         return;
       }
 
@@ -673,6 +877,7 @@
         }
         layoutMobileDoc();
         updateModeBtn();
+        toggleDocMenu(false);
         return;
       }
       editorMode = editorMode === 'wysiwyg' ? 'markdown' : 'wysiwyg';
@@ -684,7 +889,7 @@
       if (!btn) return;
       if (mobileEditor) {
         const previewing = document.body.classList.contains('bb-previewing');
-        btn.textContent = previewing ? 'Markdown' : 'Preview';
+        btn.textContent = previewing ? 'Edit' : 'Preview';
         btn.setAttribute('aria-pressed', previewing ? 'true' : 'false');
         return;
       }
@@ -693,10 +898,14 @@
 
     /* ── Save ────────────────────────────────────────────────────────── */
     async function saveDoc() {
+      toggleDocMenu(false);
       if (!currentPath || (!editorInst && !mobileEditor)) return;
       const content = readContent();
       const btn = document.getElementById('saveBtn');
-      btn.disabled = true; btn.textContent = 'Saving...';
+      const bar = document.getElementById('saveBarBtn');
+      btn.disabled = true;
+      if (bar) bar.disabled = true;
+      syncSaveLabel('Saving...');
       const result = await api(
         '/api/brain/doc?path=' + encodeURIComponent(currentPath),
         {
@@ -706,13 +915,14 @@
         }
       );
       btn.disabled = false;
+      if (bar) bar.disabled = false;
       if (result.ok) {
         isDirty = false;
         document.getElementById('dirtyDot').style.display = 'none';
-        btn.textContent = 'Save';
+        syncSaveLabel('Save');
         showToast('Saved', 'var(--oc-accent)');
       } else {
-        btn.textContent = 'Save*';
+        syncSaveLabel('Save*');
         showToast(result.error || 'Save failed', 'var(--oc-danger)');
       }
     }
@@ -820,7 +1030,17 @@
       if (e.key === 'Escape') {
         document.getElementById('searchPanel').classList.remove('open');
         document.getElementById('newBar').classList.remove('open');
+        if (document.body.classList.contains('bb-focus')) toggleFocus(false);
+        else toggleDocMenu(false);
       }
+    });
+    document.addEventListener('click', e => {
+      if (!document.body.classList.contains('bb-menu-open')) return;
+      if (e.target.closest && e.target.closest('#docToolbar')) return;
+      toggleDocMenu(false);
+    });
+    document.addEventListener('selectionchange', () => {
+      if (document.activeElement && document.activeElement.id === 'bb-md-input') revealCaret();
     });
 
     boot();
