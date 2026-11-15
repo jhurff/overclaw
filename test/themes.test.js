@@ -265,3 +265,27 @@ test('HTTP routes switch, reset, reject a bad import, and refuse to delete Matri
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('user pack paths stay inside themes/ (CodeQL js/path-injection)', () => {
+  const { root, store } = tempStore();
+  const userRoot = path.resolve(root, 'themes');
+  assert.equal(store._userPackDir('harbor'), path.join(userRoot, 'harbor'));
+  for (const bad of ['../harbor', '..', '.', 'a/b', 'a\\b', '/etc', 'Harbor', '', '__proto__', 'x'.repeat(41), null, 42]) {
+    assert.throws(() => store._userPackDir(bad), ThemeError, String(bad));
+  }
+  const dir = store._userPackDir('harbor');
+  assert.equal(store._userPackFile(dir, 'theme.json'), path.join(dir, 'theme.json'));
+  for (const bad of ['../theme.json', '../../ui-settings.json', 'sub/theme.json', '/etc/passwd']) {
+    assert.throws(() => store._userPackFile(dir, bad), ThemeError, bad);
+  }
+  // A forged pack that skipped validation still cannot write outside themes/.
+  assert.throws(() => store._writeUserPack({ id: '../escape', name: 'x', tokens: {}, fonts: {}, effects: [] }), ThemeError);
+  assert.equal(fs.existsSync(path.join(root, 'escape')), false);
+  assert.throws(() => store.remove('../themes'), ThemeError);
+  assert.equal(fs.existsSync(root), true);
+  // Normal import still lands in themes/<id>/.
+  store.importJson(harborPack('harbor'));
+  assert.equal(fs.existsSync(path.join(userRoot, 'harbor', 'theme.json')), true);
+  store.remove('harbor');
+  assert.equal(fs.existsSync(path.join(userRoot, 'harbor')), false);
+});
