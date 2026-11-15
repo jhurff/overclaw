@@ -2832,15 +2832,23 @@ app.get('/api/brain/tree', brainAuth, (req, res) => {
   res.json(tree);
 });
 
-// GET /api/brain/search?q=&dir=&limit=
+// GET /api/brain/search?q=&dir=&limit=&offset=
+// Prefix search of title, path, and content. limit is capped at 50.
 app.get('/api/brain/search', brainAuth, (req, res) => {
   if (!requireBrain(req, res)) return;
-  const q     = req.query.q || '';
-  const dir   = req.query.dir || '';
-  const limit = parseInt(req.query.limit) || 20;
+  const q = String(req.query.q || '');
+  const dir = String(req.query.dir || '');
+  const requested = parseInt(req.query.limit, 10);
+  const limit = Math.min(50, Math.max(1, Number.isFinite(requested) && requested > 0 ? requested : 20));
+  const offsetRaw = parseInt(req.query.offset, 10);
+  const offset = Number.isFinite(offsetRaw) && offsetRaw > 0 ? offsetRaw : 0;
   if (!q.trim()) return res.status(400).json({ error: 'q required' });
-  const results = brainStore.search(q, { limit, dir });
-  res.json({ q, results });
+  try {
+    const page = brainStore.search(q, { limit, dir, offset, detail: true });
+    res.json({ q, total: page.total, offset: page.offset, limit: page.limit, results: page.results });
+  } catch (err) {
+    res.json({ q, total: 0, offset, limit, results: [] });
+  }
 });
 
 // GET /api/brain/history?path=&limit=
