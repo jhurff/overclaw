@@ -175,13 +175,15 @@
       canvas.style.width = window.innerWidth + 'px';
       canvas.style.height = window.innerHeight + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var cols = Math.max(8, Math.min(36, Math.floor(window.innerWidth / 22)));
+      var cols = Math.max(12, Math.min(90, Math.floor(window.innerWidth / 18)));
       drops = [];
       for (var i = 0; i < cols; i++) {
         drops.push({
           x: (i + 0.5) * (window.innerWidth / cols),
           y: Math.random() * window.innerHeight,
-          speed: 28 + Math.random() * 48
+          speed: 40 + Math.random() * 70,
+          len: 8 + Math.floor(Math.random() * 14),
+          seed: Math.floor(Math.random() * 1000)
         });
       }
     }
@@ -202,13 +204,26 @@
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       var color = (getComputedStyle(document.documentElement).getPropertyValue('--oc-accent') || '#00ff41').trim();
       ctx.fillStyle = color;
-      ctx.font = '14px ui-monospace, monospace';
+      var size = 16;
+      ctx.font = size + 'px ui-monospace, monospace';
+      var tick = Math.floor(ts / 90);
       for (var i = 0; i < drops.length; i++) {
         var d = drops[i];
         d.y += d.speed * dt;
-        if (d.y > window.innerHeight + 20) d.y = -20;
-        ctx.globalAlpha = 0.35 + (i % 5) * 0.08;
-        ctx.fillText(glyphs.charAt((i + Math.floor(ts / 120)) % glyphs.length), d.x, d.y);
+        if (d.y - d.len * size > window.innerHeight) d.y = -Math.random() * 200;
+        for (var k = 0; k < d.len; k++) {
+          var gy = d.y - k * size;
+          if (gy < -size || gy > window.innerHeight + size) continue;
+          var g = glyphs.charAt((d.seed + k * 7 + (k === 0 ? tick : Math.floor(tick / (k + 1)))) % glyphs.length);
+          if (k === 0) {
+            ctx.fillStyle = '#d8ffe0';
+            ctx.globalAlpha = 1;
+          } else {
+            ctx.fillStyle = color;
+            ctx.globalAlpha = Math.max(0.08, 1 - k / d.len);
+          }
+          ctx.fillText(g, d.x, gy);
+        }
       }
       ctx.globalAlpha = 1;
       rainState.raf = requestAnimationFrame(frame);
