@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/document-head') %>
+  <style>
+    .ap-list { display:grid; gap:0.75rem; margin-top:1rem; }
+    .ap-row { border:1px solid var(--oc-border); border-radius:6px; padding:0.75rem; background:var(--oc-bg-card); }
+    .ap-row h3 { margin:0 0 0.25rem; font-size:1rem; }
+    .ap-meta { font-size:0.8rem; color:var(--oc-text-muted); margin-bottom:0.5rem; }
+    .ap-row input { width:100%; box-sizing:border-box; margin:0.2rem 0 0.5rem; padding:0.5rem; font-size:16px;
+      background:var(--oc-bg); color:var(--oc-text); border:1px solid var(--oc-border); border-radius:4px; }
+    .ap-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .ap-actions button { min-height:44px; padding:0 1rem; }
+    .ap-ok { color:var(--oc-success,#39ff6a); } .ap-bad { color:var(--oc-danger,#ff5c5c); }
+    details summary { cursor:pointer; min-height:44px; display:flex; align-items:center; }
+  </style>
+</head>
+<body>
+  <%- include('partials/app-header') %>
+  <div class="oc-main-content">
+    <%- include('partials/sidebar', { currentPath: '/settings/agent-pings' }) %>
+    <main class="oc-dashboard-area">
+      <div class="oc-card full-width">
+        <h1>Agent Pings</h1>
+        <p>When you assign a task, OverClaw calls that agent's webhook routine so it wakes up and picks the task up right away. Paste each agent's webhook URL and sender key from its routine panel in Grok Bot. Keys are stored on this server only and are never shown again.</p>
+        <div id="ap-error" class="ap-bad" role="alert"></div>
+        <div class="ap-list" id="ap-list">Loading…</div>
+      </div>
+    </main>
+  </div>
+  <%- include('partials/chrome-end') %>
+  <script>
+  (function () {
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+    var listEl = document.getElementById('ap-list');
+    var errEl = document.getElementById('ap-error');
+    function load() {
+      fetch('/api/agent-webhooks').then(function (r) { return r.json(); }).then(function (d) {
+        var hooks = d.webhooks || {};
+        listEl.innerHTML = (d.agents || []).map(function (a) {
+          var h = hooks[a.key] || {};
+          var name = String(a.label || a.key).split('\u2014')[0].trim();
+          var status = h.configured
+            ? '<span class="ap-ok">Connected</span> to ' + esc(h.host) + (h.hasSecret ? ' with key' : ' (no key)') +
+              (h.lastStatus ? ' · last ping ' + esc(h.lastStatus) + (h.lastAt ? ' at ' + esc(new Date(h.lastAt).toLocaleString()) : '') : '')
+            : 'Not connected';
+          return '<div class="ap-row" data-key="' + esc(a.key) + '">' +
+            '<h3>' + esc(name) + '</h3><div class="ap-meta">' + esc(a.platform || '') + ' · ' + status + '</div>' +
+            '<details' + (h.configured ? '' : ' open') + '><summary>' + (h.configured ? 'Change' : 'Connect') + '</summary>' +
+            '<label>Webhook URL<input name="url" type="url" inputmode="url" autocomplete="off" placeholder="https://…"></label>' +
+            '<label>Sender key<input name="secret" type="password" autocomplete="off" placeholder="' + (h.hasSecret ? 'Leave blank to keep current key' : '') + '"></label>' +
+            '<label>Key header<input name="header" type="text" autocomplete="off" value="' + esc(h.header || 'Authorization') + '"></label>' +
+            '</details>' +
+            '<div class="ap-actions"><button type="button" data-act="save">Save</button>' +
+            (h.configured ? '<button type="button" data-act="test">Send test ping</button><button type="button" data-act="remove">Remove</button>' : '') +
+            '<span class="ap-result"></span></div></div>';
+        }).join('') || 'No agents found in the Agent Registry.';
+      }).catch(function (e) { errEl.textContent = e.message; });
+    }
+    listEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var row = btn.closest('.ap-row');
+      var key = row.getAttribute('data-key');
+      var out = row.querySelector('.ap-result');
+      var act = btn.getAttribute('data-act');
+      out.textContent = '…';
+      var req;
+      if (act === 'save') {
+        req = fetch('/api/agent-webhooks/' + encodeURIComponent(key), { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: row.querySelector('[name=url]').value.trim(), secret: row.querySelector('[name=secret]').value, header: row.querySelector('[name=header]').value.trim() }) });
+      } else if (act === 'test') {
+        req = fetch('/api/agent-webhooks/' + encodeURIComponent(key) + '/test', { method: 'POST' });
+      } else {
+        req = fetch('/api/agent-webhooks/' + encodeURIComponent(key), { method: 'DELETE' });
+      }
+      req.then(function (r) { return r.json(); }).then(function (d) {
+        if (d.error) { out.textContent = d.error; out.className = 'ap-result ap-bad'; return; }
+        if (act === 'test') {
+          out.textContent = d.sent ? 'Ping delivered (' + d.status + ')' : 'Ping failed: ' + (d.error || d.status || d.skipped);
+          out.className = 'ap-result ' + (d.sent ? 'ap-ok' : 'ap-bad');
+          return;
+        }
+        load();
+      }).catch(function (err) { out.textContent = err.message; });
+    });
+    load();
+  })();
+  </script>
+</body>
+</html>
