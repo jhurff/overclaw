@@ -37,3 +37,56 @@ test('forgives key pasted into header box or with Bearer prefix', () => {
   w.set('gunny', { url: 'https://h.example/x', secret: 'Bearer crsr_s', header: 'Authorization' });
   assert.equal(w.get('gunny').secret, 'crsr_s');
 });
+
+test("notifyAssignment pings the owner and Gunny, and does not double-ping Gunny", async () => {
+  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "oc-wh-")), "hooks.json");
+  const w = new AgentWebhooks(f);
+  w.set("luther", { url: "https://hooks.example/luther", secret: "luth" });
+  w.set("gunny", { url: "https://hooks.example/gunny", secret: "gunn" });
+  const sent = [];
+  const fake = async (url, opts) => {
+    sent.push({ url, body: JSON.parse(opts.body) });
+    return { ok: true, status: 200 };
+  };
+  const payload = { taskId: "TASK-1", title: "A task", fromSection: "inProgress" };
+  const r = await w.notifyAssignment("luther", payload, fake);
+  assert.equal(r.ping.sent, true);
+  assert.equal(r.cosPing.sent, true);
+  assert.equal(sent.length, 2);
+  assert.equal(sent[0].url, "https://hooks.example/luther");
+  assert.equal(sent[0].body.agent, "luther");
+  assert.equal(sent[0].body.taskId, "TASK-1");
+  assert.equal(sent[0].body.fromSection, "inProgress");
+  assert.equal(sent[0].body.event, "task.assigned");
+  assert.equal(sent[1].url, "https://hooks.example/gunny");
+  // CoS payload is the same plus the new agent and fromSection
+  assert.equal(sent[1].body.agent, "luther");
+  assert.equal(sent[1].body.taskId, "TASK-1");
+  assert.equal(sent[1].body.fromSection, "inProgress");
+  assert.equal(sent[1].body.title, "A task");
+
+  sent.length = 0;
+  const g = await w.notifyAssignment("gunny", payload, fake);
+  assert.equal(g.ping.sent, true);
+  assert.equal(g.cosPing.skipped, "same as owner");
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].url, "https://hooks.example/gunny");
+  assert.equal(sent[0].body.agent, "gunny");
+});
+
+test("notifyAssignment skipOwner still pings Gunny", async () => {
+  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "oc-wh-")), "hooks.json");
+  const w = new AgentWebhooks(f);
+  w.set("gunny", { url: "https://hooks.example/gunny", secret: "gunn" });
+  const sent = [];
+  const fake = async (url, opts) => {
+    sent.push({ url, body: JSON.parse(opts.body) });
+    return { ok: true, status: 200 };
+  };
+  const r = await w.notifyAssignment("jimmy", { taskId: "TASK-2", fromSection: "inbox" }, fake, { skipOwner: true });
+  assert.equal(r.ping.skipped, "operator");
+  assert.equal(r.cosPing.sent, true);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].body.agent, "jimmy");
+  assert.equal(sent[0].body.fromSection, "inbox");
+});
