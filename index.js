@@ -1489,15 +1489,18 @@ app.post('/api/vault/task', async (req, res) => {
     const taskBase = require('path').basename(relPath, '.md');
     const synced   = await vaultSync(`task: update ${taskBase.slice(0, 80)}`);
     let ping = null;
+    let cosPing = null;
     const newAgent = String(updates.assigned_to || '').trim().toLowerCase();
     const opKey = (instanceConfig.readInstanceConfig().operatorFilterKey || 'operator').toLowerCase();
-    if (newAgent && newAgent !== prevAgent && newAgent !== opKey) {
-      ping = await agentWebhooks.notify(newAgent, {
+    if (newAgent && newAgent !== prevAgent) {
+      const pings = await agentWebhooks.notifyAssignment(newAgent, {
         taskId: taskBase, title: String(updates.title || taskBase).slice(0, 120),
         fromSection: 'edit', taskPath: relPath, assignedAt: new Date().toISOString(),
-      });
+      }, undefined, { skipOwner: newAgent === opKey });
+      ping = pings.ping;
+      cosPing = pings.cosPing;
     }
-    res.json({ ok: true, synced: synced.ok, syncWarning: synced.ok ? null : synced.stderr, ping });
+    res.json({ ok: true, synced: synced.ok, syncWarning: synced.ok ? null : synced.stderr, ping, cosPing });
   } catch (err) {
     const code = err.message.includes('scope') ? 403 : 500;
     res.status(code).json({ error: err.message });
@@ -1905,16 +1908,17 @@ app.post('/api/vault/task-board/assign', async (req, res) => {
         wake = 'sent';
       } catch (we) { console.warn('Tier-1 wake (non-fatal):', we.message); wake = 'failed: ' + we.message; }
     }
-    // Tier 0 — instant ping to the agent's webhook routine (Grok Bot), non-fatal
-    let ping = null;
-    if (agentKey.toLowerCase() !== (instanceConfig.readInstanceConfig().operatorFilterKey || 'operator').toLowerCase()) {
-      ping = await agentWebhooks.notify(agentKey, {
-        taskId, title: taskTitle, fromSection,
-        taskPath: '03 - Agents/Coordination/Tasks/' + taskId + '.md',
-        assignedAt: new Date().toISOString(),
-      });
-    }
-    res.json({ ok: true, synced: true, via: written.via, taskId, agentKey, fromSection, notified, wake, ping, assignedAt: new Date().toISOString() });
+    // Tier 0 — instant ping to the agent's webhook routine (Grok Bot), non-fatal.
+    // Also notify the Chief of Staff (Gunny) unless the new owner already is Gunny.
+    const opKey = (instanceConfig.readInstanceConfig().operatorFilterKey || 'operator').toLowerCase();
+    const pings = await agentWebhooks.notifyAssignment(agentKey, {
+      taskId, title: taskTitle, fromSection,
+      taskPath: '03 - Agents/Coordination/Tasks/' + taskId + '.md',
+      assignedAt: new Date().toISOString(),
+    }, undefined, { skipOwner: agentKey.toLowerCase() === opKey });
+    const ping = pings.ping;
+    const cosPing = pings.cosPing;
+    res.json({ ok: true, synced: true, via: written.via, taskId, agentKey, fromSection, notified, wake, ping, cosPing, assignedAt: new Date().toISOString() });
   } catch (err) {
     console.error('Assign failed for ' + taskId + ': ' + err.message);
     res.status(500).json({ error: 'Assign failed', details: err.message });
