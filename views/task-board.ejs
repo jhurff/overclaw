@@ -1374,8 +1374,7 @@
 
     initDragDrop();
     initCardModal();
-    loadBoard();
-    setInterval(loadBoard, 60000);
+    // First loadBoard() runs after loadAssignOptions() at the bottom of this script.
 
     /* ── Mobile column tabs ── */
     (function () {
@@ -1588,7 +1587,25 @@
     window.__OC_OPERATOR_KEY__ = 'operator';
     window.__OC_ASSIGN_OPTIONS_HTML__ = '';
     window.__OC_AGENT_COLORS__ = {};
-    fetch('/api/instance').then(r=>r.json()).then(inst=>{
+
+    function applyAssignOptions(html) {
+      window.__OC_ASSIGN_OPTIONS_HTML__ = html || '';
+      const dp = document.getElementById('dp-agent-select');
+      if (dp) {
+        const cur = dp.value;
+        dp.innerHTML = '<option value="">Pick agent…</option>' + window.__OC_ASSIGN_OPTIONS_HTML__;
+        if (cur) dp.value = cur;
+      }
+      document.querySelectorAll('.assign-select').forEach(sel => {
+        const cur = sel.value;
+        const first = sel.querySelector('option');
+        const placeholder = first ? first.outerHTML : '<option value="">Pick agent…</option>';
+        sel.innerHTML = placeholder + window.__OC_ASSIGN_OPTIONS_HTML__;
+        if (cur) sel.value = cur;
+      });
+    }
+
+    function applyInstanceRoster(inst) {
       const opKey = (inst.operatorFilterKey || inst.agentDisplay && Object.keys(inst.agentDisplay).find(k => (inst.agentDisplay[k]||'').toLowerCase()===String(inst.operatorName||'').toLowerCase()) || 'operator').toLowerCase();
       window.__OC_OPERATOR_KEY__ = opKey;
       const opName = inst.operatorName || 'Operator';
@@ -1618,11 +1635,34 @@
         opts.push(`<option value="${key}">${label}</option>`);
       }
       if (!seenOpt.has(opKey)) opts.push(`<option value="${opKey}">${opName}</option>`);
-      window.__OC_ASSIGN_OPTIONS_HTML__ = opts.join('');
-      const dp=document.getElementById('dp-agent-select');
-      if (dp) dp.innerHTML = '<option value="">Pick agent…</option>' + window.__OC_ASSIGN_OPTIONS_HTML__;
+      applyAssignOptions(opts.join(''));
+    }
 
-    }).catch(()=>{});
+    async function loadAssignOptions(attempt) {
+      attempt = attempt || 1;
+      const maxAttempts = 4;
+      try {
+        const r = await fetch('/api/instance');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const inst = await r.json();
+        applyInstanceRoster(inst);
+        if (!window.__OC_ASSIGN_OPTIONS_HTML__) {
+          throw new Error('agent roster was empty');
+        }
+      } catch (err) {
+        console.warn('Failed to load agent roster (attempt ' + attempt + '/' + maxAttempts + '):', err);
+        if (attempt < maxAttempts) {
+          await new Promise(res => setTimeout(res, 500 * attempt));
+          return loadAssignOptions(attempt + 1);
+        }
+      }
+    }
+
+    loadAssignOptions().finally(() => {
+      loadBoard();
+      setInterval(loadBoard, 60000);
+    });
+
 </script>
 
 <div id="task-modal-overlay" class="tm-overlay">
